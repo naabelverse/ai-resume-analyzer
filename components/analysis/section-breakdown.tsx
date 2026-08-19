@@ -11,10 +11,16 @@ const SECTION_LABEL: Record<string, string> = {
   formatting: "Formatting",
 };
 
+/**
+ * `fail` is every section scoring below 50, not an absent one. This read
+ * "Missing", which was untrue of a section scoring 40 whose note said the
+ * bullets were present but described duties instead of outcomes. The label has
+ * to be a grade so that it stays true at 0 and at 49 alike.
+ */
 const STATUS_LABEL: Record<Status, string> = {
   pass: "Pass",
   warn: "Needs work",
-  fail: "Missing",
+  fail: "Poor",
 };
 
 const BAR_TONE: Record<Status, string> = {
