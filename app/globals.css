@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens
+   Every colour, radius, shadow and font weight in the app resolves to one of
+   these. Dark mode is deliberately out of scope — do not add a
+   prefers-color-scheme block here.
+--------------------------------------------------------------------------- */
+:root {
+  /* Ink */
+  --ink: #0b1220;
+  --ink-soft: #475069;
+
+  /* Brand */
+  --brand-600: #2563eb;
+  --brand-500: #3b82f6;
+  --violet-600: #7c3aed;
+
+  /* Status */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --line: #e9e7f5;
+  --canvas: linear-gradient(180deg, #fbfaff 0%, #f4f1fc 100%);
+
+  /* The one gradient: wordmark, gauge stroke, progress fills */
+  --grad-brand: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+
+  /* Derived tints — chips, icon squares, hover states */
+  --brand-tint: #eff4ff;
+  --success-tint: #e7f8ee;
+  --warning-tint: #fef3e2;
+  --danger-tint: #feecec;
+  --muted-tint: #f1f2f6;
+  --gauge-track: #eef0f8;
+
+  /* Rhythm */
+  --pad-card: 24px;
+  --pad-panel: 16px;
+  --shell-max: 1200px;
+}
+
+/* Expose tokens to Tailwind as utilities (text-ink, bg-surface, border-line…) */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-brand-600: var(--brand-600);
+  --color-brand-500: var(--brand-500);
+  --color-violet-600: var(--violet-600);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-brand-tint: var(--brand-tint);
+  --color-success-tint: var(--success-tint);
+  --color-warning-tint: var(--warning-tint);
+  --color-danger-tint: var(--danger-tint);
+  --color-muted-tint: var(--muted-tint);
+  --color-gauge-track: var(--gauge-track);
+
+  /* next/font sets --font-jakarta and --font-inter on <html> */
+  --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-inter), "Segoe UI", Arial, sans-serif;
+}
+
+/* Shape and depth — generates rounded-card, rounded-panel, shadow-card… */
+@theme {
+  --radius-card: 20px;
+  --radius-panel: 16px;
+  --radius-control: 10px;
+  --shadow-card: 0 8px 24px -12px rgb(16 24 40 / 0.1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--canvas);
+    background-attachment: fixed;
+    color: var(--ink-soft);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  /* Keyboard users must always be able to see where they are. */
+  :focus-visible {
+    outline: 2px solid var(--brand-600);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .shell {
+    width: 100%;
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    padding-inline: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    padding: var(--pad-card);
+  }
+
+  /* Inner panels: the dashed upload area and its siblings. */
+  .panel {
+    border: 1.5px dashed var(--line);
+    border-radius: 16px;
+    padding: var(--pad-panel);
+  }
+
+  .gradient-text {
+    background: var(--grad-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .gradient-fill {
+    background: var(--grad-brand);
+  }
+
+  /*
+    Card entrance. Driven by CSS rather than JS so the server and client
+    render identical markup (a JS-gated variant caused a hydration mismatch),
+    and so the content still appears if JS never runs. The stagger comes from
+    an inline animation-delay; `both` keeps the card hidden until its turn.
+    The reduced-motion block below collapses the duration, which lands the
+    element on its final frame immediately.
+  */
+  .reveal {
+    animation: reveal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Respect the OS setting: no transforms, final state shown immediately. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
