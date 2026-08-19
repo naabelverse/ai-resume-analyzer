@@ -516,6 +516,30 @@ tests/        118 tests; fixtures are built in memory, not committed
 
 ---
 
+## Known UI issues
+
+Real, understood, and not yet fixed. Written down so they get found on purpose
+rather than rediscovered.
+
+- **Hit areas below the 40px minimum.** `size="sm"` buttons are 36px tall, the
+  copy button on each bullet rewrite overrides that down to 28px, and the
+  delete control in the history list is 36px. A pointer target wants at least
+  40px and ideally 44px. The fix is an expanded pseudo-element rather than a
+  bigger visible control, so no layout has to move — but the expanded areas
+  must not overlap, which is why it is not a one-line change.
+- **`.panel` means two different things.** It is the dashed, interactive drop
+  target on the landing page, and it is also the non-interactive empty state
+  on the dashboard and inside the keyword-match card. Identical dashed borders
+  invite a drop onto something that cannot accept one. The two cases want
+  separate treatments; today they share a class because they shared a look.
+- **The scanning and degraded states have never been reviewed on screen.**
+  Both need a real upload to appear — the scanning card while the request is
+  in flight, the degraded banner when the AI leg fails — so the design pass
+  reasoned about them in code without seeing either rendered. Exercise them
+  against a dead `NVIDIA_API_KEY` before trusting how they look.
+
+---
+
 ## What I would build next
 
 1. **Stream the analysis.** Feedback items appearing one at a time instead of
