@@ -14,7 +14,7 @@ export default function DashboardPage() {
     <main className="pb-20">
       <Header />
 
-      <div className="shell max-w-[760px]">
+      <div className="shell">
         <Reveal index={0}>
           <Card>
             <CardTitle>Past analyses</CardTitle>

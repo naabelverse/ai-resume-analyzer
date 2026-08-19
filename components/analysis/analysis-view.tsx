@@ -100,10 +100,50 @@ export function AnalysisView({ id }: { id: string }) {
         </Reveal>
       )}
 
-      <div className="grid grid-cols-1 gap-5 min-[900px]:grid-cols-12 min-[900px]:items-start">
-        {/* Left column — 5 of 12 */}
-        <div className="contents min-[900px]:col-span-5 min-[900px]:flex min-[900px]:flex-col min-[900px]:gap-5">
-          <Reveal index={0} className="order-1">
+      {/*
+        The verdict leads. It used to sit at the top of the right-hand column
+        of a 5/7 split, which buried the one number the page exists to deliver
+        and left the shorter left column dead-ending against a much taller
+        neighbour. Full width also lets the summary and the rationale sit side
+        by side, each at a readable measure, rather than stacking into a narrow
+        strip beside the gauge.
+      */}
+      <Reveal index={0}>
+        <Card>
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
+            <ScoreGauge score={analysis.overallScore} verdict={analysis.verdict} />
+            <div className="grid min-w-0 flex-1 gap-5 min-[1040px]:grid-cols-2 min-[1040px]:gap-8">
+              <div className="min-w-0">
+                <CardTitle>Resume score</CardTitle>
+                <p className="mt-2 text-body leading-relaxed text-ink-soft">
+                  {analysis.summary}
+                </p>
+              </div>
+              {/*
+                The model's own justification for the band it chose. Shown
+                rather than hidden: a score with visible reasoning behind it
+                can be argued with, and one without it can only be believed
+                or ignored.
+              */}
+              <p className="min-w-0 border-t border-line pt-4 text-note leading-relaxed text-ink-soft min-[1040px]:border-t-0 min-[1040px]:border-l min-[1040px]:pt-0 min-[1040px]:pl-8">
+                <span className="font-medium text-ink">Why this score: </span>
+                {analysis.scoreRationale}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </Reveal>
+
+      {/*
+        Two even columns, loaded so they end near together: section breakdown
+        is far and away the tallest panel, so it carries one column almost by
+        itself while the two mid-sized panels share the other. Pairing it with
+        anything else is what left the short column dead-ending halfway down
+        the page under the old 5/7 split.
+      */}
+      <div className="mt-5 grid grid-cols-1 items-start gap-5 min-[900px]:grid-cols-2">
+        <div className="flex flex-col gap-5">
+          <Reveal index={1}>
             <Card>
               <CardTitle>Your resume</CardTitle>
               <p className="mt-2 truncate text-body font-medium text-ink" title={fileName}>
@@ -125,52 +165,7 @@ export function AnalysisView({ id }: { id: string }) {
             </Card>
           </Reveal>
 
-          <Reveal index={3} className="order-4">
-            <Card>
-              <CardTitle>AI feedback</CardTitle>
-              <div className="mt-1">
-                <FeedbackList items={analysis.feedback} />
-              </div>
-            </Card>
-          </Reveal>
-        </div>
-
-        {/* Right column — 7 of 12 */}
-        <div className="contents min-[900px]:col-span-7 min-[900px]:flex min-[900px]:flex-col min-[900px]:gap-5">
-          <Reveal index={2} className="order-3">
-            <Card>
-              <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
-                <ScoreGauge score={analysis.overallScore} verdict={analysis.verdict} />
-                <div className="min-w-0">
-                  <CardTitle>Resume score</CardTitle>
-                  <p className="mt-2 text-body leading-relaxed text-ink-soft">
-                    {analysis.summary}
-                  </p>
-                  {/*
-                    The model's own justification for the band it chose. Shown
-                    rather than hidden: a score with visible reasoning behind it
-                    can be argued with, and one without it can only be believed
-                    or ignored.
-                  */}
-                  <p className="mt-3 border-t border-line pt-3 text-note leading-relaxed text-ink-soft">
-                    <span className="font-medium text-ink">Why this score: </span>
-                    {analysis.scoreRationale}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Reveal>
-
-          <Reveal index={4} className="order-5">
-            <Card>
-              <CardTitle>Keyword match</CardTitle>
-              <div className="mt-4">
-                <KeywordMatchPanel data={analysis.keywordMatch} />
-              </div>
-            </Card>
-          </Reveal>
-
-          <Reveal index={5} className="order-6">
+          <Reveal index={2}>
             <Card>
               <CardTitle>Section breakdown</CardTitle>
               <div className="mt-4">
@@ -179,9 +174,29 @@ export function AnalysisView({ id }: { id: string }) {
             </Card>
           </Reveal>
         </div>
+
+        <div className="flex flex-col gap-5">
+          <Reveal index={3}>
+            <Card>
+              <CardTitle>AI feedback</CardTitle>
+              <div className="mt-1">
+                <FeedbackList items={analysis.feedback} />
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal index={4}>
+            <Card>
+              <CardTitle>Keyword match</CardTitle>
+              <div className="mt-4">
+                <KeywordMatchPanel data={analysis.keywordMatch} />
+              </div>
+            </Card>
+          </Reveal>
+        </div>
       </div>
 
-      <Reveal index={6} className="mt-5">
+      <Reveal index={5} className="mt-5">
         <Card>
           <CardTitle>Suggested bullet rewrites</CardTitle>
           <div className="mt-4">
@@ -191,7 +206,7 @@ export function AnalysisView({ id }: { id: string }) {
       </Reveal>
 
       {analysis.redFlags.length > 0 && (
-        <Reveal index={7} className="mt-5">
+        <Reveal index={6} className="mt-5">
           <Card>
             <CardTitle>Red flags</CardTitle>
             <ul className="mt-4 flex flex-col gap-2">

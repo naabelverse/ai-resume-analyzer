@@ -150,22 +150,40 @@ export function AnalyzeForm() {
 
   return (
     <div>
-      <Dropzone
-        fileName={file?.name ?? null}
-        status={status}
-        onFileSelected={handleFile}
-      />
-      {errorCode && <InlineError code={errorCode} />}
+      {/*
+        Two columns once there is room for them: the drop target is the
+        primary action and keeps the left, the optional job description and
+        the submit sit right. Below the breakpoint the grid collapses to one
+        column and its gap supplies the vertical rhythm the children no
+        longer carry themselves.
+      */}
+      <div className="grid gap-5 min-[880px]:grid-cols-2 min-[880px]:gap-7">
+        <div>
+          <Dropzone
+            fileName={file?.name ?? null}
+            status={status}
+            onFileSelected={handleFile}
+          />
+          {errorCode && <InlineError code={errorCode} />}
+        </div>
 
-      <JobDescriptionInput value={jobDescription} onChange={setJobDescription} />
+        <JobDescriptionInput value={jobDescription} onChange={setJobDescription} />
+      </div>
 
+      {/* Full width: this is the progress of the form, not of either column. */}
       {busy && (
         <div className="panel mt-5">
           <ScanningCard stageIndex={stageIndex} progress={progress} />
         </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between gap-3">
+      {/*
+        The action spans both columns rather than sitting under the job
+        description. Pinning it to the foot of the right column left a hole
+        between it and the collapsed trigger above; as a footer it closes the
+        card and reads as belonging to the whole form, which it does.
+      */}
+      <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-5">
         <p className="text-caption text-ink-soft">
           {busy
             ? "Working — open-weight models take a little longer, usually 20 to 60 seconds."

@@ -36,7 +36,7 @@ export function JobDescriptionInput({
   }
 
   return (
-    <Collapsible.Root open={open} onOpenChange={setOpen} className="mt-4">
+    <Collapsible.Root open={open} onOpenChange={setOpen}>
       <Collapsible.Trigger
         className={cn(
           "flex w-full items-center justify-between gap-2 rounded-control px-1 py-2",
