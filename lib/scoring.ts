@@ -2,6 +2,7 @@ import { clampToWord as cap } from "@/lib/text";
 import {
   FIELD_CAPS,
   SECTION_NAMES,
+  STATUS_THRESHOLDS,
   deriveVerdict,
   type AnalysisResult,
   type FeedbackItem,
@@ -112,8 +113,8 @@ export function summariseChecksForModel(checks: DeterministicChecks): string {
 }
 
 function statusFor(score: number): Status {
-  if (score >= 75) return "pass";
-  if (score >= 50) return "warn";
+  if (score >= STATUS_THRESHOLDS.pass) return "pass";
+  if (score >= STATUS_THRESHOLDS.warn) return "warn";
   return "fail";
 }
 

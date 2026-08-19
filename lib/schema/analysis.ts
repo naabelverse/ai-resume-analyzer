@@ -76,6 +76,37 @@ export const ARRAY_CAPS = {
 } as const;
 
 export const StatusSchema = z.enum(["pass", "warn", "fail"]);
+
+/**
+ * What the three statuses mean, stated once and attached to every field that
+ * uses them.
+ *
+ * The enum shipped with no definition anywhere: not here, not in the system
+ * prompt, which mentioned status exactly once — the rule that a genuine
+ * strength must produce a "pass". A three-value enum with a rule attached to
+ * one value reads as a binary, and the model duly used it as one. Measured
+ * across nine live calls: strong.txt came back 8/8 "pass" and middling.txt 8/8
+ * "fail", with "warn" never once emitted. The model was grading the RESUME and
+ * stamping every item with that grade, which is how a resume could score 62,
+ * render "Good work" on the gauge, and list eight red failures underneath it.
+ *
+ * `statusFor` in `lib/scoring.ts` already defined these thresholds for the
+ * degraded path. Only the model was never told.
+ */
+/**
+ * Where a score becomes a status. `lib/scoring.ts` routes the degraded path's
+ * section scores through these, and the section `status` description below is
+ * built from them, so the model is told the same boundaries the code applies
+ * rather than a hand-copied paraphrase of them.
+ */
+export const STATUS_THRESHOLDS = { pass: 75, warn: 50 } as const;
+
+export const STATUS_MEANING =
+  "pass = this specific thing is done well and needs no change. " +
+  "warn = this specific thing works but has a real weakness worth fixing. " +
+  "fail = this specific thing is a concrete problem that costs interviews. " +
+  "The status describes THAT ONE FINDING, not the resume overall: a strong " +
+  "resume still has warn items and a weak one still has something that passes.";
 export const VerdictSchema = z.enum(["needs-work", "good", "great"]);
 export const SectionNameSchema = z.enum(SECTION_NAMES);
 
@@ -169,7 +200,9 @@ export function deriveOverallScore(scores: DimensionScores): number {
 
 const SectionBodySchema = z.object({
   score: z.number().int().min(0).max(100).describe("Integer 0-100."),
-  status: StatusSchema,
+  status: StatusSchema.describe(
+    `${STATUS_MEANING} For a section this follows the score you just gave it: pass at ${STATUS_THRESHOLDS.pass} and above, warn from ${STATUS_THRESHOLDS.warn} to ${STATUS_THRESHOLDS.pass - 1}, fail below ${STATUS_THRESHOLDS.warn}.`,
+  ),
   note: z
     .string()
     .max(FIELD_CAPS.sectionNote)
@@ -226,7 +259,7 @@ export const AnalysisWireSchema = z.object({
   feedback: z
     .array(
       z.object({
-        status: StatusSchema,
+        status: StatusSchema.describe(STATUS_MEANING),
         text: z
           .string()
           .max(FIELD_CAPS.feedbackText)

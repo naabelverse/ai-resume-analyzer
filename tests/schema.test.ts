@@ -6,6 +6,8 @@ import {
   RUBRIC_DIMENSIONS,
   RUBRIC_WEIGHTS,
   SECTION_COHERENCE_TOLERANCE,
+  SECTION_NAMES,
+  STATUS_THRESHOLDS,
   deriveOverallScore,
   deriveVerdict,
 } from "@/lib/schema/analysis";
@@ -154,6 +156,79 @@ describe("the pass-item rule reaches the decoder", () => {
 
   it("keeps the rule in the system prompt too", () => {
     expect(SYSTEM_PROMPT).toMatch(/at least one feedback item must be a "pass"/);
+  });
+});
+
+describe("the status definition reaches the decoder", () => {
+  /**
+   * The enum shipped with no definition at all. Across nine live calls the
+   * model emitted 8/8 "pass" on strong.txt and 8/8 "fail" on middling.txt and
+   * never once used "warn" — it had been given three values, one rule about
+   * one of them, and nothing else, so it used the field as a binary grade for
+   * the whole resume rather than a judgement about each finding.
+   *
+   * Like the pass-item rule above, the fix lives in two places that must both
+   * survive a refactor: the description carried into the JSON Schema, and the
+   * system prompt. Losing either is silent — the output stays schema-valid, it
+   * just goes back to being binary.
+   */
+  it("defines all three statuses on the feedback items", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        feedback: { items: { properties: { status: { description?: string } } } };
+      };
+    };
+
+    const description = json.properties.feedback.items.properties.status.description;
+    expect(description).toMatch(/pass =/);
+    expect(description).toMatch(/warn =/);
+    expect(description).toMatch(/fail =/);
+  });
+
+  it("defines them on the sections too, tied to the section score", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        sections: {
+          properties: Record<string, { properties: { status: { description?: string } } }>;
+        };
+      };
+    };
+
+    for (const name of SECTION_NAMES) {
+      const description =
+        json.properties.sections.properties[name]!.properties.status.description;
+      expect(description, `${name} status has no definition`).toMatch(/warn =/);
+      expect(description, `${name} status is not tied to its score`).toMatch(
+        /50 to 74/,
+      );
+    }
+  });
+
+  it("keeps the three-status rule in the system prompt too", () => {
+    expect(SYSTEM_PROMPT).toMatch(/THREE STATUSES, NOT TWO/);
+    expect(SYSTEM_PROMPT).toMatch(/"warn" is the ordinary case/);
+  });
+
+  /**
+   * The boundaries the section description states are the ones `statusFor` in
+   * `lib/scoring.ts` applies to the degraded path. They are not kept in step by
+   * hand: both read `STATUS_THRESHOLDS`, and this asserts the description is
+   * actually built from it rather than from a paraphrase that happens to match
+   * today.
+   */
+  it("states the same boundaries the degraded path applies", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        sections: {
+          properties: Record<string, { properties: { status: { description?: string } } }>;
+        };
+      };
+    };
+    const description =
+      json.properties.sections.properties.contact!.properties.status.description ?? "";
+
+    expect(description).toContain(`pass at ${STATUS_THRESHOLDS.pass} and above`);
+    expect(description).toContain(`fail below ${STATUS_THRESHOLDS.warn}`);
   });
 });
 
