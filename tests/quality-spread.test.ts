@@ -134,6 +134,31 @@ function scoresFor(name: FixtureName): number[] {
   return results.get(name)!.runs.map((run) => run.score);
 }
 
+/**
+ * The same thing, for anything that then does arithmetic on it.
+ *
+ * Statistics on an empty array are not merely wrong, they are quietly wrong.
+ * `mean([])` is NaN, which at least announces itself. `Math.min(...[])` is
+ * `Infinity` and `Math.max(...[])` is `-Infinity`, which does not: with weak
+ * producing no scores, the overlap assertion below evaluated
+ * `Math.min(...middling) > Math.max(...weak)` as `62 > -Infinity` and REPORTED
+ * GREEN while measuring nothing at all. A suite that costs nine paid calls and
+ * can pass on zero data is worse than no suite, because it is trusted.
+ *
+ * So every assertion that derives a number goes through here first, and "no
+ * data" fails as itself rather than as NaN or as a pass.
+ */
+function requireScores(name: FixtureName): number[] {
+  const scores = scoresFor(name);
+  if (scores.length === 0) {
+    expect.fail(
+      `${name}: no data — all ${RUNS} calls failed, so this cannot be ` +
+        "evaluated. Their failure reasons are in the report above.",
+    );
+  }
+  return scores;
+}
+
 function pad(text: string | number, width: number, left = false): string {
   const value = String(text);
   return left ? value.padEnd(width) : value.padStart(width);
@@ -359,7 +384,7 @@ describe("score spread across resume quality", () => {
   it.each(FIXTURES)(
     "$name scores inside its expected band ($min to $max)",
     ({ name, min, max }) => {
-      const average = mean(scoresFor(name));
+      const average = mean(requireScores(name));
       expect(average).toBeGreaterThanOrEqual(min);
       expect(average).toBeLessThanOrEqual(max);
     },
@@ -394,7 +419,9 @@ describe("score spread across resume quality", () => {
   // interleaved runs mean a single analysis cannot be trusted to rank two
   // resumes correctly — which is what the product actually claims to do.
   it("ranges do not overlap between adjacent quality tiers", () => {
-    const [strong, middling, weak] = FIXTURES.map(({ name }) => scoresFor(name));
+    const [strong, middling, weak] = FIXTURES.map(({ name }) =>
+      requireScores(name),
+    );
 
     expect(Math.min(...strong!)).toBeGreaterThan(Math.max(...middling!));
     expect(Math.min(...middling!)).toBeGreaterThan(Math.max(...weak!));
@@ -402,10 +429,10 @@ describe("score spread across resume quality", () => {
 
   // Q3. The one that decides whether the score measures anything at all.
   it("within-fixture noise is smaller than every between-fixture gap", () => {
-    const means = FIXTURES.map(({ name }) => mean(scoresFor(name)));
+    const means = FIXTURES.map(({ name }) => mean(requireScores(name)));
     const gaps = [means[0]! - means[1]!, means[1]! - means[2]!];
     const worstSpread = Math.max(
-      ...FIXTURES.map(({ name }) => spread(scoresFor(name))),
+      ...FIXTURES.map(({ name }) => spread(requireScores(name))),
     );
 
     expect(worstSpread).toBeLessThan(Math.min(...gaps));
