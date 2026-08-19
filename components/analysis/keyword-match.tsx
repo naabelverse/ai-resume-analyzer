@@ -20,7 +20,7 @@ export function KeywordMatchPanel({ data }: KeywordMatchPanelProps) {
         >
           <Search className="size-4" strokeWidth={2.2} />
         </span>
-        <p className="text-sm text-ink-soft">
+        <p className="text-body text-ink-soft">
           Paste a job description to see how well your resume matches it.
         </p>
       </div>
@@ -46,10 +46,10 @@ export function KeywordMatchPanel({ data }: KeywordMatchPanelProps) {
           aria-label={`${data.matchPercent}% keyword match`}
         />
         <div className="mt-2 flex items-baseline justify-between gap-3">
-          <span className="text-[13px] text-ink-soft">
+          <span className="text-note text-ink-soft">
             Matched {data.matched.length}/{total} keywords
           </span>
-          <span className="text-[13px] font-semibold text-ink tabular-nums">
+          <span className="text-note font-semibold text-ink tabular-nums">
             {data.matchPercent}%
           </span>
         </div>
@@ -64,7 +64,7 @@ function Chip({ tone, label }: { tone: "matched" | "missing"; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium",
         tone === "matched"
           ? "bg-success-tint text-success"
           : "bg-muted-tint text-ink-soft",

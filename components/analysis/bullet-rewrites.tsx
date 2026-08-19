@@ -13,7 +13,7 @@ interface BulletRewritesProps {
 export function BulletRewrites({ rewrites }: BulletRewritesProps) {
   if (rewrites.length === 0) {
     return (
-      <p className="text-sm text-ink-soft">
+      <p className="text-body text-ink-soft">
         No bullet rewrites for this resume — the experience section already
         reads well.
       </p>
@@ -48,17 +48,17 @@ function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
       {/* Side by side on desktop, stacked on mobile. */}
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-panel bg-muted-tint p-3">
-          <p className="mb-1.5 text-xs font-semibold tracking-wide text-ink-soft uppercase">
+          <p className="mb-1.5 text-caption font-semibold tracking-wide text-ink-soft uppercase">
             Original
           </p>
-          <p className="text-[13px] leading-relaxed text-ink-soft">
+          <p className="text-note leading-relaxed text-ink-soft">
             {rewrite.original}
           </p>
         </div>
 
         <div className="rounded-panel bg-success-tint/60 p-3">
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold tracking-wide text-success uppercase">
+            <p className="text-caption font-semibold tracking-wide text-success uppercase">
               Improved
             </p>
             <Button
@@ -66,7 +66,8 @@ function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
               variant="ghost"
               size="sm"
               onClick={copy}
-              className="-mr-1 h-7 px-2 text-xs"
+              // Size comes from size="sm"; a text-* here would lose to it.
+              className="-mr-1 h-7 px-2"
             >
               {copied ? (
                 <>
@@ -79,13 +80,13 @@ function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
               )}
             </Button>
           </div>
-          <p className="text-[13px] leading-relaxed text-ink">
+          <p className="text-note leading-relaxed text-ink">
             {rewrite.improved}
           </p>
         </div>
       </div>
 
-      <p className="mt-2.5 text-[13px] text-ink-soft">
+      <p className="mt-2.5 text-note text-ink-soft">
         <span className="font-medium text-ink">Why: </span>
         {rewrite.why}
       </p>

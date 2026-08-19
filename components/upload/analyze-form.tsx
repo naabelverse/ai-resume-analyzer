@@ -166,7 +166,7 @@ export function AnalyzeForm() {
       )}
 
       <div className="mt-6 flex items-center justify-between gap-3">
-        <p className="text-xs text-ink-soft">
+        <p className="text-caption text-ink-soft">
           {busy
             ? "Working — open-weight models take a little longer, usually 20 to 60 seconds."
             : "Takes up to a minute to analyse."}

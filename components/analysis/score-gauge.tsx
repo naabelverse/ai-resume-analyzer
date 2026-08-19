@@ -84,10 +84,10 @@ export function ScoreGauge({ score, verdict }: ScoreGaugeProps) {
       </svg>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-[family-name:var(--font-display)] text-[44px] leading-none font-extrabold tracking-[-0.02em] text-ink tabular-nums">
+        <span className="font-[family-name:var(--font-display)] text-metric text-ink tabular-nums">
           {clamped}
         </span>
-        <span className="mt-1.5 text-[13px] font-medium text-ink-soft">
+        <span className="mt-2 text-note font-medium text-ink-soft">
           {VERDICT_LABEL[verdict]}
         </span>
       </div>

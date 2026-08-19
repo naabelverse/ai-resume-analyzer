@@ -50,10 +50,10 @@ export function ScanningCard({
           />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">AI Scanning…</p>
+          <p className="text-body font-semibold text-ink">AI Scanning…</p>
           <p
             aria-live="polite"
-            className="mt-0.5 truncate text-[13px] text-ink-soft"
+            className="mt-0.5 truncate text-note text-ink-soft"
           >
             {complete ? "Done" : stage}
           </p>

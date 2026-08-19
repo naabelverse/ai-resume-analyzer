@@ -106,10 +106,10 @@ export function AnalysisView({ id }: { id: string }) {
           <Reveal index={0} className="order-1">
             <Card>
               <CardTitle>Your resume</CardTitle>
-              <p className="mt-2 truncate text-sm font-medium text-ink" title={fileName}>
+              <p className="mt-2 truncate text-body font-medium text-ink" title={fileName}>
                 {fileName}
               </p>
-              <p className="mt-1 text-[13px] text-ink-soft">
+              <p className="mt-1 text-note text-ink-soft">
                 {meta.wordCount.toLocaleString()} words
                 {meta.pageCount ? `, ${meta.pageCount} page${meta.pageCount === 1 ? "" : "s"}` : ""}
                 {meta.truncated ? " — the middle was omitted for length" : ""}
@@ -143,7 +143,7 @@ export function AnalysisView({ id }: { id: string }) {
                 <ScoreGauge score={analysis.overallScore} verdict={analysis.verdict} />
                 <div className="min-w-0">
                   <CardTitle>Resume score</CardTitle>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                  <p className="mt-2 text-body leading-relaxed text-ink-soft">
                     {analysis.summary}
                   </p>
                   {/*
@@ -152,7 +152,7 @@ export function AnalysisView({ id }: { id: string }) {
                     can be argued with, and one without it can only be believed
                     or ignored.
                   */}
-                  <p className="mt-3 border-t border-line pt-3 text-[13px] leading-relaxed text-ink-soft">
+                  <p className="mt-3 border-t border-line pt-3 text-note leading-relaxed text-ink-soft">
                     <span className="font-medium text-ink">Why this score: </span>
                     {analysis.scoreRationale}
                   </p>
@@ -201,7 +201,7 @@ export function AnalysisView({ id }: { id: string }) {
                     aria-hidden="true"
                     className="mt-0.5 size-4 shrink-0 text-warning"
                   />
-                  <span className="text-[13px] leading-relaxed text-ink-soft">
+                  <span className="text-note leading-relaxed text-ink-soft">
                     {flag}
                   </span>
                 </li>

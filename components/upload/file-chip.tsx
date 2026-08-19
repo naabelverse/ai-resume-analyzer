@@ -11,7 +11,7 @@ interface FileChipProps {
 export function FileChip({ name }: FileChipProps) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
-      <span className="truncate text-sm font-medium text-ink" title={name}>
+      <span className="truncate text-body font-medium text-ink" title={name}>
         {name}
       </span>
       <span

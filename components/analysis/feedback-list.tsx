@@ -59,7 +59,7 @@ function FeedbackRow({ item }: { item: FeedbackItem }) {
           <Icon className="size-3.5" strokeWidth={3} />
         </span>
 
-        <span className="min-w-0 flex-1 text-sm text-ink">{item.text}</span>
+        <span className="min-w-0 flex-1 text-body text-ink">{item.text}</span>
 
         <ChevronDown
           aria-hidden="true"
@@ -71,7 +71,7 @@ function FeedbackRow({ item }: { item: FeedbackItem }) {
       </button>
 
       {open && (
-        <p className="pb-3 pl-9 text-[13px] leading-relaxed text-ink-soft">
+        <p className="pb-3 pl-9 text-note leading-relaxed text-ink-soft">
           {item.detail}
         </p>
       )}

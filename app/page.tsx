@@ -31,7 +31,7 @@ export default function HomePage() {
         </Reveal>
 
         <Reveal index={1}>
-          <p className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-sm text-ink-soft">
+          <p className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-body text-ink-soft">
             {/*
               Kept deliberately: it lets someone read the results layout without
               an API key, which is the first thing a reviewer of this project

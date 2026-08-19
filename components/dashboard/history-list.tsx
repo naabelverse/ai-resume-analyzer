@@ -38,13 +38,13 @@ export function HistoryList() {
   }
 
   if (records === null) {
-    return <p className="py-6 text-sm text-ink-soft">Loading your history…</p>;
+    return <p className="py-6 text-body text-ink-soft">Loading your history…</p>;
   }
 
   if (records.length === 0) {
     return (
       <div className="panel flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <p className="text-sm text-ink-soft">
+        <p className="text-body text-ink-soft">
           No analyses yet.
           {persistenceMode === "session" &&
             " History is kept for this browser tab only — set PERSISTENCE=db to keep it across sessions."}
@@ -60,15 +60,15 @@ export function HistoryList() {
     <ul className="divide-y divide-line">
       {records.map((record) => (
         <li key={record.id} className="flex items-center gap-3 py-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-sm font-semibold text-brand-600 tabular-nums">
+          <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">
             {record.overallScore}
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-ink" title={record.fileName}>
+            <p className="truncate text-body font-medium text-ink" title={record.fileName}>
               {record.fileName}
             </p>
-            <p className="mt-0.5 text-xs text-ink-soft">
+            <p className="mt-0.5 text-caption text-ink-soft">
               <time dateTime={record.createdAt}>
                 {new Date(record.createdAt).toLocaleString(undefined, {
                   dateStyle: "medium",

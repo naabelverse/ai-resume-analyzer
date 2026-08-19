@@ -107,13 +107,13 @@ export function Dropzone({
           <UploadCloud className="size-5" strokeWidth={2.2} />
         </span>
 
-        <span className="text-sm font-medium text-ink">
+        <span className="text-body font-medium text-ink">
           Drop your resume here, or{" "}
           <span className="text-brand-600 underline underline-offset-2">
             browse
           </span>
         </span>
-        <span className="text-xs text-ink-soft">PDF or DOCX, up to 5MB</span>
+        <span className="text-caption text-ink-soft">PDF or DOCX, up to 5MB</span>
       </label>
 
       {effectiveStatus === "uploading" && (
@@ -128,7 +128,7 @@ export function Dropzone({
 
       {/* Errors persist under the zone; the zone itself stays usable. */}
       {error && (
-        <p role="alert" className="mt-3 text-sm font-medium text-danger">
+        <p role="alert" className="mt-3 text-body font-medium text-danger">
           {error}
         </p>
       )}

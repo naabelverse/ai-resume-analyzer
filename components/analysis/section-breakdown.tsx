@@ -30,14 +30,14 @@ export function SectionBreakdown({ sections }: SectionBreakdownProps) {
       {sections.map((section) => (
         <li key={section.name}>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-body font-medium text-ink">
               {SECTION_LABEL[section.name] ?? section.name}
             </span>
             <div className="flex items-center gap-2">
               <Badge tone={section.status}>
                 {STATUS_LABEL[section.status]}
               </Badge>
-              <span className="w-9 text-right text-[13px] font-semibold text-ink tabular-nums">
+              <span className="w-9 text-right text-note font-semibold text-ink tabular-nums">
                 {section.score}
               </span>
             </div>
@@ -50,7 +50,7 @@ export function SectionBreakdown({ sections }: SectionBreakdownProps) {
             />
           </div>
 
-          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">
+          <p className="mt-1.5 text-note leading-relaxed text-ink-soft">
             {section.note}
           </p>
         </li>

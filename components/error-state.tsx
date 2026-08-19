@@ -62,9 +62,9 @@ export function ErrorState({ code, children, className }: ErrorStateProps) {
       </span>
 
       <div className="max-w-[46ch]">
-        <h2 className="text-base leading-tight">{copy.title}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">{copy.message}</p>
-        <p className="mt-2 text-sm leading-relaxed font-medium text-ink">
+        <h2 className="text-title">{copy.title}</h2>
+        <p className="mt-2 text-body leading-relaxed text-ink-soft">{copy.message}</p>
+        <p className="mt-2 text-body leading-relaxed font-medium text-ink">
           {copy.action}
         </p>
       </div>
@@ -82,7 +82,7 @@ export function InlineError({ code }: { code: ErrorCode }) {
   const copy = ERROR_COPY[code];
 
   return (
-    <p role="alert" className="mt-3 text-sm text-danger">
+    <p role="alert" className="mt-3 text-body text-danger">
       <span className="font-medium">{copy.message}</span>{" "}
       <span className="text-ink-soft">{copy.action}</span>
     </p>

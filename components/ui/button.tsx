@@ -4,19 +4,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-// Height 40px (h-10), radius 10px, medium weight, never uppercase.
+/**
+ * Height 40px (h-10), radius --radius-control, medium weight, never uppercase.
+ *
+ * Only layout and sizing live here. Each variant's fill, hover, press and
+ * disabled treatment is a `.btn-*` component class in globals.css, so a
+ * variant cannot ship with a hover state and no disabled one — which is what
+ * happened before: `disabled:opacity-50` in this base string was every
+ * variant's entire disabled story, and it put the primary gradient on screen
+ * at half strength, reading as merely pale rather than as off.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-[opacity,background-color,border-color] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control font-medium disabled:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary: "gradient-fill text-white hover:opacity-90",
-        secondary: "border border-line bg-surface text-ink hover:bg-muted-tint",
-        ghost: "text-ink-soft hover:bg-muted-tint hover:text-ink",
+        primary: "btn-primary",
+        secondary: "btn-secondary",
+        ghost: "btn-ghost",
       },
       size: {
-        default: "h-10 px-4",
-        sm: "h-9 px-3 text-[13px]",
+        default: "h-10 px-4 text-body",
+        sm: "h-9 px-3 text-note",
         icon: "size-10",
       },
     },

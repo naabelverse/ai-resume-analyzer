@@ -40,7 +40,7 @@ export function JobDescriptionInput({
       <Collapsible.Trigger
         className={cn(
           "flex w-full items-center justify-between gap-2 rounded-control px-1 py-2",
-          "text-sm font-medium text-ink transition-colors hover:text-brand-600",
+          "text-body font-medium text-ink transition-colors hover:text-brand-600",
         )}
       >
         <span>Paste the job description (optional)</span>
@@ -62,14 +62,14 @@ export function JobDescriptionInput({
           placeholder="Paste the role's responsibilities and requirements here to see how well your resume matches."
           className={cn(
             "w-full resize-y rounded-panel border border-line bg-surface p-3",
-            "text-sm text-ink placeholder:text-ink-soft/70",
+            "text-body text-ink placeholder:text-ink-soft/70",
             "outline-none focus-visible:border-brand-600",
           )}
         />
         <div className="mt-1.5 flex justify-end">
           <span
             className={cn(
-              "text-xs tabular-nums",
+              "text-caption tabular-nums",
               atCap ? "font-medium text-warning" : "text-ink-soft",
             )}
           >

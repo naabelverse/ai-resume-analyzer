@@ -6,20 +6,19 @@ import { FileText } from "lucide-react";
  */
 export function Header() {
   return (
-    <header className="shell pt-10 pb-8">
-      <div className="flex items-center gap-3.5">
+    <header className="shell pt-12 pb-9">
+      <div className="flex items-center gap-4">
         <span
           aria-hidden="true"
-          className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-brand-tint text-brand-600"
+          className="grid size-12 shrink-0 place-items-center rounded-[16px] bg-brand-tint text-brand-600 shadow-[0_1px_2px_rgb(28_16_66/0.06)]"
         >
-          <FileText className="size-5" strokeWidth={2.2} />
+          <FileText className="size-5.5" strokeWidth={2.2} />
         </span>
 
         <div className="min-w-0">
-          <h1 className="gradient-text text-[26px] leading-none sm:text-[28px]">
-            AI Resume Analyzer
-          </h1>
-          <p className="mt-2 text-sm text-ink-soft">
+          {/* The one place the display face gets to be the size it was chosen for. */}
+          <h1 className="gradient-text text-display">AI Resume Analyzer</h1>
+          <p className="mt-2 text-body text-ink-soft">
             Get AI-powered feedback to improve your resume
           </p>
         </div>
