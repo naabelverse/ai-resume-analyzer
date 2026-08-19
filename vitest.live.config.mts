@@ -28,10 +28,13 @@ export default defineConfig({
   test: {
     ...TEST_BASE,
     exclude: ["**/node_modules/**"],
-    // A single analysis can take ~90s (AI_TIMEOUT_MS), and the quality suite
-    // makes nine of them in one hook. The per-test default of 5s is for the
-    // offline suite and would kill these before the first response lands.
+    // A single analysis is bounded at ANALYZE_MAX_ATTEMPTS x AI_TIMEOUT_MS +
+    // overhead, so ~245s, and the quality suite makes nine of them in one
+    // beforeAll. 9 x 245s is 2205s, which the previous 1_800_000 hook budget
+    // would have cut off mid-measurement — after the calls were paid for. The
+    // per-test default of 5s is for the offline suite and would kill these
+    // before the first response lands.
     testTimeout: 300_000,
-    hookTimeout: 1_800_000,
+    hookTimeout: 3_000_000,
   },
 });

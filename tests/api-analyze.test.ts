@@ -643,7 +643,7 @@ describe("request duration budget", () => {
       // The SDK timeout is per request and both SDKs retry on timeout, so a
       // non-zero maxRetries multiplies the bound asserted above.
       expect(client.maxRetries).toBe(0);
-      expect(client.timeout).toBe(Number(process.env.AI_TIMEOUT_MS ?? 50_000));
+      expect(client.timeout).toBe(Number(process.env.AI_TIMEOUT_MS ?? 120_000));
     },
   );
 });

@@ -23,7 +23,16 @@ import type { AnalysisMeta, AnalyzeResponse } from "@/types";
  * It must exceed the WHOLE worst case, not one model call:
  *
  *   ANALYZE_MAX_ATTEMPTS x AI_TIMEOUT_MS + NON_AI_BUDGET_MS
- *     = 2 x 50s + 5s = 105s, inside 120s with 15s to spare.
+ *     = 2 x 120s + 5s = 245s, inside 300s with 55s to spare.
+ *
+ * This was 120 — Vercel's cap, which is what made AI_TIMEOUT_MS 50s. The app
+ * deploys to Railway, which does not cap function duration, and on a
+ * long-running Node server this segment config has no runtime effect at all.
+ * It is kept because the invariant is worth keeping honest: it is the one
+ * place that states what a single request is allowed to cost, and the test
+ * below holds AI_TIMEOUT_MS to it. Deploying somewhere that DOES enforce a
+ * ceiling means lowering both numbers together, not discovering the arithmetic
+ * in production.
  *
  * The earlier version of this comment claimed the invariant held because
  * 120 > 90, which was only true for a single request. Both SDK clients were
@@ -45,7 +54,7 @@ import type { AnalysisMeta, AnalyzeResponse } from "@/types";
  * Next 16 and the Edge runtime is deprecated, so declaring it would be noise.
  * The route does need Node — unpdf and mammoth both do.
  */
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const HTTP_STATUS: Partial<Record<ErrorCode, number>> = {
   RATE_LIMITED: 429,

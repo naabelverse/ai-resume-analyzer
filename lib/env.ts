@@ -67,21 +67,34 @@ const EnvSchema = z
     AI_TEMPERATURE: z.coerce.number().min(0).max(2).default(0.2),
 
     /**
-     * 50s, and the number is load-bearing.
+     * 120s. Still load-bearing, but the load it bears has changed.
      *
-     * It is picked from measured latency, not chosen for comfort. Across
-     * eighteen live calls the slowest request that actually SUCCEEDED took
-     * 43.6s; the second slowest took 25.1s. So 50s clears the worst real
-     * success with 6.4s to spare and clears everything else twice over.
+     * It was 50s, and that number was derived from Vercel's 120s `maxDuration`
+     * working backwards: 2 x 50s + NON_AI_BUDGET_MS = 105s fits inside 120s, so
+     * 50s was the largest per-call bound the platform allowed. It was never the
+     * largest bound the ENDPOINT wanted. This app deploys to Railway, which
+     * imposes no such cap, so the constraint that set the number is gone.
      *
-     * The ceiling comes from the other side: the route is capped at
-     * `maxDuration` 120s, and one request can make ANALYZE_MAX_ATTEMPTS calls.
-     * 2 x 50s + NON_AI_BUDGET_MS = 105s, which fits with 15s of margin. Raise
-     * this past ~57s and a slow request gets killed by the platform instead of
-     * degrading — the user then gets a dead connection rather than the
-     * structural report. `tests/api-analyze.test.ts` asserts the arithmetic.
+     * What the number now clears, measured rather than assumed:
+     *
+     *   - The slowest request that actually succeeded across eighteen live
+     *     calls took 43.6s.
+     *   - Per-token generation rate on this endpoint varies 5.9-26.9 ms/token
+     *     by the hour — a 4.5x swing on identical work — so headroom above the
+     *     slowest observed success is worth having rather than shaving.
+     *   - A whitespace runaway now costs at most AI_MAX_TOKENS x the slow rate,
+     *     about 4000 x 26.9ms = 108s worst case. Inside this bound it comes
+     *     back as `finish_reason: "length"` and gets a retry. Outside it, the
+     *     SDK aborts and the same event surfaces as an unexplained transport
+     *     failure — which is exactly the bug this pair of numbers was changed
+     *     to fix. See the README.
+     *
+     * The ceiling is still enforced from the other side: 2 x 120s +
+     * NON_AI_BUDGET_MS = 245s against `maxDuration` 300s.
+     * `tests/api-analyze.test.ts` asserts that arithmetic, so raising this
+     * without raising `maxDuration` fails the suite rather than production.
      */
-    AI_TIMEOUT_MS: z.coerce.number().int().positive().default(50_000),
+    AI_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
 
     NVIDIA_API_KEY: optionalSecret,
     NVIDIA_BASE_URL: z.url().default("https://integrate.api.nvidia.com/v1"),
