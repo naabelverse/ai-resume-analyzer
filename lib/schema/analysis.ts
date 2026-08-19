@@ -27,6 +27,23 @@ export const SECTION_NAMES = [
   "formatting",
 ] as const;
 
+/**
+ * Character caps for the free-text fields, in one place.
+ *
+ * They were previously written twice each — once in the wire schema so
+ * `z.toJSONSchema` emits `maxLength` for the decoder, once in the result schema
+ * so Zod enforces it — and a drifted pair would mean the decoder cutting at one
+ * length while the validator rejected at another. `repairTruncation` needs the
+ * same numbers to recognise a decoder cut, which would have made three copies.
+ */
+export const FIELD_CAPS = {
+  scoreRationale: 220,
+  summary: 500,
+  sectionNote: 160,
+  feedbackText: 90,
+  feedbackDetail: 300,
+} as const;
+
 export const StatusSchema = z.enum(["pass", "warn", "fail"]);
 export const VerdictSchema = z.enum(["needs-work", "good", "great"]);
 export const SectionNameSchema = z.enum(SECTION_NAMES);
@@ -124,7 +141,7 @@ const SectionBodySchema = z.object({
   status: StatusSchema,
   note: z
     .string()
-    .max(160)
+    .max(FIELD_CAPS.sectionNote)
     .describe(
       "One sentence about THIS resume's version of this section, quoting it where possible. Aim for 120 characters, never exceed 150.",
     ),
@@ -137,7 +154,7 @@ export const AnalysisWireSchema = z.object({
   // fact.
   scoreRationale: z
     .string()
-    .max(220)
+    .max(FIELD_CAPS.scoreRationale)
     .describe(
       "In ONE sentence, name the single biggest thing lifting or holding back this resume, citing something specific in it. Do not state an overall score: it is computed from your dimension scores. Aim for 170 characters, never exceed 210.",
     ),
@@ -152,7 +169,7 @@ export const AnalysisWireSchema = z.object({
   ),
   summary: z
     .string()
-    .max(500)
+    .max(FIELD_CAPS.summary)
     .describe(
       "YOUR VERDICT on the resume, written TO the candidate as 'you' — e.g. 'Your experience section is strong, but...'. This is NOT the resume's own summary or profile section: never copy that text here. Two or three sentences. Aim for 260 characters.",
     ),
@@ -181,11 +198,11 @@ export const AnalysisWireSchema = z.object({
         status: StatusSchema,
         text: z
           .string()
-          .max(90)
+          .max(FIELD_CAPS.feedbackText)
           .describe("The headline finding. Aim for 65 characters, never exceed 85."),
         detail: z
           .string()
-          .max(300)
+          .max(FIELD_CAPS.feedbackDetail)
           .describe(
             'MUST open with the exact text you are criticising, copied verbatim from the resume, then explain why it matters and what to do. If you cannot quote a specific line, do not emit this item at all. Aim for 230 characters, never exceed 285.',
           ),
@@ -246,13 +263,13 @@ export const SectionScoreSchema = z.object({
   name: SectionNameSchema,
   score: z.number().int().min(0).max(100),
   status: StatusSchema,
-  note: z.string().min(1).max(160),
+  note: z.string().min(1).max(FIELD_CAPS.sectionNote),
 });
 
 export const FeedbackItemSchema = z.object({
   status: StatusSchema,
-  text: z.string().min(1).max(90),
-  detail: z.string().min(1).max(300),
+  text: z.string().min(1).max(FIELD_CAPS.feedbackText),
+  detail: z.string().min(1).max(FIELD_CAPS.feedbackDetail),
 });
 
 export const BulletRewriteSchema = z.object({
@@ -287,10 +304,10 @@ export const KeywordMatchSchema = z.object({
 export const SECTION_COHERENCE_TOLERANCE = 35;
 
 export const AnalysisResultSchema = z.object({
-  scoreRationale: z.string().min(1).max(220),
+  scoreRationale: z.string().min(1).max(FIELD_CAPS.scoreRationale),
   overallScore: z.number().int().min(0).max(100),
   verdict: VerdictSchema,
-  summary: z.string().min(1).max(500),
+  summary: z.string().min(1).max(FIELD_CAPS.summary),
   sections: z
     .array(SectionScoreSchema)
     .length(SECTION_NAMES.length)

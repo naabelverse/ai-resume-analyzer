@@ -7,6 +7,7 @@ import {
   AnalysisResultSchema,
   AnalysisWireSchema,
   DimensionScoresSchema,
+  FIELD_CAPS,
   SECTION_NAMES,
   deriveOverallScore,
   deriveVerdict,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/schema/analysis";
 import { buildRetryTurn, buildUserTurn, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/providers";
+import { repairTruncation } from "@/lib/text";
 import type { AnalysisProvider, ProviderCompletion } from "@/lib/ai/types";
 
 /**
@@ -82,6 +84,17 @@ interface Attempt {
   dimensions?: DimensionScores;
 }
 
+/**
+ * Applies `repairTruncation` only to values that are actually strings.
+ *
+ * Anything else is passed through untouched so the validator still sees — and
+ * still rejects — a field of the wrong type. Repairing before validation would
+ * otherwise become a way to hide a malformed response.
+ */
+function repair(value: unknown, limit: number): unknown {
+  return typeof value === "string" ? repairTruncation(value, limit) : value;
+}
+
 async function attempt(
   provider: AnalysisProvider,
   system: string,
@@ -126,10 +139,20 @@ async function attempt(
   // guaranteed; the UI wants them ordered, so flatten here.
   const wire = payload as {
     dimensions?: unknown;
+    scoreRationale?: unknown;
+    summary?: unknown;
     sections?: Record<string, object>;
+    feedback?: unknown;
   };
   const sections = wire.sections
-    ? SECTION_NAMES.map((name) => ({ name, ...wire.sections![name] }))
+    ? SECTION_NAMES.map((name) => ({
+        name,
+        ...wire.sections![name],
+        note: repair(
+          (wire.sections![name] as { note?: unknown }).note,
+          FIELD_CAPS.sectionNote,
+        ),
+      }))
     : undefined;
 
   // The score is computed here, never read from the model — the same rule
@@ -151,6 +174,18 @@ async function attempt(
   // enforce, and re-checks the ones it should have.
   const validated = AnalysisResultSchema.safeParse({
     ...wire,
+    scoreRationale: repair(wire.scoreRationale, FIELD_CAPS.scoreRationale),
+    summary: repair(wire.summary, FIELD_CAPS.summary),
+    feedback: Array.isArray(wire.feedback)
+      ? wire.feedback.map((item) => {
+          const entry = item as { text?: unknown; detail?: unknown };
+          return {
+            ...entry,
+            text: repair(entry.text, FIELD_CAPS.feedbackText),
+            detail: repair(entry.detail, FIELD_CAPS.feedbackDetail),
+          };
+        })
+      : wire.feedback,
     sections,
     overallScore,
     verdict: deriveVerdict(overallScore),

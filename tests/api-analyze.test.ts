@@ -287,6 +287,68 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     expect(harness.mock).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * Constrained decoding enforces maxLength by stopping mid-word, with no
+   * marker. What reached the UI was a sentence that simply stopped.
+   */
+  it("marks feedback the decoder cut mid-word", async () => {
+    const cutAtCap =
+      "Responsible for maintaining the booking service describes a duty rather than a result, and the same pattern repeats across the section. Say what changed and by how much, using the figures you already have to hand for the migra".padEnd(
+        300,
+        "x",
+      );
+
+    const feedback = validResult().feedback.map((item, index) =>
+      index === 0 ? { ...item, detail: cutAtCap } : item,
+    );
+    harness.reply(wire({ feedback }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+
+    const detail = payload.data.feedback[0]!.detail;
+    expect(detail.endsWith("…")).toBe(true);
+    expect(detail.length).toBeLessThanOrEqual(300);
+    // The ellipsis replaces the cut fragment rather than being bolted onto it.
+    expect(detail).not.toMatch(/x…$/);
+  });
+
+  it("leaves a complete sentence at the cap untouched", async () => {
+    const complete = "A finished sentence that happens to run right up to the cap.".padStart(
+      300,
+      "y ",
+    );
+    const feedback = validResult().feedback.map((item, index) =>
+      index === 0 ? { ...item, detail: complete } : item,
+    );
+    harness.reply(wire({ feedback }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok && payload.data.feedback[0]!.detail).toBe(complete);
+  });
+
+  it("sends the pass-item rule to the model", async () => {
+    harness.reply(wire());
+    const POST = await loadRoute(harness.name);
+    await POST(request(sampleResumePdf()));
+
+    // Both providers shape the request differently; the rule has to survive
+    // whichever shaping runs. Matched without the surrounding quotes so the
+    // assertion does not depend on how the body was serialised.
+    const sent = JSON.stringify(harness.sentBody(0));
+    expect(sent).toContain("at least one feedback item must be a");
+    expect(sent).toContain("a review that is nothing but criticism gets dismissed");
+  });
+
   it("degrades after two validation failures rather than erroring", async () => {
     harness.reply(wire({ summary: "x".repeat(501) }));
     harness.reply(wire({ summary: "x".repeat(501) }));

@@ -9,6 +9,9 @@ import {
   deriveOverallScore,
   deriveVerdict,
 } from "@/lib/schema/analysis";
+import { z } from "zod";
+
+import { SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { validDimensions, validResult } from "./helpers";
 
 /** The wire shape: no verdict, no overallScore, sections keyed by name. */
@@ -128,6 +131,29 @@ describe("AnalysisWireSchema", () => {
   it("still enforces structure, so a missing key fails", () => {
     const { redFlags: _redFlags, ...rest } = wireFrom();
     expect(AnalysisWireSchema.safeParse(rest).success).toBe(false);
+  });
+});
+
+describe("the pass-item rule reaches the decoder", () => {
+  /**
+   * A run came back with all five feedback items marked "fail". The rule that
+   * should prevent that lives in two places, and both have to survive a
+   * refactor: the TONE section of the system prompt, and this description,
+   * which z.toJSONSchema carries into the schema the model decodes against.
+   * Dropping either one is silent — the output stays schema-valid, it just
+   * stops being balanced.
+   */
+  it("carries the pass instruction on the feedback array", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: { feedback: { description?: string } };
+    };
+
+    expect(json.properties.feedback.description).toMatch(/pass/i);
+    expect(json.properties.feedback.description).toMatch(/genuine strength/i);
+  });
+
+  it("keeps the rule in the system prompt too", () => {
+    expect(SYSTEM_PROMPT).toMatch(/at least one feedback item must be a "pass"/);
   });
 });
 

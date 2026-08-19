@@ -101,6 +101,13 @@ interface RunRecord {
    * stopped being a single number the model chose.
    */
   dimensions: Record<string, number> | null;
+  /**
+   * Feedback statuses, counted. A run once came back with every item marked
+   * "fail"; the model is told that a resume with a genuine strength must get at
+   * least one "pass", and strong.txt is the fixture where that rule has no
+   * excuse not to fire.
+   */
+  statuses: Record<string, number>;
   matchPercent: number | null;
 }
 
@@ -224,6 +231,13 @@ async function measure(): Promise<void> {
           result.sections.map((section) => [section.name, section.score]),
         ),
         dimensions: diagnostics.dimensions,
+        statuses: result.feedback.reduce<Record<string, number>>(
+          (counts, item) => ({
+            ...counts,
+            [item.status]: (counts[item.status] ?? 0) + 1,
+          }),
+          {},
+        ),
         matchPercent: result.keywordMatch?.matchPercent ?? null,
       });
 
@@ -245,6 +259,9 @@ async function measure(): Promise<void> {
       );
       say(
         `  sections : ${result.sections.map((s) => `${s.name}=${s.score}`).join(" ")}`,
+      );
+      say(
+        `  feedback : ${result.feedback.map((f) => f.status).join(" ")}`,
       );
     }
   }
@@ -347,6 +364,30 @@ describe("score spread across resume quality", () => {
       expect(average).toBeLessThanOrEqual(max);
     },
   );
+
+  /**
+   * A real run returned five feedback items, all "fail". The rule that should
+   * prevent that is in the system prompt and in the feedback array's schema
+   * description, and offline tests pin both -- but only a live call shows
+   * whether the model acts on them. strong.txt is quantified throughout, so a
+   * review of it with no "pass" item is the model ignoring the rule rather than
+   * an honest reading of a weak resume.
+   */
+  it("finds at least one genuine strength in strong.txt", () => {
+    for (const run of results.get("strong")!.runs) {
+      expect(run.statuses.pass ?? 0).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("does not mark every item the same status", () => {
+    for (const { name } of FIXTURES) {
+      for (const run of results.get(name)!.runs) {
+        const distinct = Object.keys(run.statuses).length;
+        expect(distinct, `${name} returned a single status for every item`)
+          .toBeGreaterThan(1);
+      }
+    }
+  });
 
   // Q1. The strict form: not just separated means, but non-overlapping
   // observed ranges. Means can separate while individual runs interleave, and

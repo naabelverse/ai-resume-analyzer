@@ -1,4 +1,6 @@
+import { clampToWord as cap } from "@/lib/text";
 import {
+  FIELD_CAPS,
   SECTION_NAMES,
   deriveVerdict,
   type AnalysisResult,
@@ -119,14 +121,6 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-/** Truncates to a hard cap, on a word boundary where one is nearby. */
-function cap(text: string, limit: number): string {
-  if (text.length <= limit) return text;
-  const clipped = text.slice(0, limit - 1);
-  const lastSpace = clipped.lastIndexOf(" ");
-  return `${(lastSpace > limit * 0.6 ? clipped.slice(0, lastSpace) : clipped).trimEnd()}…`;
-}
-
 function sectionScores(checks: DeterministicChecks): SectionScore[] {
   const contactSignals = [checks.hasEmail, checks.hasPhone, checks.hasLink];
   const contactScore = clampScore(
@@ -176,7 +170,7 @@ function sectionScores(checks: DeterministicChecks): SectionScore[] {
     name,
     score: rawScores[name],
     status: statusFor(rawScores[name]),
-    note: cap(notes[name], 160),
+    note: cap(notes[name], FIELD_CAPS.sectionNote),
   }));
 }
 
@@ -214,12 +208,12 @@ function degradedFeedback(checks: DeterministicChecks): FeedbackItem[] {
         },
     {
       status: checks.bulletCount >= 8 ? "pass" : "warn",
-      text: cap(`${checks.bulletCount} bullet lines were detected`, 90),
+      text: cap(`${checks.bulletCount} bullet lines were detected`, FIELD_CAPS.feedbackText),
       detail: cap(
         checks.bulletCount >= 8
           ? "That is a healthy amount of structured detail. Bullets scan far faster than paragraphs, which matters when a reviewer spends seconds on the first pass."
           : "That is on the low side. Experience written as paragraphs is much harder to scan quickly — break each role into three to five bullets that each report an outcome.",
-        300,
+        FIELD_CAPS.feedbackDetail,
       ),
     },
   ];
@@ -227,14 +221,14 @@ function degradedFeedback(checks: DeterministicChecks): FeedbackItem[] {
   const idealWords = checks.wordCount >= 350 && checks.wordCount <= 900;
   items.push({
     status: idealWords ? "pass" : "warn",
-    text: cap(`The resume runs to about ${checks.wordCount} words`, 90),
+    text: cap(`The resume runs to about ${checks.wordCount} words`, FIELD_CAPS.feedbackText),
     detail: cap(
       idealWords
         ? "That sits in the range most reviewers expect — long enough to show substance, short enough to read in full."
         : checks.wordCount < 350
           ? "That is short for a resume with real experience behind it. You are likely underselling what you did — most of the missing words belong in your experience bullets."
           : "That is long. Reviewers skim rather than read, so anything past the second page rarely lands. Cut the oldest and least relevant material first.",
-      300,
+      FIELD_CAPS.feedbackDetail,
     ),
   });
 
@@ -242,13 +236,13 @@ function degradedFeedback(checks: DeterministicChecks): FeedbackItem[] {
     status: checks.passiveVoiceCount <= 3 ? "pass" : "warn",
     text: cap(
       `About ${checks.passiveVoiceCount} passive-voice constructions were detected`,
-      90,
+      FIELD_CAPS.feedbackText,
     ),
     detail: cap(
       checks.passiveVoiceCount <= 3
         ? "Your bullets mostly lead with an action verb, which is what puts you rather than the project at the centre of each sentence."
         : "Phrases like 'was responsible for' and 'were implemented' hide who did the work. Rewrite them to lead with a verb: Built, Cut, Shipped, Migrated. This count is approximate.",
-      300,
+      FIELD_CAPS.feedbackDetail,
     ),
   });
 
@@ -256,10 +250,10 @@ function degradedFeedback(checks: DeterministicChecks): FeedbackItem[] {
     missing.length > 0
       ? {
           status: "fail",
-          text: cap(`No heading found for: ${missing.join(", ")}`, 90),
+          text: cap(`No heading found for: ${missing.join(", ")}`, FIELD_CAPS.feedbackText),
           detail: cap(
             `A recognisable heading for ${missing.join(", ")} is missing. Automated parsers use headings to route content into the right fields, so an unlabelled or creatively named section can be dropped entirely.`,
-            300,
+            FIELD_CAPS.feedbackDetail,
           ),
         }
       : {
@@ -306,12 +300,14 @@ export function buildDegradedResult(
     // judgement nothing actually made.
     scoreRationale: cap(
       `Structural checks only — no band was judged. Averaged the six section scores from measured signals: ${checks.bulletCount} bullet lines, ${checks.wordCount} words, contact details ${checks.hasEmail ? "found" : "missing"}.`,
-      220,
+      FIELD_CAPS.scoreRationale,
     ),
     overallScore,
     verdict: deriveVerdict(overallScore),
     summary: cap(
       "The AI review is unavailable right now, so this score reflects only the automated structural checks — not the quality of your writing. Run it again shortly for the full analysis.",
+      // Deliberately tighter than FIELD_CAPS.summary. That 500 is a ceiling for
+      // the model's prose; this copy sits in a banner and should stay short.
       240,
     ),
     sections,
