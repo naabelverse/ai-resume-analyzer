@@ -328,6 +328,69 @@ stored analysis contains bullet fragments Claude quoted back from the resume.
 The extracted text itself is never persisted, but that distinction is real and
 worth stating rather than rounding off.
 
+## Limitations of the score measurement
+
+The spread numbers above are real, and they are also narrower than they look.
+What follows is what those nine calls do *not* establish. It is here so nobody —
+including me, six months from now — mistakes a promising measurement for a
+settled one.
+
+**Three resumes, one role, three runs each.** Every claim about band separation
+rests on nine data points drawn from a single job description and a single
+target role. That is enough to show the score is not constant. It is not enough
+to characterise its distribution, and it says nothing about how the score
+behaves across other roles, other seniorities, or resumes that are strong on one
+dimension and weak on another rather than uniformly good or bad.
+
+**I did not choose the bands the fixtures are measured against.** The brief
+specified them: strong lands 80+, middling 55-70, weak under 45. The fixtures
+were then written to be plausible resumes at those three quality levels. This
+matters in two directions. The *separation* result is clean — the model never
+saw the intent, and nothing in the pipeline knows which file it is reading. The
+*calibration* result is not independent: "a competent but generic resume
+deserves 55-70" is a judgement encoded in the test, and the test agreeing with
+it proves the model agrees with that judgement, not that the judgement is right.
+
+**The fixtures are plain text and never touch extraction.** They are read
+straight off disk, normalised, and handed to the model. No PDF was parsed. So
+the entire class of problems the rubric's ATS-friendliness dimension exists to
+catch — multi-column layouts, contact details stranded in a page header, text
+inside tables or boxes — is absent from every number here. The score's
+ATS dimension has been exercised on documents that could not possibly fail it.
+
+**Every live call was NVIDIA.** All twenty-seven analyses ran against
+`nvidia/nemotron-3-super-120b-a12b`. The Anthropic path is covered by the
+offline suite and by the shared analysis code, but no measurement on this page
+was produced by it. The midpoint-collapse finding in particular is a fact about
+one model's behaviour under one prompt; Claude may distribute scores quite
+differently, better or worse.
+
+**The section-coherence check has never caught a real failure.** It was written
+after observing the 0-10 scale error once, and it is proven against a synthetic
+payload reproducing it. Across every run since, the largest legitimate gap was
+16.3 against a tolerance of 35 — the guard has never fired outside a test. A
+subtler scale error, or one that moves the overall score along with the
+sections, would still get through.
+
+**`maxDuration` has never met a real platform.** The 105s worst case
+(2 attempts x 50s + 5s) is arithmetic checked by a test, not an observation.
+Nothing here has been deployed. How Vercel behaves at that boundary, and whether
+a given plan even permits 120s, is untested.
+
+**The bound trades slow successes for fast degrades, and the cost is real.**
+Under the previous unbounded configuration two of nine calls only succeeded
+because the SDK silently retried past 90s, arriving at ~200s. Those requests
+would have been killed by the platform anyway. Bounding the request converts
+them into honest failures — but on this endpoint that is not a rare event. The
+first run under the 50s bound lost **four of nine calls** to timeouts, each one
+degrading to the structural report. One successful call landed at 41.5s, leaving
+only 8.5s of headroom. Free-tier capacity varies by the hour and this is a
+single sample, so the true degrade rate is unknown; what is known is that it is
+high enough to matter, and that the previous configuration was hiding it rather
+than avoiding it.
+
+---
+
 ---
 
 ## Resume history (optional)
