@@ -68,16 +68,35 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     message: "Job descriptions are capped at 8,000 characters.",
     action: "Paste just the responsibilities and requirements sections.",
   },
+  /**
+   * Provider-neutral wording, deliberately.
+   *
+   * These two said "Claude" while AI_PROVIDER=nvidia, and this copy is not
+   * confined to a log: the route puts the code on `meta.degradedReason` and
+   * `<DegradedBanner>` renders `message` verbatim, so a user running the
+   * open-weight model was told a model they were not using could not be
+   * reached. `AI_PROVIDER` selects the transport at runtime, so any copy that
+   * names one provider is wrong half the time by construction.
+   */
   AI_UNAVAILABLE: {
     title: "The AI analysis is unavailable",
-    message: "Claude couldn't be reached, so only the automated checks below could run.",
+    message:
+      "The AI model couldn't be reached, so only the automated checks below could run.",
     action: "Try again in a moment for the full AI review.",
   },
   AI_SCHEMA: {
     title: "The analysis came back unreadable",
-    message: "Claude's response didn't match the expected format twice in a row.",
+    message:
+      "The model's response didn't match the expected format twice in a row.",
     action: "Run the analysis again — this is almost always transient.",
   },
+  /**
+   * These two DO name NVIDIA, and that is currently accurate rather than
+   * sloppy: only `lib/ai/providers/nvidia.ts` maps a status onto them, and the
+   * Anthropic provider has no 429/402 mapping at all, so neither code is
+   * reachable on that transport. Adding one there without splitting this copy
+   * would reintroduce exactly the bug fixed above, in mirror image.
+   */
   AI_RATE_LIMITED: {
     title: "The AI provider is rate limiting us",
     message:
@@ -176,7 +195,7 @@ export class AiUnavailableError extends AppError {
   }
 }
 
-/** Claude's output failed validation twice. Also degradable. */
+/** The model's output failed validation twice. Also degradable. */
 export class AiSchemaError extends AppError {
   constructor(cause?: unknown) {
     super("AI_SCHEMA");
