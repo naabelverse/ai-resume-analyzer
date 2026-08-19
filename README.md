@@ -416,8 +416,18 @@ retry loop already handles. **It does not stop the runaway happening.** In the
 first run after the change, 3 of 9 calls still hit the ceiling and both attempts
 ran away, so those calls still degraded — but with the accurate `AI_SCHEMA` code
 instead of a misleading `AI_UNAVAILABLE`, in around 13s instead of 150s, and
-weak.txt produced a usable score for the first time. A frequency or presence
-penalty on the request is the obvious next lever and has not been tried.
+weak.txt produced a usable score for the first time.
+
+A frequency penalty was the obvious next lever, and it does not work. Attempted
+at 0.1 — the low end, deliberately — the runaway rate was unchanged within the
+noise of a nine-call sample, and it introduced a failure of its own: empty-string
+fields, in feedback `detail` and in `bulletRewrites`. That is exactly the
+structural distortion to expect, because a JSON payload repeats its punctuation
+and field names hundreds of times in any valid response, so penalising repetition
+penalises well-formed output as readily as it penalises a loop. Reverted.
+
+So: nothing currently reduces how often the runaway happens. `max_tokens` bounds
+what one costs, and that is the whole of the mitigation.
 
 **`maxDuration` has never met a real platform.** The 245s worst case
 (2 attempts x 120s + 5s) is arithmetic checked by a test, not an observation.
