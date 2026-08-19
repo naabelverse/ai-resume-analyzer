@@ -1,0 +1,38 @@
+MAYA OKONKWO
+maya.okonkwo@example.com | +1 415 555 0182 | linkedin.com/in/mayaokonkwo | github.com/mokonkwo
+San Francisco, CA
+
+SUMMARY
+Backend engineer with five years on payments and data infrastructure in Go and
+Python. Most recently rebuilt a card authorisation path handling 4M monthly
+transactions and replaced a nightly settlement batch with streaming.
+
+EXPERIENCE
+
+Backend Engineer II, Latchkey Payments - Mar 2023 to present
+- Rebuilt the card authorisation path in Go, cutting p99 latency from 1.4s to 310ms and lifting approval rates 2.1 points across 4M monthly transactions.
+- Replaced the nightly settlement batch with a Kafka consumer group, reducing merchant payout lag from 26 hours to under 4 minutes.
+- Designed the idempotency layer for the refunds API after a duplicate-charge incident; duplicate refunds fell from ~90 a month to zero over two quarters.
+- Introduced contract tests between the ledger and reconciliation services, catching 11 breaking changes before release in the first six months.
+- Cut PostgreSQL read load 40% by moving three hot aggregate queries onto materialised views refreshed every 30 seconds.
+- Mentored two junior engineers through their first on-call rotations; both now lead incident response for their own services.
+
+Backend Engineer, Latchkey Payments - Aug 2021 to Mar 2023
+- Migrated 14 services from EC2 to EKS behind Terraform-managed infrastructure, taking deploy time from 22 minutes to 6.
+- Built the merchant webhook delivery service in Python, sustaining 3,000 events per second at a 99.97% delivery rate.
+- Added distributed tracing across the payments path, cutting median incident triage time from 45 minutes to 12.
+- Wrote the runbook and load-test harness now used for every quarterly capacity review.
+
+Software Engineer, Corvid Analytics - Jul 2020 to Aug 2021
+- Wrote ingestion connectors for six third-party ad platforms, growing daily processed volume from 40GB to 310GB.
+- Reduced ETL spend on AWS by 35% by batching S3 writes and moving the warehouse tables to Parquet.
+- Fixed a silent data-loss bug in the deduplication step that had been dropping roughly 0.4% of events since launch.
+
+EDUCATION
+BSc Computer Science, University of Washington, 2020 - graduated with distinction
+
+SKILLS
+Languages: Go, Python, SQL, TypeScript
+Data: PostgreSQL, Redis, Kafka, ClickHouse
+Infrastructure: AWS (EKS, RDS, S3, Lambda), Terraform, Docker, GitHub Actions
+Practices: distributed tracing, load testing, contract testing, incident review

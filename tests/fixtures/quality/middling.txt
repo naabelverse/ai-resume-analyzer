@@ -1,0 +1,53 @@
+DANIEL REYES
+daniel.reyes@example.com | (312) 555-0147 | Chicago, IL
+
+PROFESSIONAL SUMMARY
+Experienced backend software engineer with over five years of experience
+designing and developing server-side applications. Strong team player with
+excellent communication skills and a passion for technology. Looking to
+contribute to a growing engineering organisation.
+
+WORK EXPERIENCE
+
+Software Engineer, Brightline Logistics - June 2022 to Present
+- Responsible for maintaining and enhancing the company's REST APIs used by internal and external clients.
+- Worked closely with the frontend team to deliver new features for the shipment tracking product.
+- Participated in code reviews and helped ensure code quality across the backend team.
+- Involved in the migration of legacy services to a more modern architecture.
+- Assisted with troubleshooting production issues and resolving customer-reported bugs.
+- Took part in sprint planning and estimation sessions with the product team.
+
+Software Engineer, Kestrel Systems - March 2020 to June 2022
+- Developed backend services in Python for the company's inventory management platform.
+- Responsible for writing unit tests and maintaining existing test suites.
+- Collaborated with product managers to gather requirements for new functionality.
+- Supported the deployment process and helped with release activities.
+- Contributed to database schema changes and query optimisation efforts.
+- Provided support for integrations with several third-party vendor systems.
+
+Junior Developer, Kestrel Systems - August 2019 to March 2020
+- Assisted senior engineers with bug fixes and small feature work.
+- Learned the company's coding standards and internal frameworks.
+- Helped update internal documentation for the services team.
+- Attended daily stand-ups and reported progress to the team lead.
+
+IT Intern, Wexley Group - May 2018 to August 2018
+- Shadowed the infrastructure team and assisted with routine server maintenance.
+- Helped catalogue hardware assets across two office locations.
+
+ADDITIONAL EXPERIENCE
+Volunteer developer for a local non-profit, helping to keep their donation
+portal running and making occasional updates to the content pages. Regularly
+attend Chicago-area meet-ups on backend development and cloud technologies to
+keep current with industry trends and best practices.
+
+EDUCATION
+Bachelor of Science, Computer Science - DePaul University, 2019
+
+SKILLS
+Python, Java, SQL, REST APIs, Git, Docker, AWS, Linux, Agile/Scrum,
+Object-Oriented Design, Problem Solving, Team Collaboration, Communication,
+Time Management
+
+CERTIFICATIONS
+AWS Certified Cloud Practitioner, 2021

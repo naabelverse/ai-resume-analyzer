@@ -1,0 +1,29 @@
+Tom Whitfield
+tomwhitfield92@example.com
+
+OBJECTIVE
+To obtain a challenging position in a dynamic and fast paced company where I
+can utilize my skills and knowledge, grow professionaly, and contribute to the
+overall success of the organization. Hard working self starter, team player and
+quick learner with a passion for technology and a strong work ethic.
+
+EXPERIENCE
+
+Backend Developer - Novato Software
+Worked on the backend of the companys main web aplication using python and databases.
+
+Developer - Freelance
+Built websites and small aplications for a range of different clients.
+
+IT Support - Riverside Community College
+Helped staff and students with computer problems, printers and password resets.
+
+Also have expereince with Java, some Javascript, MySQL and basic Linux. Familier
+with git, JIRA and agile methodolgy. Responsibilites included attending the
+daily standup and updating tickets. Comfortable working independantly or as part
+of a team.
+
+Graduated Riverside Community College, Associate degree in Information
+Technology.
+
+References available upon request.
