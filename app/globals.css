@@ -336,14 +336,25 @@
   }
 }
 
-/* Respect the OS setting: no transforms, final state shown immediately. */
+/*
+  Respect the OS setting: no transforms, final state shown immediately.
+
+  The delay resets matter as much as the duration ones. `.reveal` staggers by
+  setting an inline `animation-delay`, and collapsing only the duration leaves
+  that delay intact — the seventh card on the report still waited 420ms at
+  `opacity: 0`, held there by the `both` fill, and then snapped in. Cutting the
+  duration alone turns a gentle rise into a pop, which is the one thing this
+  media query exists to prevent.
+*/
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }
