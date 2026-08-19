@@ -1,0 +1,215 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
+
+import { Reveal } from "@/components/reveal";
+import { Button } from "@/components/ui/button";
+import { Card, CardTitle } from "@/components/ui/card";
+import { ErrorState } from "@/components/error-state";
+import { BulletRewrites } from "./bullet-rewrites";
+import { DegradedBanner } from "./degraded-banner";
+import { FeedbackList } from "./feedback-list";
+import { KeywordMatchPanel } from "./keyword-match";
+import { ScanningCard } from "./scanning-card";
+import { ScoreGauge } from "./score-gauge";
+import { SectionBreakdown } from "./section-breakdown";
+import { store } from "@/lib/store";
+import { PLACEHOLDER_ANALYSIS, PLACEHOLDER_FILE_NAME } from "@/lib/placeholder";
+import type { AnalysisRecord } from "@/types";
+
+/**
+ * Reads the saved analysis by route id and renders it.
+ *
+ * Client-side because the session store lives in the browser. The database
+ * mode could render this on the server, but keeping one code path means the
+ * page behaves identically whether or not a database is configured — and the
+ * refresh-survives requirement is satisfied the same way in both.
+ */
+
+/** The `demo` id serves the static sample so the layout is reviewable without an API key. */
+const DEMO: AnalysisRecord = {
+  id: "demo",
+  fileName: PLACEHOLDER_FILE_NAME,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  data: PLACEHOLDER_ANALYSIS,
+  meta: {
+    degraded: false,
+    degradedReason: null,
+    truncated: false,
+    timings: {},
+    pageCount: 2,
+    wordCount: 612,
+  },
+};
+
+type ViewState =
+  | { phase: "loading" }
+  | { phase: "missing" }
+  | { phase: "ready"; record: AnalysisRecord };
+
+export function AnalysisView({ id }: { id: string }) {
+  // The demo record is known at render time, so it is the initial state
+  // rather than something an effect assigns immediately after mounting.
+  const [state, setState] = useState<ViewState>(() =>
+    id === "demo" ? { phase: "ready", record: DEMO } : { phase: "loading" },
+  );
+
+  useEffect(() => {
+    if (id === "demo") return;
+    let cancelled = false;
+
+    void store.load(id).then((record) => {
+      if (cancelled) return;
+      setState(record ? { phase: "ready", record } : { phase: "missing" });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (state.phase === "loading") {
+    return (
+      <Card>
+        <ScanningCard stageIndex={3} progress={90} />
+      </Card>
+    );
+  }
+
+  if (state.phase === "missing") {
+    return (
+      <Card>
+        <ErrorState code="UNKNOWN">
+          <Button asChild>
+            <Link href="/">Analyse a resume</Link>
+          </Button>
+        </ErrorState>
+      </Card>
+    );
+  }
+
+  const { data: analysis, meta, fileName } = state.record;
+
+  return (
+    <>
+      {meta.degraded && (
+        <Reveal index={0} className="mb-5">
+          <DegradedBanner reason={meta.degradedReason} />
+        </Reveal>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 min-[900px]:grid-cols-12 min-[900px]:items-start">
+        {/* Left column — 5 of 12 */}
+        <div className="contents min-[900px]:col-span-5 min-[900px]:flex min-[900px]:flex-col min-[900px]:gap-5">
+          <Reveal index={0} className="order-1">
+            <Card>
+              <CardTitle>Your resume</CardTitle>
+              <p className="mt-2 truncate text-sm font-medium text-ink" title={fileName}>
+                {fileName}
+              </p>
+              <p className="mt-1 text-[13px] text-ink-soft">
+                {meta.wordCount.toLocaleString()} words
+                {meta.pageCount ? `, ${meta.pageCount} page${meta.pageCount === 1 ? "" : "s"}` : ""}
+                {meta.truncated ? " — the middle was omitted for length" : ""}
+              </p>
+              <div className="mt-5">
+                <Button asChild variant="secondary" className="w-full">
+                  <Link href="/">
+                    <ArrowLeft className="size-4" aria-hidden="true" />
+                    Analyse another resume
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal index={3} className="order-4">
+            <Card>
+              <CardTitle>AI feedback</CardTitle>
+              <div className="mt-1">
+                <FeedbackList items={analysis.feedback} />
+              </div>
+            </Card>
+          </Reveal>
+        </div>
+
+        {/* Right column — 7 of 12 */}
+        <div className="contents min-[900px]:col-span-7 min-[900px]:flex min-[900px]:flex-col min-[900px]:gap-5">
+          <Reveal index={2} className="order-3">
+            <Card>
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
+                <ScoreGauge score={analysis.overallScore} verdict={analysis.verdict} />
+                <div className="min-w-0">
+                  <CardTitle>Resume score</CardTitle>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                    {analysis.summary}
+                  </p>
+                  {/*
+                    The model's own justification for the band it chose. Shown
+                    rather than hidden: a score with visible reasoning behind it
+                    can be argued with, and one without it can only be believed
+                    or ignored.
+                  */}
+                  <p className="mt-3 border-t border-line pt-3 text-[13px] leading-relaxed text-ink-soft">
+                    <span className="font-medium text-ink">Why this score: </span>
+                    {analysis.scoreRationale}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal index={4} className="order-5">
+            <Card>
+              <CardTitle>Keyword match</CardTitle>
+              <div className="mt-4">
+                <KeywordMatchPanel data={analysis.keywordMatch} />
+              </div>
+            </Card>
+          </Reveal>
+
+          <Reveal index={5} className="order-6">
+            <Card>
+              <CardTitle>Section breakdown</CardTitle>
+              <div className="mt-4">
+                <SectionBreakdown sections={analysis.sections} />
+              </div>
+            </Card>
+          </Reveal>
+        </div>
+      </div>
+
+      <Reveal index={6} className="mt-5">
+        <Card>
+          <CardTitle>Suggested bullet rewrites</CardTitle>
+          <div className="mt-4">
+            <BulletRewrites rewrites={analysis.bulletRewrites} />
+          </div>
+        </Card>
+      </Reveal>
+
+      {analysis.redFlags.length > 0 && (
+        <Reveal index={7} className="mt-5">
+          <Card>
+            <CardTitle>Red flags</CardTitle>
+            <ul className="mt-4 flex flex-col gap-2">
+              {analysis.redFlags.map((flag) => (
+                <li key={flag} className="flex items-start gap-2.5">
+                  <AlertTriangle
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0 text-warning"
+                  />
+                  <span className="text-[13px] leading-relaxed text-ink-soft">
+                    {flag}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </Reveal>
+      )}
+    </>
+  );
+}

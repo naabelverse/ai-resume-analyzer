@@ -1,0 +1,34 @@
+// Phase 7 — resume history.
+//
+// SQLite locally, Postgres in production: the same schema and the same client
+// code serve both, which is why `result` and `meta` are stored as JSON strings
+// rather than as a `Json` column. SQLite and Postgres disagree about native
+// JSON handling, and one identical code path is worth more here than a typed
+// column the app never queries into.
+//
+// The resume text itself is never stored. What lands in `result` is the
+// analysis, which does include bullet fragments Claude quoted back — that is
+// documented in the README rather than glossed over.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Analysis {
+  id        String   @id
+  fileName  String
+  score     Int
+  createdAt DateTime @default(now())
+
+  /// Serialised AnalysisResult.
+  result String
+  /// Serialised AnalysisMeta.
+  meta   String
+
+  @@index([createdAt])
+}
