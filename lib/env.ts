@@ -33,11 +33,31 @@ const EnvSchema = z
     AI_MODEL: z.string().min(1).default("nvidia/nemotron-3-super-120b-a12b"),
 
     /**
-     * Generous by default: the analysis JSON is large, and on a reasoning model
-     * thinking tokens come out of the same budget. Floored at 4000 — below that
-     * the JSON truncates mid-object and every request costs a retry.
+     * 4000, and it is a bound on a failure mode rather than room for a big
+     * answer.
+     *
+     * It was 16384, chosen as "generous" because nothing in the schema said
+     * what a large valid response actually was — `redFlags`, `bulletRewrites`
+     * strings and the keyword arrays were all unbounded, so there was no number
+     * to derive. Those are bounded now (see `ARRAY_CAPS` in
+     * `lib/schema/analysis.ts`) and the schema's own ceiling is about 12k
+     * characters, roughly 3.2k tokens. Across fifteen successful live calls the
+     * largest real response was 1,645 tokens.
+     *
+     * The reason it matters is not cost, it is the whitespace runaway. Guided
+     * JSON decoding always permits more whitespace between structural tokens, so
+     * a generation can latch onto it and emit nothing else until `max_tokens`
+     * stops it — measured at 16,384 tokens of which 91.9% was trailing
+     * whitespace, taking 96-187s. No schema bound can prevent that; only this
+     * one can. At 4000 the same runaway costs ~25-45s and comes back as
+     * `finish_reason: "length"`, which `analyze.ts` already handles as a
+     * `truncated` outcome and retries — instead of blowing past AI_TIMEOUT_MS
+     * and surfacing as an unexplained transport failure. See the README.
+     *
+     * Floored at 4000 rather than defaulted to it, so lowering this further
+     * cannot start truncating legitimate responses.
      */
-    AI_MAX_TOKENS: z.coerce.number().int().min(4_000).default(16_384),
+    AI_MAX_TOKENS: z.coerce.number().int().min(4_000).default(4_000),
 
     /**
      * Low for repeatability. Measured effect on this model is smaller than you

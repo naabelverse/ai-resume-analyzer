@@ -143,6 +143,8 @@ async function attempt(
     summary?: unknown;
     sections?: Record<string, object>;
     feedback?: unknown;
+    bulletRewrites?: unknown;
+    redFlags?: unknown;
   };
   const sections = wire.sections
     ? SECTION_NAMES.map((name) => ({
@@ -186,6 +188,28 @@ async function attempt(
           };
         })
       : wire.feedback,
+    // Bounded in the schema as of the runaway fix, so the decoder can now cut
+    // them mid-word too — and a cut `original` that still claims to be the
+    // candidate's bullet verbatim is the worst version of that. Marked, like
+    // every other field the decoder can reach.
+    bulletRewrites: Array.isArray(wire.bulletRewrites)
+      ? wire.bulletRewrites.map((item) => {
+          const entry = item as {
+            original?: unknown;
+            improved?: unknown;
+            why?: unknown;
+          };
+          return {
+            ...entry,
+            original: repair(entry.original, FIELD_CAPS.rewriteOriginal),
+            improved: repair(entry.improved, FIELD_CAPS.rewriteImproved),
+            why: repair(entry.why, FIELD_CAPS.rewriteWhy),
+          };
+        })
+      : wire.bulletRewrites,
+    redFlags: Array.isArray(wire.redFlags)
+      ? wire.redFlags.map((flag) => repair(flag, FIELD_CAPS.redFlag))
+      : wire.redFlags,
     sections,
     overallScore,
     verdict: deriveVerdict(overallScore),

@@ -42,6 +42,37 @@ export const FIELD_CAPS = {
   sectionNote: 160,
   feedbackText: 90,
   feedbackDetail: 300,
+  rewriteOriginal: 300,
+  rewriteImproved: 300,
+  rewriteWhy: 200,
+  redFlag: 200,
+  keyword: 60,
+} as const;
+
+/**
+ * Array length caps, for the same reason the character caps exist.
+ *
+ * `feedback` was bounded from the start. `bulletRewrites` capped its item count
+ * but not the strings inside it, and `redFlags`, `keywordMatch.matched` and
+ * `keywordMatch.missing` were unbounded arrays of unbounded strings. So there
+ * was no computable ceiling on a valid response, and `AI_MAX_TOKENS` was
+ * therefore set to a number nobody could derive rather than to one the schema
+ * implies.
+ *
+ * With these the largest permitted response is arithmetic: about 12k
+ * characters, roughly 3.2k tokens. `AI_MAX_TOKENS` in `lib/env.ts` is chosen
+ * against that number and cites it.
+ *
+ * Note what this does NOT fix: the whitespace runaway documented in the README
+ * happens BETWEEN structural tokens, where the JSON grammar always permits more
+ * whitespace, so no array bound can stop it. Only `max_tokens` bounds that.
+ */
+export const ARRAY_CAPS = {
+  feedbackMin: 5,
+  feedbackMax: 8,
+  bulletRewrites: 5,
+  redFlags: 6,
+  keywords: 20,
 } as const;
 
 export const StatusSchema = z.enum(["pass", "warn", "fail"]);
@@ -208,8 +239,8 @@ export const AnalysisWireSchema = z.object({
           ),
       }),
     )
-    .min(5)
-    .max(8)
+    .min(ARRAY_CAPS.feedbackMin)
+    .max(ARRAY_CAPS.feedbackMax)
     .describe(
       "Between 5 and 8 items. Include at least one 'pass' whenever the resume has a genuine strength.",
     ),
@@ -218,25 +249,40 @@ export const AnalysisWireSchema = z.object({
       z.object({
         original: z
           .string()
-          .describe("The bullet copied verbatim from the resume."),
-        improved: z.string().describe("The rewrite."),
+          .max(FIELD_CAPS.rewriteOriginal)
+          .describe(
+            "The bullet copied verbatim from the resume. Never exceed 280 characters; if a bullet is longer than that, rewrite a different one.",
+          ),
+        improved: z
+          .string()
+          .max(FIELD_CAPS.rewriteImproved)
+          .describe("The rewrite. Aim for 200 characters, never exceed 280."),
         why: z
           .string()
-          .describe("One sentence on what the rewrite changed and why."),
+          .max(FIELD_CAPS.rewriteWhy)
+          .describe(
+            "One sentence on what the rewrite changed and why. Aim for 140 characters, never exceed 185.",
+          ),
       }),
     )
-    .max(5)
+    .max(ARRAY_CAPS.bulletRewrites)
     .describe(
       "Between 0 and 5 rewrites, drawn only from bullets that actually appear in the resume.",
     ),
   keywordMatch: z
     .object({
       matched: z
-        .array(z.string())
-        .describe("Skills from the job description the resume demonstrates."),
+        .array(z.string().max(FIELD_CAPS.keyword))
+        .max(ARRAY_CAPS.keywords)
+        .describe(
+          "Skills from the job description the resume demonstrates. At most 20, each a short skill name rather than a sentence.",
+        ),
       missing: z
-        .array(z.string())
-        .describe("Skills from the job description the resume does not show."),
+        .array(z.string().max(FIELD_CAPS.keyword))
+        .max(ARRAY_CAPS.keywords)
+        .describe(
+          "Skills from the job description the resume does not show. At most 20, each a short skill name rather than a sentence.",
+        ),
       matchPercent: z
         .number()
         .int()
@@ -247,9 +293,10 @@ export const AnalysisWireSchema = z.object({
     .nullable()
     .describe("Null when no job description was supplied. Never invent one."),
   redFlags: z
-    .array(z.string())
+    .array(z.string().max(FIELD_CAPS.redFlag))
+    .max(ARRAY_CAPS.redFlags)
     .describe(
-      "Concrete problems a recruiter would notice: unexplained gaps, typos, inconsistencies. Empty array if none.",
+      "Concrete problems a recruiter would notice: unexplained gaps, typos, inconsistencies. At most 6, most serious first, and empty array if none. Group problems of the same kind into ONE entry — nine misspellings are one red flag about proofreading, not nine red flags. Aim for 150 characters each, never exceed 185.",
     ),
 });
 
@@ -273,14 +320,14 @@ export const FeedbackItemSchema = z.object({
 });
 
 export const BulletRewriteSchema = z.object({
-  original: z.string().min(1),
-  improved: z.string().min(1),
-  why: z.string().min(1),
+  original: z.string().min(1).max(FIELD_CAPS.rewriteOriginal),
+  improved: z.string().min(1).max(FIELD_CAPS.rewriteImproved),
+  why: z.string().min(1).max(FIELD_CAPS.rewriteWhy),
 });
 
 export const KeywordMatchSchema = z.object({
-  matched: z.array(z.string()),
-  missing: z.array(z.string()),
+  matched: z.array(z.string().max(FIELD_CAPS.keyword)).max(ARRAY_CAPS.keywords),
+  missing: z.array(z.string().max(FIELD_CAPS.keyword)).max(ARRAY_CAPS.keywords),
   matchPercent: z.number().int().min(0).max(100),
 });
 
@@ -317,10 +364,13 @@ export const AnalysisResultSchema = z.object({
         SECTION_NAMES.length,
       { message: "sections must cover each of the six section names exactly once" },
     ),
-  feedback: z.array(FeedbackItemSchema).min(5).max(8),
-  bulletRewrites: z.array(BulletRewriteSchema).max(5),
+  feedback: z
+    .array(FeedbackItemSchema)
+    .min(ARRAY_CAPS.feedbackMin)
+    .max(ARRAY_CAPS.feedbackMax),
+  bulletRewrites: z.array(BulletRewriteSchema).max(ARRAY_CAPS.bulletRewrites),
   keywordMatch: KeywordMatchSchema.nullable(),
-  redFlags: z.array(z.string()),
+  redFlags: z.array(z.string().max(FIELD_CAPS.redFlag)).max(ARRAY_CAPS.redFlags),
 }).refine(
   ({ overallScore, sections }) => {
     const average =
