@@ -53,8 +53,8 @@ Requires Node 20+ (developed on 24) and pnpm.
 | `NVIDIA_API_KEY` | With `nvidia` | — | Server-side only. Free from build.nvidia.com. |
 | `ANTHROPIC_API_KEY` | With `anthropic` | — | Server-side only. |
 | `AI_TEMPERATURE` | No | `0.2` | Low for repeatability. |
-| `AI_MAX_TOKENS` | No | `16384` | Floored at `4000`; the JSON is large. |
-| `AI_TIMEOUT_MS` | No | `90000` | Open-weight inference is slow. |
+| `AI_MAX_TOKENS` | No | `4000` | Floored at `4000`. Bounds the whitespace runaway; see limitations. |
+| `AI_TIMEOUT_MS` | No | `120000` | Open-weight inference is slow, and rate varies 4.5x by the hour. |
 | `NVIDIA_ENABLE_THINKING` | No | `false` | See the AI section for the measurements. |
 | `ANTHROPIC_EFFORT` | No | `medium` | `low`…`max`. Anthropic only. |
 | `PERSISTENCE` | No | `session` | `session` or `db`. Read by the server. |
@@ -161,8 +161,8 @@ the seam is real. An abstraction with one implementation is just indirection.
 | `NVIDIA_API_KEY` | Required when provider is `nvidia` |
 | `ANTHROPIC_API_KEY` | Required when provider is `anthropic` |
 | `AI_TEMPERATURE` | Default `0.2` |
-| `AI_MAX_TOKENS` | Default `16384`, floored at `4000` |
-| `AI_TIMEOUT_MS` | Default `90000` |
+| `AI_MAX_TOKENS` | Default `4000`, floored at `4000` |
+| `AI_TIMEOUT_MS` | Default `120000` |
 
 A missing key **for the provider you selected** is reported at boot, naming the
 exact variable. It is never a 500 at request time — the request path returns the
@@ -245,16 +245,19 @@ Findings from probing the live API, not from documentation:
   was 2 attempts x 3 SDK requests x 90s = 540s against a `maxDuration` of 120s,
   so slow requests were killed by the platform and the user got a dead
   connection instead of the degraded report. Both clients now use
-  `maxRetries: 0` and `AI_TIMEOUT_MS` is 50s, giving a worst case of
-  2 x 50s + 5s = 105s inside the 120s cap.
+  `maxRetries: 0` and `AI_TIMEOUT_MS` is 120s, giving a worst case of
+  2 x 120s + 5s = 245s inside a `maxDuration` of 300s.
 
-  50s is picked from measurement, not preference: across eighteen live calls the
-  slowest request that actually succeeded took 43.6s and the second slowest
-  25.1s. 45s would have cut the 43.6s request off by a 1.4s margin; 55s leaves
-  only 5s of platform headroom. Retrying stays in `analyze.ts`, where it is
-  counted, bounded, and carries the validator's complaint — the SDK's version
-  was silent and unbounded. A test asserts the arithmetic against the route's
-  `maxDuration`, so raising one without the other fails the suite.
+  The bound was 50s for one reason: Vercel's 120s function cap, worked
+  backwards. This app targets Railway, which imposes no such cap, so the
+  constraint that set the number is gone. What replaced it is measurement —
+  the slowest request that actually succeeded across eighteen live calls took
+  43.6s, and per-token rate on this endpoint swings 5.9-26.9 ms/token by the
+  hour, so the headroom above that is deliberate rather than shaved. Retrying
+  stays in `analyze.ts`, where it is counted, bounded, and carries the
+  validator's complaint — the SDK's version was silent and unbounded. A test
+  asserts the arithmetic against the route's `maxDuration`, so raising one
+  without the other fails the suite.
 
 Verify against your own key with `pnpm test:live` — it prints the full raw
 response before parsing, whether Zod passed first try or retried, elapsed time,
@@ -372,22 +375,69 @@ payload reproducing it. Across every run since, the largest legitimate gap was
 subtler scale error, or one that moves the overall score along with the
 sections, would still get through.
 
-**`maxDuration` has never met a real platform.** The 105s worst case
-(2 attempts x 50s + 5s) is arithmetic checked by a test, not an observation.
-Nothing here has been deployed. How Vercel behaves at that boundary, and whether
-a given plan even permits 120s, is untested.
+**Guided JSON decoding can run away on whitespace, and it still does.** This is
+the failure mode that cost the most to find, because it never once looked like
+itself.
+
+A structured-output request to this endpoint sometimes stops advancing the JSON
+and emits whitespace until it runs out of budget. Captured raw, one such
+response was 16,384 completion tokens — the entire `max_tokens` ceiling — of
+which **1,414 characters were JSON and 16,007 were a `"\n "` pair repeated**:
+**91.9% of the body**, at 1.06 characters per output token against a healthy
+~3.9. The JSON simply stopped mid-object, after `sections.skills`. The same
+responses show the tell elsewhere: one `summary` came back as
+`"YourResumeSectionIsStrongButYouNeedToWorkOnImpact…"` with every space removed,
+and a section note containing "contribute to the the".
+
+The mechanism is that a JSON grammar always permits more whitespace between
+structural tokens, so "emit another space" is never an illegal next token. **No
+schema bound can prevent this** — the loop happens *between* fields, not inside
+a string or an array — which is why the remedy is `max_tokens` and not a
+stricter schema. Anyone building on structured outputs should know the failure
+is representable at all; `strict: true` guarantees the shape of what you get,
+not that you get it.
+
+What made it expensive to diagnose is that the cost surfaced as something else
+entirely. At this endpoint's 5.9-11.4 ms/token, 16,384 tokens takes **96-187
+seconds**, which blew straight through the 50s per-request timeout; the SDK
+aborted and the app reported that the model could not be reached. A quality run
+showed weak.txt failing 3 of 3 while strong.txt passed 6 of 6 — which reads as a
+content-dependent bug and is really a length-dependent one. The runaway is more
+likely on a weak resume (measured 2/3, against 1/3 middling and 0/3 strong) but
+is not specific to it, and the successful weak.txt runs produce the *smallest*
+output of any fixture. Every diagnostic that measured output length on the
+finished analysis found no correlation with elapsed time, because by then the
+runaway attempt had already been discarded and retried.
+
+`AI_MAX_TOKENS` is now 4,000 — chosen against the schema's own ceiling of about
+3.2k tokens, with the largest real response ever observed at 1,645. That bounds
+a runaway to roughly 25-45s and turns it into a `finish_reason: "length"` the
+retry loop already handles. **It does not stop the runaway happening.** In the
+first run after the change, 3 of 9 calls still hit the ceiling and both attempts
+ran away, so those calls still degraded — but with the accurate `AI_SCHEMA` code
+instead of a misleading `AI_UNAVAILABLE`, in around 13s instead of 150s, and
+weak.txt produced a usable score for the first time. A frequency or presence
+penalty on the request is the obvious next lever and has not been tried.
+
+**`maxDuration` has never met a real platform.** The 245s worst case
+(2 attempts x 120s + 5s) is arithmetic checked by a test, not an observation.
+Nothing here has been deployed. The app targets Railway, which does not cap
+function duration — and on a long-running Node server the route segment config
+has no runtime effect at all. The invariant is kept because it is the one place
+that states what a single request is allowed to cost, not because a platform is
+currently enforcing it.
 
 **The bound trades slow successes for fast degrades, and the cost is real.**
-Under the previous unbounded configuration two of nine calls only succeeded
-because the SDK silently retried past 90s, arriving at ~200s. Those requests
-would have been killed by the platform anyway. Bounding the request converts
-them into honest failures — but on this endpoint that is not a rare event. The
-first run under the 50s bound lost **four of nine calls** to timeouts, each one
-degrading to the structural report. One successful call landed at 41.5s, leaving
-only 8.5s of headroom. Free-tier capacity varies by the hour and this is a
-single sample, so the true degrade rate is unknown; what is known is that it is
-high enough to matter, and that the previous configuration was hiding it rather
-than avoiding it.
+Under the earlier unbounded configuration two of nine calls only succeeded
+because the SDK silently retried past 90s, arriving at ~200s. Bounding the
+request converts those into honest failures. The first run under a 50s bound
+lost **four of nine calls** to timeouts — but most of those were the whitespace
+runaway above rather than genuinely slow analysis, which is why the remedy
+turned out to be `max_tokens` rather than a longer wait. Per-token rate on this
+endpoint still varies **5.9-26.9 ms/token** by the hour, a 4.5x swing on
+identical work, so the timeout is now 120s rather than shaved to just above the
+slowest observed success. Free-tier capacity varies and these are single
+samples; the true degrade rate is still unknown.
 
 ---
 
@@ -424,9 +474,12 @@ moving to Postgres is a change of adapter in `lib/db.ts` and provider in
 Next 16 that is the default and the Edge runtime is deprecated, so there is no
 `export const runtime` — but the requirement is real.
 
-The route exports `maxDuration = 60` to match the Anthropic client's own 60s
-timeout. Without it the platform caps the function well below that and kills the
-request before the SDK can report a timeout of its own.
+The route exports `maxDuration = 300`, which must cover the whole worst case
+(2 attempts x `AI_TIMEOUT_MS` + 5s = 245s) rather than a single model call. On
+Railway this is inert — a long-running Node server has no per-request ceiling to
+declare — but it is the one place that states what a request is allowed to cost,
+and `tests/api-analyze.test.ts` holds `AI_TIMEOUT_MS` to it. Deploying somewhere
+that does enforce a cap means lowering both together.
 
 For production persistence, point `DATABASE_URL` at Postgres, swap the
 datasource provider and the adapter, and run `pnpm db:migrate`.
