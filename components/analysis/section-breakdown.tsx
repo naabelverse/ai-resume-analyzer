@@ -1,15 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { SectionScore, Status } from "@/types";
-
-const SECTION_LABEL: Record<string, string> = {
-  contact: "Contact",
-  summary: "Summary",
-  experience: "Experience",
-  education: "Education",
-  skills: "Skills",
-  formatting: "Formatting",
-};
+import { SECTION_LABEL, type SectionScore, type Status } from "@/types";
 
 /**
  * `fail` is every section scoring below 50, not an absent one. This read
