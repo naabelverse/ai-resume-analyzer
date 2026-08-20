@@ -90,32 +90,13 @@
   --muted-tint: #f1f2f6;
   --gauge-track: #eef0f8;
 
-  /* Recessed surface for `.panel`. Its own token rather than --muted-tint:
-     that one is a hover state, and a hover grey used as a resting surface
-     reads cold beside anything tinted toward the canvas violet. */
+  /* Recessed surface. Worn by `.panel` and, by utility, by the
+     job-description trigger and textarea: a container, a passive panel and a
+     text field all sit at this one depth on purpose. Its own token rather
+     than --muted-tint: that one is a hover state, and a hover grey used as a
+     resting surface reads cold beside anything tinted toward the canvas
+     violet. */
   --surface-inset: #f5f4fb;
-
-  /*
-    Text-entry surface. Deeper than --surface-inset because the two are doing
-    different jobs, and the measurements say --surface-inset cannot do this one.
-
-    Against the card face it lands at dL* 6.81, near enough to twice
-    --surface-inset's 3.56 — and 3.56 is roughly a just-noticeable difference,
-    which is why a field wearing it read as a gap in the card rather than as
-    something to type in. Worth knowing that --drop-surface measures 3.55, so
-    the dropzone's fill is no deeper; what makes that zone unmistakable is its
-    2px dashed edge at 3.37:1, not its wash. A field with no dashes has to get
-    its signal from the fill instead.
-
-    It stops at 6.81 rather than going further because --disabled-surface sits
-    at 8.62 and an input must not approach the colour of a dead control. The
-    1.81 between them is thinner than ideal; it holds because "disabled" is a
-    button-only state here, so the two never appear side by side.
-
-    Ink stays comfortable on it: --ink at 15.76:1, --ink-soft at 6.75:1 for the
-    placeholder.
-  */
-  --surface-field: #eceaf7;
 
   /*
     Quoted-document surface. A neutral grey with a cool cast.
@@ -183,11 +164,9 @@
   --color-danger-tint: var(--danger-tint);
   --color-muted-tint: var(--muted-tint);
   --color-gauge-track: var(--gauge-track);
-  /* Exposed so the field surface is applied by utility, like every other
-     colour. `.panel` keeps --surface-inset; these are two different surfaces
-     on purpose and must not collapse into one. */
+  /* Exposed so the panel surface can be applied by utility as well as through
+     `.panel` — the job-description trigger and textarea wear it that way. */
   --color-surface-inset: var(--surface-inset);
-  --color-surface-field: var(--surface-field);
 
   /* next/font sets --font-jakarta and --font-inter on <html> */
   --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;

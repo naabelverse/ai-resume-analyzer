@@ -54,7 +54,7 @@ export function JobDescriptionInput({
           "text-body font-medium transition-colors",
           open
             ? "px-1 text-ink-soft"
-            : "border border-line-strong bg-surface-field px-3 text-ink hover:border-brand-600 hover:text-brand-600",
+            : "border border-line-strong bg-surface-inset px-3 text-ink hover:border-brand-600 hover:text-brand-600",
         )}
       >
         <span>Paste the job description (optional)</span>
@@ -89,12 +89,13 @@ export function JobDescriptionInput({
             // fill, not the edge: a 1px line is hard to see at any colour,
             // while two different surfaces are obvious at a glance.
             //
-            // `--surface-field` rather than `--surface-inset` because the
-            // measurement said so. --surface-inset sits at dL* 3.56 from the
-            // card face, about a just-noticeable difference; --surface-field
-            // is 6.81. `.panel` keeps the shallower one, so a passive panel
-            // and a text field no longer wear the same surface.
-            "w-full resize-y rounded-panel border border-line-strong bg-surface-field p-3 transition-colors",
+            // `--surface-inset`, the same surface `.panel` wears. The field
+            // briefly had a deeper token of its own at dL* 6.81 so it would
+            // not tie with a passive panel beside it, but that made it the
+            // darkest thing in the form, and matching the panels is the read
+            // this form wants. At 3.56 it still separates from the card face;
+            // what marks it as the live control is focus, not resting depth.
+            "w-full resize-y rounded-panel border border-line-strong bg-surface-inset p-3 transition-colors",
             "text-body text-ink placeholder:text-ink-soft",
             // `outline-none` used to sit here, which suppressed the app-wide
             // focus ring in globals.css and left focus as a one-pixel colour
