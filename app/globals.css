@@ -136,6 +136,10 @@
   */
   --surface-quote: #e8ebef;
   --quote-line: #dbe0e6;
+  /* Scrollbar thumb. dL* 14.90 on the well (1.51:1) — present without
+     announcing itself. Applied through `scrollbar-color`, which colours the
+     browser's own scrollbar and leaves its geometry entirely alone. */
+  --quote-scroll: #b9c2cc;
 
   /*
     Disabled is its own surface, not the live one at half opacity. Opacity
@@ -196,6 +200,15 @@
   --radius-card: 22px;
   --radius-panel: 16px;
   --radius-control: 11px;
+  /*
+    For a box that scrolls. A scrollbar sits in a gutter inside the border box
+    and paints across whatever arc it covers, so the fix for a clipped corner
+    is a corner small enough that covering it is imperceptible — not a styled
+    scrollbar drawn around it, which is what failed twice. At 6px the curve is
+    a softening rather than a shape, and nothing about it survives or fails
+    visibly depending on which edge it is on.
+  */
+  --radius-well: 6px;
 
   /*
     Three layers, not one. The hairline seats the card on the surface, the mid
@@ -335,19 +348,17 @@
     inherited ink: a well is cut into the surface rather than laid on it, and
     both of those say so in a way a scattered utility stack would not.
 
-    The scrollbar is deliberately NOT styled, and that is the point rather than
-    an omission. Two attempts to style it both shipped a worse bug than the one
-    they fixed — an opaque custom track painted over the corner arcs and
-    squared the right-hand edge, and moving the radius to a clipping wrapper to
-    fix that detached the scrollbar from the box entirely. The native scrollbar
-    sits correctly inside its own scroll container, which is the one thing it
-    is guaranteed to get right and the one thing neither custom version
-    managed.
+    The scrollbar is the browser's own, recoloured and nothing else. Two
+    earlier attempts to control it shipped worse bugs than they fixed: an
+    opaque custom track painted over the corner arcs and squared the
+    right-hand edge, and moving the radius onto a clipping wrapper to fix that
+    detached the scrollbar from the box entirely. Both touched geometry —
+    widths, pseudo-elements, gutters. `scrollbar-color` touches none, so the
+    scrollbar keeps the placement the browser gets right on its own.
 
-    If the corners read wrong against a native scrollbar, the lever is
-    --radius-control on this rule, not a scrollbar rule. A smaller radius gives
-    a scrollbar less arc to sit on; a styled scrollbar gives it something new
-    to paint over.
+    The corners are handled by --radius-well rather than by anything to do
+    with the scrollbar. That is the whole trick: give the gutter nothing worth
+    clipping instead of negotiating with it over the arc.
 
     Inset shadow, not a drop shadow, and the tighter --radius-control rather
     than --radius-panel: a panel sits on the surface, a well is cut into it,
@@ -356,9 +367,25 @@
   .quote-well {
     background-color: var(--surface-quote);
     border: 1px solid var(--quote-line);
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-well);
     box-shadow: inset 0 1px 3px rgb(20 30 45 / 0.10);
     color: var(--ink-soft);
+    /*
+      Colour only. `scrollbar-color` recolours the scrollbar the browser was
+      already going to draw, in the position it was already going to draw it —
+      no width, no ::-webkit-scrollbar pseudo-elements, no scrollbar-gutter.
+      Those three are what moved the scrollbar out of the box twice, and none
+      of them is needed to stop it looking foreign.
+
+      Transparent track rather than the fill: the scrollbar sits on this
+      surface already, so transparent IS the fill, and naming the colour twice
+      is one more place for them to disagree.
+
+      Firefox, and Chromium 121+. Older engines ignore it and draw their
+      default scrollbar, which is correct-but-plain — a degradation in looks
+      with no effect on geometry.
+    */
+    scrollbar-color: var(--quote-scroll) transparent;
   }
 
 

@@ -189,12 +189,11 @@ export function FilePreview({
             inner scroller — was an attempt to round the scrollbar's corners
             and it detached the scrollbar from the well instead.
 
-            The scrollbar is the browser's own, unstyled. It sits inside this
-            element because that is what a native scrollbar does in its own
-            scroll container; every custom version of it broke either the
-            corners or the placement. See `.quote-well` in globals.css for the
-            full account, and for why a smaller radius — not a scrollbar
-            rule — is the lever if the corners still read wrong.
+            The scrollbar is the browser's own, recoloured and not otherwise
+            touched. It sits inside this element because that is what a native
+            scrollbar does in its own scroll container; every version that
+            reached for width, pseudo-elements or a gutter broke either the
+            corners or the placement. See `.quote-well` in globals.css.
           */}
           <div
             role="region"
