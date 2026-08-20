@@ -81,12 +81,48 @@ export interface AnalyzeSuccess {
   meta: AnalysisMeta;
 }
 
-export interface AnalyzeFailure {
+/**
+ * The failure half of every JSON envelope in the app, not just the analyse
+ * one. Two endpoints returning two differently-shaped failures would mean two
+ * client-side branches for what is the same event: the server refused, and
+ * `ERROR_COPY` already knows what to say about it.
+ */
+export interface ApiFailure {
   ok: false;
   error: { code: ErrorCode; message: string };
 }
 
-export type AnalyzeResponse = AnalyzeSuccess | AnalyzeFailure;
+export type AnalyzeResponse = AnalyzeSuccess | ApiFailure;
+
+/* -------------------------------------------------------------------------
+   Extraction preview
+
+   What `/api/extract` returns for the panel that replaces the drop target.
+   It is the output of the same `extractResume` the analyse route runs — the
+   text here is the text the model will be given, not an approximation of it,
+   which is the only reason showing it is worth a round trip.
+------------------------------------------------------------------------- */
+
+export interface ExtractPreview {
+  kind: "pdf" | "docx";
+  /** Normalised and already truncated — exactly what would be sent. */
+  text: string;
+  /** Null for DOCX, which has no page count until something renders it. */
+  pageCount: number | null;
+  truncated: boolean;
+  /**
+   * Length after normalisation but BEFORE truncation, so the preview can say
+   * how much was dropped rather than only that something was.
+   */
+  charCount: number;
+}
+
+export interface ExtractSuccess {
+  ok: true;
+  data: ExtractPreview;
+}
+
+export type ExtractResponse = ExtractSuccess | ApiFailure;
 
 /** What the store persists. `id` is the `/analyze/[id]` route segment. */
 export interface AnalysisRecord {

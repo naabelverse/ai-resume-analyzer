@@ -66,7 +66,20 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   JD_TOO_LONG: {
     title: "That job description is too long",
     message: "Job descriptions are capped at 8,000 characters.",
-    action: "Paste just the responsibilities and requirements sections.",
+    /*
+      Recovery advice, and it has to agree with what the textarea asked for.
+      The placeholder invites the whole posting; this used to answer an overrun
+      with "paste just the responsibilities and requirements sections", which
+      told the user to do the thing they had just been told not to do — and
+      threw away role-specific terms in the bargain, since matching works off
+      the words the posting uses and they are spread through all of it.
+
+      So it names what to cut rather than what to keep, and picks the parts
+      carrying no terms a resume could match: benefits, the company blurb, the
+      interview process. Those are usually the longest parts too.
+    */
+    action:
+      "Cut the parts that say nothing about the role itself — benefits, the company blurb, the interview process — and paste the rest.",
   },
   /**
    * Provider-neutral wording, deliberately.

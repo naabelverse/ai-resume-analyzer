@@ -19,6 +19,14 @@
   /* Status */
   --success: #22c55e;
   --warning: #f59e0b;
+  /*
+    Amber dark enough to be read as text. --warning is a fill and a rule
+    colour; at 1.80:1 on the quote well it is illegible as type, and amber is
+    the one status hue where that gap is wide enough to matter. Same hue —
+    38deg, identical to --warning — carried down to 4.95:1, which clears AA for
+    small text with a modest margin.
+  */
+  --warning-ink: #8a5a06;
   --danger: #ef4444;
 
   /* Surfaces */
@@ -88,6 +96,60 @@
   --surface-inset: #f5f4fb;
 
   /*
+    Text-entry surface. Deeper than --surface-inset because the two are doing
+    different jobs, and the measurements say --surface-inset cannot do this one.
+
+    Against the card face it lands at dL* 6.81, near enough to twice
+    --surface-inset's 3.56 — and 3.56 is roughly a just-noticeable difference,
+    which is why a field wearing it read as a gap in the card rather than as
+    something to type in. Worth knowing that --drop-surface measures 3.55, so
+    the dropzone's fill is no deeper; what makes that zone unmistakable is its
+    2px dashed edge at 3.37:1, not its wash. A field with no dashes has to get
+    its signal from the fill instead.
+
+    It stops at 6.81 rather than going further because --disabled-surface sits
+    at 8.62 and an input must not approach the colour of a dead control. The
+    1.81 between them is thinner than ideal; it holds because "disabled" is a
+    button-only state here, so the two never appear side by side.
+
+    Ink stays comfortable on it: --ink at 15.76:1, --ink-soft at 6.75:1 for the
+    placeholder.
+  */
+  --surface-field: #eceaf7;
+
+  /*
+    Quoted-document surface. A neutral grey with a cool cast.
+
+    The extracted resume text is not the app's own writing — it is a document
+    shown back — and it should read as a different kind of surface. Two earlier
+    attempts got that wrong in opposite directions. Dark read as pasted in from
+    another application. Warm grey sat at hue 40deg, four degrees off the amber
+    truncation band's 36deg, which would have let the one element in this box
+    that must stand out sink into its own background.
+
+    Cool at 214deg solves both. It is 174deg from the band — near enough to
+    complementary — and 35deg off the card's lavender at 249deg, so it stays
+    out of that family without leaving the page's colour world. Blue-grey, not
+    violet: R < G < B with no dip in the green channel, where lavender takes
+    green as its minimum.
+
+    Honest about what this does and does not buy. Lightness separation from the
+    band is 3.34 and would be roughly that at any hue — the band is very light,
+    so no well at a sensible depth gets far from it vertically. The band is
+    legible because of the 174deg of hue between them and its two solid
+    --warning rules, not because of dL*. Depth here is only doing the nesting.
+
+    dL* 3.51 below `.panel`, 7.07 from the card face. --ink-soft measures
+    6.70:1 on it.
+  */
+  --surface-quote: #e8ebef;
+  --quote-line: #dbe0e6;
+  /* Scrollbar thumb. dL* 14.90 on the well (1.51:1) — present without
+     announcing itself. Applied through `scrollbar-color`, which colours the
+     browser's own scrollbar and leaves its geometry entirely alone. */
+  --quote-scroll: #b9c2cc;
+
+  /*
     Disabled is its own surface, not the live one at half opacity. Opacity
     leaves the brand gradient legible underneath, which reads as "working on
     it"; a flat inert grey reads as "not yet".
@@ -110,6 +172,7 @@
   --color-violet-600: var(--violet-600);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
   --color-danger: var(--danger);
   --color-surface: var(--surface);
   --color-line: var(--line);
@@ -120,10 +183,25 @@
   --color-danger-tint: var(--danger-tint);
   --color-muted-tint: var(--muted-tint);
   --color-gauge-track: var(--gauge-track);
+  /* Exposed so the field surface is applied by utility, like every other
+     colour. `.panel` keeps --surface-inset; these are two different surfaces
+     on purpose and must not collapse into one. */
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-field: var(--surface-field);
 
   /* next/font sets --font-jakarta and --font-inter on <html> */
   --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-inter), "Segoe UI", Arial, sans-serif;
+
+  /*
+    System monospace, for extracted resume text only. Not a loaded webfont:
+    this face exists to show that the extraction preserved the line structure,
+    which any monospace does equally well, and a third font download to prove
+    it would cost more than it shows. Declared here rather than left to
+    Tailwind's built-in default so the stack is this file's decision like every
+    other face in the app.
+  */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Shape and depth — generates rounded-card, rounded-panel, shadow-card… */
@@ -131,6 +209,15 @@
   --radius-card: 22px;
   --radius-panel: 16px;
   --radius-control: 11px;
+  /*
+    For a box that scrolls. A scrollbar sits in a gutter inside the border box
+    and paints across whatever arc it covers, so the fix for a clipped corner
+    is a corner small enough that covering it is imperceptible — not a styled
+    scrollbar drawn around it, which is what failed twice. At 6px the curve is
+    a softening rather than a shape, and nothing about it survives or fails
+    visibly depending on which edge it is on.
+  */
+  --radius-well: 6px;
 
   /*
     Three layers, not one. The hairline seats the card on the surface, the mid
@@ -264,6 +351,54 @@
   }
 
   /*
+    The quoted-document well.
+
+    A component class rather than utilities for the inset shadow and the
+    inherited ink: a well is cut into the surface rather than laid on it, and
+    both of those say so in a way a scattered utility stack would not.
+
+    The scrollbar is the browser's own, recoloured and nothing else. Two
+    earlier attempts to control it shipped worse bugs than they fixed: an
+    opaque custom track painted over the corner arcs and squared the
+    right-hand edge, and moving the radius onto a clipping wrapper to fix that
+    detached the scrollbar from the box entirely. Both touched geometry —
+    widths, pseudo-elements, gutters. `scrollbar-color` touches none, so the
+    scrollbar keeps the placement the browser gets right on its own.
+
+    The corners are handled by --radius-well rather than by anything to do
+    with the scrollbar. That is the whole trick: give the gutter nothing worth
+    clipping instead of negotiating with it over the arc.
+
+    Inset shadow, not a drop shadow, and the tighter --radius-control rather
+    than --radius-panel: a panel sits on the surface, a well is cut into it,
+    and the two should not be confused at a glance.
+  */
+  .quote-well {
+    background-color: var(--surface-quote);
+    border: 1px solid var(--quote-line);
+    border-radius: var(--radius-well);
+    box-shadow: inset 0 1px 3px rgb(20 30 45 / 0.10);
+    color: var(--ink-soft);
+    /*
+      Colour only. `scrollbar-color` recolours the scrollbar the browser was
+      already going to draw, in the position it was already going to draw it —
+      no width, no ::-webkit-scrollbar pseudo-elements, no scrollbar-gutter.
+      Those three are what moved the scrollbar out of the box twice, and none
+      of them is needed to stop it looking foreign.
+
+      Transparent track rather than the fill: the scrollbar sits on this
+      surface already, so transparent IS the fill, and naming the colour twice
+      is one more place for them to disagree.
+
+      Firefox, and Chromium 121+. Older engines ignore it and draw their
+      default scrollbar, which is correct-but-plain — a degradation in looks
+      with no effect on geometry.
+    */
+    scrollbar-color: var(--quote-scroll) transparent;
+  }
+
+
+  /*
     Interactive drop target. The dashes and the interior wash both carry
     weight: the border says "target", the fill stops the zone reading as a
     hole punched in the card. Hover deepens both; a live drag goes solid
@@ -290,10 +425,13 @@
     border-style: solid;
   }
 
-  .dropzone.dropzone-error {
-    background-color: var(--danger-tint);
-    border-color: var(--danger);
-  }
+  /*
+    There is no `.dropzone-error`. A rejected file is held rather than
+    discarded, and what it renders is the preview panel carrying the reason —
+    so the drop target is off screen entirely by the time there is an error to
+    show. A state style kept for a state that cannot occur is one nobody can
+    check.
+  */
 
   /*
     `background-clip: text` paints the glyphs with the background and Chrome
