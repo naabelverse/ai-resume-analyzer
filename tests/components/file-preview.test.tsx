@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { FilePreview } from "@/components/upload/file-preview";
-import { MAX_TEXT_CHARS } from "@/lib/limits";
+import { MAX_TEXT_CHARS, TRUNCATION_MARKER } from "@/lib/limits";
 import type { ExtractPreview } from "@/types";
 
 /**
@@ -97,6 +97,61 @@ describe("FilePreview", () => {
     const notice = screen.getByRole("status");
     expect(notice).toHaveTextContent("15,000");
     expect(notice).toHaveTextContent("18,432");
+  });
+
+  /**
+   * `truncateText` splices its marker into the middle of the string the model
+   * reads. That is right for the model and wrong for a reader, who would get
+   * the app's own words in the resume's face and colour — one more line to
+   * scroll past rather than a cut to notice. These drive the real shape:
+   * head + marker + tail, exactly as `lib/extract` builds it.
+   */
+  function truncatedAt(head: string, tail: string, droppedChars: number) {
+    return {
+      truncated: true,
+      text: `${head}${TRUNCATION_MARKER}${tail}`,
+      // The pre-truncation length. The marker is the app's own text and must
+      // not count toward what the resume lost, so this is what was kept plus
+      // what was dropped — never the rendered string's length.
+      charCount: head.length + tail.length + droppedChars,
+    };
+  }
+
+  it("renders the truncation marker as a band, not as resume text", () => {
+    renderReady(truncatedAt("HEAD OF RESUME", "TAIL OF RESUME", 4_200));
+
+    expect(screen.getByText(/4,200 characters cut from here/)).toBeInTheDocument();
+    // The marker's own wording must be gone from the document entirely. If the
+    // split ever stops matching, the component falls back to one plain block
+    // and this phrase reappears inside the resume text — silently, which is
+    // the failure this assertion exists to make loud.
+    expect(screen.queryByText(/omitted for length/)).not.toBeInTheDocument();
+  });
+
+  it("splits the resume text into two blocks either side of the cut", () => {
+    // A band that ate the tail would be worse than no band: the second half of
+    // the resume is exactly what head+tail truncation exists to preserve.
+    //
+    // Asserting both strings are *present* is not enough — the fallback path
+    // renders the whole string in one block and contains both, so that version
+    // of this test passed with the band disabled. Distinct elements is the
+    // claim that only holds when the split actually happened.
+    renderReady(truncatedAt("HEAD OF RESUME", "TAIL OF RESUME", 4_200));
+
+    const head = screen.getByText(/HEAD OF RESUME/);
+    const tail = screen.getByText(/TAIL OF RESUME/);
+
+    expect(head).toBeInTheDocument();
+    expect(tail).toBeInTheDocument();
+    expect(head).not.toBe(tail);
+  });
+
+  it("counts the dropped characters, not the rendered ones", () => {
+    // The marker sits inside `text` but is not resume content. Counting it
+    // would under-report the loss by its own length on every truncated file.
+    renderReady(truncatedAt("A", "B", 10_000));
+
+    expect(screen.getByText(/10,000 characters cut from here/)).toBeInTheDocument();
   });
 
   it("says nothing about truncation when nothing was truncated", () => {

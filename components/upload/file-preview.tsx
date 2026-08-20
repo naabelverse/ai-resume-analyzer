@@ -4,7 +4,8 @@ import { FileText, Loader2, X } from "lucide-react";
 
 import { InlineError } from "@/components/error-state";
 import type { ErrorCode } from "@/lib/errors";
-import { MAX_TEXT_CHARS } from "@/lib/limits";
+import { MAX_TEXT_CHARS, TRUNCATION_MARKER } from "@/lib/limits";
+import { cn } from "@/lib/utils";
 import type { ExtractPreview } from "@/types";
 import type { PreviewStatus } from "./use-file-preview";
 
@@ -40,6 +41,60 @@ function formatBytes(bytes: number): string {
 /** Fixed locale so the thousands separator does not depend on the machine. */
 function formatCount(value: number): string {
   return value.toLocaleString("en-US");
+}
+
+const RESUME_TEXT = "font-mono text-caption leading-relaxed whitespace-pre-wrap text-ink-soft";
+
+/**
+ * The extracted text, with the truncation marker lifted out of it.
+ *
+ * `truncateText` splices a plain-text marker into the middle of the string it
+ * returns, which is right for the model — it reads one string — and wrong for
+ * a reader, who gets the app's own words in the resume's face and colour, one
+ * more line to scroll past. Splitting on the marker lets the gap render as a
+ * gap: same amber as the banner above, so the two read as one system saying
+ * one thing in two places.
+ *
+ * The marker is imported rather than retyped. It is spliced in by `lib/extract`
+ * and matched here, and two copies of that string would fail silently — the
+ * split would simply never match and the band would quietly stop appearing.
+ */
+function ExtractedText({ preview }: { preview: ExtractPreview }) {
+  const parts = preview.text.split(TRUNCATION_MARKER);
+
+  // Untruncated text, or a marker that somehow is not there: one plain block.
+  // Never assume the split matched — a missing band is better than a crash.
+  if (parts.length !== 2) {
+    return <pre className={cn(RESUME_TEXT, "p-3")}>{preview.text}</pre>;
+  }
+
+  const [head, tail] = parts;
+  // `charCount` is the pre-truncation length and `text` still carries the
+  // marker, so the marker comes back off before the difference means anything.
+  const dropped = Math.max(
+    0,
+    preview.charCount - (preview.text.length - TRUNCATION_MARKER.length),
+  );
+
+  return (
+    <>
+      <pre className={cn(RESUME_TEXT, "px-3 pt-3")}>{head}</pre>
+
+      {/*
+        Full-bleed, which is why the padding sits on these children rather than
+        on the scroll container: a band inset by the container's own padding
+        reads as another paragraph, and the point of it is to read as a cut.
+        Sans face on purpose — nothing in the resume's own face should be the
+        app talking.
+      */}
+      <p className="my-2 border-y border-warning bg-warning-tint px-3 py-2 text-caption font-medium text-ink">
+        {formatCount(dropped)} characters cut from here. This part of your resume
+        is not sent to the model.
+      </p>
+
+      <pre className={cn(RESUME_TEXT, "px-3 pb-3")}>{tail}</pre>
+    </>
+  );
 }
 
 export function FilePreview({
@@ -127,11 +182,9 @@ export function FilePreview({
             role="region"
             aria-label="Extracted text"
             tabIndex={0}
-            className="max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto rounded-control border border-line bg-surface p-3"
+            className="max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto rounded-control border border-line bg-surface"
           >
-            <pre className="font-mono text-caption leading-relaxed whitespace-pre-wrap text-ink-soft">
-              {preview.text}
-            </pre>
+            <ExtractedText preview={preview} />
           </div>
 
           <p className="text-caption text-ink-soft">
