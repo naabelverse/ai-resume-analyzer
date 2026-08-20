@@ -8,6 +8,7 @@ import {
   type ErrorCode,
 } from "@/lib/errors";
 import { extractResume } from "@/lib/extract";
+import { failureResponse } from "@/lib/http";
 import { JD_MAX_CHARS } from "@/lib/limits";
 import { checkRateLimit, clientKeyFrom } from "@/lib/rate-limit";
 import {
@@ -56,25 +57,6 @@ import type { AnalysisMeta, AnalyzeResponse } from "@/types";
  */
 export const maxDuration = 300;
 
-const HTTP_STATUS: Partial<Record<ErrorCode, number>> = {
-  RATE_LIMITED: 429,
-  FILE_TOO_LARGE: 413,
-  UNSUPPORTED_FILE: 415,
-  LEGACY_DOC: 415,
-};
-
-function failure(error: AppError, extraHeaders?: HeadersInit): Response {
-  const body: AnalyzeResponse = {
-    ok: false,
-    error: { code: error.code, message: error.message },
-  };
-
-  return Response.json(body, {
-    status: HTTP_STATUS[error.code] ?? 400,
-    headers: extraHeaders,
-  });
-}
-
 export async function POST(request: Request): Promise<Response> {
   const timings: Record<string, number> = {};
   const mark = (stage: string, from: number) => {
@@ -84,7 +66,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const limit = checkRateLimit(clientKeyFrom(request));
     if (!limit.allowed) {
-      return failure(new RateLimitedError(limit.retryAfterSeconds), {
+      return failureResponse(new RateLimitedError(limit.retryAfterSeconds), {
         "retry-after": String(limit.retryAfterSeconds),
       });
     }
@@ -168,7 +150,7 @@ export async function POST(request: Request): Promise<Response> {
     const body: AnalyzeResponse = { ok: true, data, meta };
     return Response.json(body);
   } catch (cause) {
-    if (cause instanceof AppError) return failure(cause);
+    if (cause instanceof AppError) return failureResponse(cause);
 
     console.error("[analyze] unhandled:", cause);
     return Response.json(

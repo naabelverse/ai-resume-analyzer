@@ -1,39 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/error-state";
 import { ScanningCard } from "@/components/analysis/scanning-card";
-import { Dropzone, type DropzoneStatus } from "./dropzone";
+import { Dropzone } from "./dropzone";
+import { FilePreview } from "./file-preview";
+import { useFilePreview } from "./use-file-preview";
 import { JobDescriptionInput } from "./jd-input";
 import { WhatYouGet } from "./what-you-get";
-import { MAX_FILE_BYTES } from "@/lib/limits";
 import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import { newAnalysisId, store } from "@/lib/store";
 import type { AnalysisRecord, AnalyzeResponse } from "@/types";
 
 /**
- * Owns the whole upload-to-results flow: validation, the request, the progress
- * display, and the hand-off to `/analyze/[id]`.
+ * Owns the whole upload-to-results flow: the request, the progress display,
+ * and the hand-off to `/analyze/[id]`.
+ *
+ * File selection and its extraction belong to `useFilePreview`, which carries
+ * a race worth testing on its own. What is left here is the submit.
  *
  * It is the only client component on the landing page. The page itself stays a
  * server component so the header and card shell render without waiting for
  * this bundle.
  */
-
-/** Cheap pre-checks. The server re-validates by sniffing magic bytes. */
-function clientSideProblem(file: File): ErrorCode | null {
-  if (file.size > MAX_FILE_BYTES) return "FILE_TOO_LARGE";
-
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".doc")) return "LEGACY_DOC";
-  if (!name.endsWith(".pdf") && !name.endsWith(".docx")) {
-    return "UNSUPPORTED_FILE";
-  }
-  return null;
-}
 
 /**
  * Advances the scanning card while the request is in flight.
@@ -72,10 +64,10 @@ function useScanProgress(startedAt: number | null) {
 
 export function AnalyzeForm() {
   const router = useRouter();
+  const selection = useFilePreview();
 
-  const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
-  const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
+  const [submitError, setSubmitError] = useState<ErrorCode | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
 
   const busy = startedAt !== null;
@@ -84,23 +76,29 @@ export function AnalyzeForm() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const handleFile = useCallback((selected: File) => {
-    setErrorCode(clientSideProblem(selected));
-    // Held either way: an invalid file with a visible reason beats a dropzone
-    // that silently discards what the user just dropped on it.
-    setFile(selected);
-  }, []);
+  const { file, preview, status } = selection;
+  /*
+    Only a file whose text we have already seen can be submitted. That is a
+    stronger guarantee than the old pre-flight check gave: the server has
+    already sniffed these bytes and got readable text out of them, so the
+    button is enabled on evidence rather than on the filename's say-so.
+  */
+  const ready = file !== null && status === "ready";
+
+  function handleFile(selected: File) {
+    setSubmitError(null);
+    selection.select(selected);
+  }
+
+  function handleRemove() {
+    setSubmitError(null);
+    selection.clear();
+  }
 
   async function submit() {
-    if (!file || busy) return;
+    if (!ready || busy) return;
 
-    const problem = clientSideProblem(file);
-    if (problem) {
-      setErrorCode(problem);
-      return;
-    }
-
-    setErrorCode(null);
+    setSubmitError(null);
     setStartedAt(Date.now());
 
     const controller = new AbortController();
@@ -108,6 +106,10 @@ export function AnalyzeForm() {
 
     try {
       const body = new FormData();
+      // The file, not the text we already hold. The route re-extracts from
+      // these bytes, which keeps the magic-byte sniff and the character cap on
+      // the server where they are enforceable — roughly 20ms for not having to
+      // trust the browser about what it is sending.
       body.set("file", file);
       if (jobDescription.trim()) body.set("jobDescription", jobDescription.trim());
 
@@ -119,7 +121,7 @@ export function AnalyzeForm() {
       const payload = (await response.json()) as AnalyzeResponse;
 
       if (!payload.ok) {
-        setErrorCode(toErrorCode(payload.error.code));
+        setSubmitError(toErrorCode(payload.error.code));
         return;
       }
 
@@ -136,18 +138,12 @@ export function AnalyzeForm() {
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;
       // fetch only rejects on a transport failure; every HTTP status resolves.
-      setErrorCode("NETWORK");
+      setSubmitError("NETWORK");
     } finally {
       abortRef.current = null;
       setStartedAt(null);
     }
   }
-
-  const status: DropzoneStatus = errorCode
-    ? "error"
-    : file
-      ? "success"
-      : "idle";
 
   return (
     <div>
@@ -159,15 +155,25 @@ export function AnalyzeForm() {
         longer carry themselves.
       */}
       <div className="grid gap-5 min-[880px]:grid-cols-2 min-[880px]:gap-7">
-        {/* Flex column so the zone can claim the height the right-hand column
-            sets, with the inline error keeping its own space beneath it. */}
+        {/* Flex column so the zone — or the preview standing in for it — can
+            claim the height the right-hand column sets, with the submit error
+            keeping its own space beneath. */}
         <div className="flex flex-col">
-          <Dropzone
-            fileName={file?.name ?? null}
-            status={status}
-            onFileSelected={handleFile}
-          />
-          {errorCode && <InlineError code={errorCode} />}
+          {file ? (
+            <FilePreview
+              file={file}
+              preview={preview}
+              status={status}
+              errorCode={selection.errorCode}
+              onRemove={handleRemove}
+            />
+          ) : (
+            <Dropzone onFileSelected={handleFile} />
+          )}
+
+          {/* A rejected file states its own reason inside the panel above, so
+              only a failed submit needs saying here. */}
+          {submitError && <InlineError code={submitError} />}
         </div>
 
         {/*
@@ -208,7 +214,7 @@ export function AnalyzeForm() {
             ? "Working — open-weight models take a little longer, usually 20 to 60 seconds."
             : "Takes up to a minute to analyse."}
         </p>
-        <Button type="button" onClick={submit} disabled={!file || busy}>
+        <Button type="button" onClick={submit} disabled={!ready || busy}>
           {busy ? "Analysing…" : "Analyse resume"}
         </Button>
       </div>

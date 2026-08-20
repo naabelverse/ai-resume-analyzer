@@ -124,6 +124,16 @@
   /* next/font sets --font-jakarta and --font-inter on <html> */
   --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-inter), "Segoe UI", Arial, sans-serif;
+
+  /*
+    System monospace, for extracted resume text only. Not a loaded webfont:
+    this face exists to show that the extraction preserved the line structure,
+    which any monospace does equally well, and a third font download to prove
+    it would cost more than it shows. Declared here rather than left to
+    Tailwind's built-in default so the stack is this file's decision like every
+    other face in the app.
+  */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Shape and depth — generates rounded-card, rounded-panel, shadow-card… */
@@ -290,10 +300,13 @@
     border-style: solid;
   }
 
-  .dropzone.dropzone-error {
-    background-color: var(--danger-tint);
-    border-color: var(--danger);
-  }
+  /*
+    There is no `.dropzone-error`. A rejected file is held rather than
+    discarded, and what it renders is the preview panel carrying the reason —
+    so the drop target is off screen entirely by the time there is an error to
+    show. A state style kept for a state that cannot occur is one nobody can
+    check.
+  */
 
   /*
     `background-clip: text` paints the glyphs with the background and Chrome
