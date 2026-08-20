@@ -449,6 +449,24 @@ identical work, so the timeout is now 120s rather than shaved to just above the
 slowest observed success. Free-tier capacity varies and these are single
 samples; the true degrade rate is still unknown.
 
+**A prompt rule about how many findings to write does not change how many get
+written.** Two runs of the quality suite came back with middling.txt marked at a
+single severity across all eight feedback items, and in both the uniform run was
+one that had filled the array to `ARRAY_CAPS.feedbackMax`, while every mixed run
+came in at five or six. The reading was that the model pads toward the cap, runs
+out of genuinely distinct findings, and repeats a severity to fill the space — so
+RULE 4 gained a rule saying the count is itself a judgement and the maximum is a
+ceiling, not a target. It made no difference. Across the next three runs
+middling.txt returned **eight items every time**, unchanged at the cap, and two of
+the three were uniform. Whatever fixes the padding, telling the model not to pad
+is not it. Reverted.
+
+The assertion that catches the harmful case survives, because it never depended
+on the count: a run may be uniform, but its feedback may not be dominated by a
+status harsher than the band its own score falls in. Eight warns under a 60 is
+coherent and passes; eight fails under a 60 is the list overruling the gauge and
+fails.
+
 ---
 
 ---

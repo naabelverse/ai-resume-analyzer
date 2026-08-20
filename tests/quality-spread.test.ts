@@ -473,11 +473,19 @@ describe("score spread across resume quality", () => {
         // "Dominated" is a strict majority, so an even split is allowed: a
         // strong resume with four warns among eight items is making a point,
         // not overruling its own score.
+        //
+        // Compared against the half rather than by doubling `harsher`. The
+        // predicate is identical, but the doubled form reported "expected 16 to
+        // be less than or equal to 8" for a run of eight — a number that
+        // appears nowhere in the data, which reads like an accumulator that
+        // forgot to reset and sent a reader looking for a bug that was not
+        // there. A failure message is evidence too, and it has to be about the
+        // quantities being judged.
         expect(
-          harsher * 2,
+          harsher,
           `${name} scored ${run.score} (${band} band) but ${harsher} of ` +
             `${total} findings are harsher than that band`,
-        ).toBeLessThanOrEqual(total);
+        ).toBeLessThanOrEqual(Math.floor(total / 2));
       }
     }
   });
