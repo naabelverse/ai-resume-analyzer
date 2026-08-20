@@ -8,6 +8,7 @@ import { InlineError } from "@/components/error-state";
 import { ScanningCard } from "@/components/analysis/scanning-card";
 import { Dropzone, type DropzoneStatus } from "./dropzone";
 import { JobDescriptionInput } from "./jd-input";
+import { WhatYouGet } from "./what-you-get";
 import { MAX_FILE_BYTES } from "@/lib/limits";
 import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import { newAnalysisId, store } from "@/lib/store";
@@ -158,7 +159,9 @@ export function AnalyzeForm() {
         longer carry themselves.
       */}
       <div className="grid gap-5 min-[880px]:grid-cols-2 min-[880px]:gap-7">
-        <div>
+        {/* Flex column so the zone can claim the height the right-hand column
+            sets, with the inline error keeping its own space beneath it. */}
+        <div className="flex flex-col">
           <Dropzone
             fileName={file?.name ?? null}
             status={status}
@@ -167,7 +170,16 @@ export function AnalyzeForm() {
           {errorCode && <InlineError code={errorCode} />}
         </div>
 
-        <JobDescriptionInput value={jobDescription} onChange={setJobDescription} />
+        {/*
+          The job description keeps the top of the column because it is the
+          control; what the report contains sits beneath it in both states,
+          so the column is never empty and never reflows when the textarea
+          opens and closes.
+        */}
+        <div className="flex flex-col gap-4">
+          <JobDescriptionInput value={jobDescription} onChange={setJobDescription} />
+          <WhatYouGet />
+        </div>
       </div>
 
       {/* Full width: this is the progress of the form, not of either column. */}

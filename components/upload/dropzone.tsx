@@ -76,7 +76,11 @@ export function Dropzone({
   }
 
   return (
-    <div>
+    // Grows to the foot of its grid row rather than leaving the left half of
+    // the card short — and a larger target is a better one to throw a file at.
+    // `flex-1` rather than `h-full` so the chip and the error message below
+    // take their space first and the zone absorbs only what is left.
+    <div className="flex flex-1 flex-col">
       <label
         htmlFor={inputId}
         onDragOver={handleDragOver}
@@ -84,12 +88,12 @@ export function Dropzone({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "panel flex cursor-pointer flex-col items-center justify-center gap-3 px-6 py-10 text-center transition-colors",
+          "dropzone flex flex-1 cursor-pointer flex-col items-center justify-center gap-3 px-6 py-10 text-center transition-colors",
           "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-600",
-          effectiveStatus === "dragging"
-            ? "border-brand-600 bg-brand-tint"
-            : "hover:bg-muted-tint/60",
-          effectiveStatus === "error" && "border-danger",
+          // Resting, hover, drag and error all live on `.dropzone*` in
+          // globals.css, so no state can ship with a fill and no border.
+          effectiveStatus === "dragging" && "dropzone-active",
+          effectiveStatus === "error" && "dropzone-error",
         )}
       >
         <input

@@ -59,6 +59,17 @@
   --grad-brand-deep: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 52%, #6d28d9 100%);
   --grad-brand-deeper: linear-gradient(135deg, #1a44bd 0%, #4238c9 52%, #5d21b8 100%);
 
+  /*
+    Drop target. Louder than --line-strong on purpose: this edge has to say
+    "put a file on me" from across the card, against a face that is nearly
+    white. The interior wash is what stops the zone reading as empty space —
+    a border alone leaves a hole in the card, which is what it looked like.
+  */
+  --drop-line: #b7a3f2;
+  --drop-line-hover: #9878ec;
+  --drop-surface: #f7f3ff;
+  --drop-surface-hover: #f0e9ff;
+
   /* Derived tints — chips, icon squares, hover states */
   --brand-tint: #eff4ff;
   --success-tint: #e7f8ee;
@@ -66,6 +77,11 @@
   --danger-tint: #feecec;
   --muted-tint: #f1f2f6;
   --gauge-track: #eef0f8;
+
+  /* Recessed surface for `.panel`. Its own token rather than --muted-tint:
+     that one is a hover state, and a hover grey used as a resting surface
+     reads cold beside anything tinted toward the canvas violet. */
+  --surface-inset: #f5f4fb;
 
   /*
     Disabled is its own surface, not the live one at half opacity. Opacity
@@ -119,9 +135,9 @@
     violet, so the shadow never looks like grey soot on a lavender ground.
   */
   --shadow-card:
-    0 1px 2px rgb(28 16 66 / 0.05),
-    0 8px 18px -10px rgb(28 16 66 / 0.14),
-    0 28px 48px -32px rgb(28 16 66 / 0.3);
+    0 1px 2px rgb(28 16 66 / 0.07),
+    0 10px 22px -12px rgb(28 16 66 / 0.2),
+    0 30px 56px -34px rgb(28 16 66 / 0.38);
 
   --shadow-btn:
     0 1px 2px rgb(29 78 216 / 0.24),
@@ -222,24 +238,74 @@
 
   .card {
     background: var(--surface-card);
-    border: 1px solid var(--line);
+    /* --line divides two things already sharing a card; the card's own edge
+       has the canvas on the other side of it and needs the stronger cut. */
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
     padding: var(--pad-card);
   }
 
-  /* Inner panels: the dashed upload area and its siblings. */
+  /*
+    Quiet inset surface: empty states and the scanning container. Solid, never
+    dashed — a dashed edge is this app's word for "you can drop a file here",
+    and an empty state that borrows it invites a drop onto something that
+    cannot accept one. That is what `.dropzone` below exists to keep separate.
+  */
   .panel {
-    border: 1.5px dashed var(--line-strong);
+    background-color: var(--surface-inset);
+    border: 1px solid var(--line-strong);
     border-radius: var(--radius-panel);
     padding: var(--pad-panel);
   }
 
+  /*
+    Interactive drop target. The dashes and the interior wash both carry
+    weight: the border says "target", the fill stops the zone reading as a
+    hole punched in the card. Hover deepens both; a live drag goes solid
+    brand, so the moment the file is over the zone looks different in kind
+    from merely pointing at it, not just darker.
+  */
+  .dropzone {
+    background-color: var(--drop-surface);
+    border: 2px dashed var(--drop-line);
+    border-radius: var(--radius-panel);
+    padding: var(--pad-panel);
+  }
+
+  .dropzone:hover {
+    background-color: var(--drop-surface-hover);
+    border-color: var(--drop-line-hover);
+  }
+
+  /* Doubled class so these tie with `.dropzone:hover` on specificity and win
+     on order — a drag must not be outranked by the pointer that carried it. */
+  .dropzone.dropzone-active {
+    background-color: var(--brand-tint);
+    border-color: var(--brand-600);
+    border-style: solid;
+  }
+
+  .dropzone.dropzone-error {
+    background-color: var(--danger-tint);
+    border-color: var(--danger);
+  }
+
+  /*
+    `background-clip: text` paints the glyphs with the background and Chrome
+    limits that paint to the border box, so ink outside the box is not clipped
+    — it is never painted at all. The display rung's leading is 1.02 while this
+    face needs ~1.26 to contain its own ascender and descender, which left the
+    tail of every g, j, p, q and y unpainted. The padding buys the box the room
+    the ink already occupied. No negative margin to claw it back: that margin
+    would collapse against the next element's and silently eat the gap.
+  */
   .gradient-text {
     background: var(--grad-brand);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    padding-bottom: 0.16em;
   }
 
   .gradient-fill {
