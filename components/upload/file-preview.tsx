@@ -43,7 +43,9 @@ function formatCount(value: number): string {
   return value.toLocaleString("en-US");
 }
 
-const RESUME_TEXT = "font-mono text-caption leading-relaxed whitespace-pre-wrap text-ink-soft";
+/* No colour: the ink is inherited from `.quote-well`, so the well and its text
+   cannot be restyled apart from each other. */
+const RESUME_TEXT = "font-mono text-caption leading-relaxed whitespace-pre-wrap";
 
 /**
  * The extracted text, with the truncation marker lifted out of it.
@@ -86,6 +88,10 @@ function ExtractedText({ preview }: { preview: ExtractPreview }) {
         reads as another paragraph, and the point of it is to read as a cut.
         Sans face on purpose — nothing in the resume's own face should be the
         app talking.
+
+        Same amber as the banner above the panel, on purpose: one summarises
+        the clip, the other marks where it happened, and they should read as
+        one system saying one thing in two places.
       */}
       <p className="my-2 border-y border-warning bg-warning-tint px-3 py-2 text-caption font-medium text-ink">
         {formatCount(dropped)} characters cut from here. This part of your resume
@@ -177,12 +183,38 @@ export function FilePreview({
             tabIndex on the scroll container: a region only a mouse wheel can
             move is unreachable by keyboard, and an unnamed one gives a screen
             reader nothing to announce on the way in.
+
+            Radius and overflow live on the SAME element, and must keep doing
+            so. Splitting them — radius on a clipping wrapper, overflow on an
+            inner scroller — was an attempt to round the scrollbar's corners
+            and it detached the scrollbar from the well instead.
+
+            The scrollbar is the browser's own, unstyled. It sits inside this
+            element because that is what a native scrollbar does in its own
+            scroll container; every custom version of it broke either the
+            corners or the placement. See `.quote-well` in globals.css for the
+            full account, and for why a smaller radius — not a scrollbar
+            rule — is the lever if the corners still read wrong.
           */}
           <div
             role="region"
             aria-label="Extracted text"
             tabIndex={0}
-            className="max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto rounded-control border border-line bg-surface"
+            /*
+              `.quote-well` owns the surface, the edge, the inset and the
+              scrollbar — the last of which is why it is a class and not a
+              stack of utilities.
+
+              This was white inside a tinted panel, so the innermost element
+              was the brightest thing on screen and the nesting read
+              inside-out. The fill now sits below the panel's, at a cool
+              214deg where the card's surfaces are lavender at 249deg — which
+              is what says the text is a document quoted back rather than a
+              surface the app owns, without leaving the page's colour world to
+              say it. The amber band below depends on that hue gap: see the
+              token's own note for why lightness cannot carry it.
+            */
+            className="quote-well max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto"
           >
             <ExtractedText preview={preview} />
           </div>

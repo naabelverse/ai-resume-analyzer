@@ -208,7 +208,21 @@ export function AnalyzeForm() {
         between it and the collapsed trigger above; as a footer it closes the
         card and reads as belonging to the whole form, which it does.
       */}
-      <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-5">
+      {/*
+        `--line-strong`, not `--line`. This rule divides the form body from the
+        action row, which is a heavier boundary than the one `--line` is for —
+        that token divides two things already sharing a surface, and against
+        the card's foot it measures dL* 6.31 (1.17:1), which is why it read as
+        a smudge rather than a division. `--line-strong` is dL* 11.10 (1.33:1),
+        near enough to twice the separation.
+
+        It stops there rather than taking a darker value. `.card` draws its own
+        edge in `--line-strong`, and a rule inside a container has no business
+        out-weighing the container's border — that inverts the hierarchy it is
+        supposed to express. This is the ceiling for an internal division, and
+        anything heavier is a different problem than a faint rule.
+      */}
+      <div className="mt-6 flex items-center justify-between gap-3 border-t border-line-strong pt-5">
         <p className="text-caption text-ink-soft">
           {busy
             ? "Working — open-weight models take a little longer, usually 20 to 60 seconds."

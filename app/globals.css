@@ -110,6 +110,34 @@
   --surface-field: #eceaf7;
 
   /*
+    Quoted-document surface. A neutral grey with a cool cast.
+
+    The extracted resume text is not the app's own writing — it is a document
+    shown back — and it should read as a different kind of surface. Two earlier
+    attempts got that wrong in opposite directions. Dark read as pasted in from
+    another application. Warm grey sat at hue 40deg, four degrees off the amber
+    truncation band's 36deg, which would have let the one element in this box
+    that must stand out sink into its own background.
+
+    Cool at 214deg solves both. It is 174deg from the band — near enough to
+    complementary — and 35deg off the card's lavender at 249deg, so it stays
+    out of that family without leaving the page's colour world. Blue-grey, not
+    violet: R < G < B with no dip in the green channel, where lavender takes
+    green as its minimum.
+
+    Honest about what this does and does not buy. Lightness separation from the
+    band is 3.34 and would be roughly that at any hue — the band is very light,
+    so no well at a sensible depth gets far from it vertically. The band is
+    legible because of the 174deg of hue between them and its two solid
+    --warning rules, not because of dL*. Depth here is only doing the nesting.
+
+    dL* 3.51 below `.panel`, 7.07 from the card face. --ink-soft measures
+    6.70:1 on it.
+  */
+  --surface-quote: #e8ebef;
+  --quote-line: #dbe0e6;
+
+  /*
     Disabled is its own surface, not the live one at half opacity. Opacity
     leaves the brand gradient legible underneath, which reads as "working on
     it"; a flat inert grey reads as "not yet".
@@ -299,6 +327,40 @@
     border-radius: var(--radius-panel);
     padding: var(--pad-panel);
   }
+
+  /*
+    The quoted-document well.
+
+    A component class rather than utilities for the inset shadow and the
+    inherited ink: a well is cut into the surface rather than laid on it, and
+    both of those say so in a way a scattered utility stack would not.
+
+    The scrollbar is deliberately NOT styled, and that is the point rather than
+    an omission. Two attempts to style it both shipped a worse bug than the one
+    they fixed — an opaque custom track painted over the corner arcs and
+    squared the right-hand edge, and moving the radius to a clipping wrapper to
+    fix that detached the scrollbar from the box entirely. The native scrollbar
+    sits correctly inside its own scroll container, which is the one thing it
+    is guaranteed to get right and the one thing neither custom version
+    managed.
+
+    If the corners read wrong against a native scrollbar, the lever is
+    --radius-control on this rule, not a scrollbar rule. A smaller radius gives
+    a scrollbar less arc to sit on; a styled scrollbar gives it something new
+    to paint over.
+
+    Inset shadow, not a drop shadow, and the tighter --radius-control rather
+    than --radius-panel: a panel sits on the surface, a well is cut into it,
+    and the two should not be confused at a glance.
+  */
+  .quote-well {
+    background-color: var(--surface-quote);
+    border: 1px solid var(--quote-line);
+    border-radius: var(--radius-control);
+    box-shadow: inset 0 1px 3px rgb(20 30 45 / 0.10);
+    color: var(--ink-soft);
+  }
+
 
   /*
     Interactive drop target. The dashes and the interior wash both carry
