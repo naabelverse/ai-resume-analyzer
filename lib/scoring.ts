@@ -112,7 +112,13 @@ export function summariseChecksForModel(checks: DeterministicChecks): string {
     .join("\n");
 }
 
-function statusFor(score: number): Status {
+/**
+ * Exported for the live quality suite, which asserts that a run's feedback is
+ * never dominated by a status harsher than the band its own score falls in.
+ * That check has to read the boundaries from here rather than restate them, or
+ * the test and the code drift into disagreeing about what "warn" means.
+ */
+export function statusFor(score: number): Status {
   if (score >= STATUS_THRESHOLDS.pass) return "pass";
   if (score >= STATUS_THRESHOLDS.warn) return "warn";
   return "fail";

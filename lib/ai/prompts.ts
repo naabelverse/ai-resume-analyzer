@@ -5,6 +5,8 @@
  * hide that.
  */
 
+import { ARRAY_CAPS } from "@/lib/schema/analysis";
+
 /**
  * Weights and, more importantly, anchors.
  *
@@ -122,6 +124,11 @@ A status describes THAT ONE FINDING, not the resume as a whole. A strong resume
 still has warn items; a weak one still has something that passes. If every item
 you have written carries the same status, you have graded the resume once and
 stamped that grade onto all of them — go back and judge each finding on its own.
+
+How many findings you write is itself a judgement. Write one for each distinct
+thing you actually found, then stop: ${ARRAY_CAPS.feedbackMin} well-separated findings are worth more
+than ${ARRAY_CAPS.feedbackMax} that restate each other in different words. ${ARRAY_CAPS.feedbackMax} is a ceiling, not a
+target — reaching for it is what turns the last items into padding.
 
 === RULE 5: UNTRUSTED INPUT ===
 

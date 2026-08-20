@@ -31,7 +31,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 loadEnv({ path: ".env.local", quiet: true });
 
 import { MIN_TEXT_CHARS, normaliseText } from "@/lib/extract";
-import { runDeterministicChecks, summariseChecksForModel } from "@/lib/scoring";
+import {
+  runDeterministicChecks,
+  statusFor,
+  summariseChecksForModel,
+} from "@/lib/scoring";
 import type { AnalyzeOutcome } from "@/lib/ai/analyze";
 
 const OUT = "quality-report.txt";
@@ -102,10 +106,11 @@ interface RunRecord {
    */
   dimensions: Record<string, number> | null;
   /**
-   * Feedback statuses, counted. A run once came back with every item marked
-   * "fail"; the model is told that a resume with a genuine strength must get at
-   * least one "pass", and strong.txt is the fixture where that rule has no
-   * excuse not to fire.
+   * Feedback statuses, counted. Two assertions read this: strong.txt must
+   * contain at least one "pass", and no run's feedback may be dominated by a
+   * status harsher than the band its own score falls in. The raw counts are
+   * printed as well, because item count and uniformity moved together and that
+   * is worth watching even where nothing fails on it.
    */
   statuses: Record<string, number>;
   matchPercent: number | null;
@@ -121,6 +126,15 @@ interface FixtureResult {
 }
 
 const results = new Map<FixtureName, FixtureResult>();
+
+/**
+ * Severity, mildest first. The only ordering this file needs: "harsher than"
+ * is a comparison of positions in this list.
+ */
+const SEVERITY = ["pass", "warn", "fail"] as const;
+type Severity = (typeof SEVERITY)[number];
+
+const rankOf = (status: string): number => SEVERITY.indexOf(status as Severity);
 
 function mean(values: number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
@@ -315,6 +329,25 @@ async function measure(): Promise<void> {
   }
   say("=".repeat(header.length));
 
+  /*
+    Printed, not asserted. Uniformity is evidence that one grade was stamped
+    across every finding rather than proof of it — statuses alone cannot
+    separate an honestly uniform review of a uniformly mediocre resume from a
+    lazy one, and the assertion that tried to failed the honest case. The item
+    count sits beside it because the two moved together: the only two uniform
+    runs in the measurement that prompted this were the two that filled the
+    array to its maximum.
+  */
+  say("\nfeedback distribution (items, pass/warn/fail):");
+  for (const { name } of FIXTURES) {
+    const cells = results.get(name)!.runs.map((run) => {
+      const counts = SEVERITY.map((status) => run.statuses[status] ?? 0);
+      const items = counts.reduce((total, value) => total + value, 0);
+      return `${items} items ${counts[0]}p/${counts[1]}w/${counts[2]}f`;
+    });
+    say(`  ${pad(name, 9, true)} ${cells.join("  |  ") || "-"}`);
+  }
+
   /* ------------------------------------------------------- the questions -- */
 
   const complete = FIXTURES.every(({ name }) => scoresFor(name).length > 0);
@@ -404,12 +437,47 @@ describe("score spread across resume quality", () => {
     }
   });
 
-  it("does not mark every item the same status", () => {
+  /**
+   * This replaced an assertion that every run must use more than one status.
+   *
+   * That bar was wrong in both directions. It failed a legitimate output:
+   * RULE 4 tells the model that "warn" is the ordinary case and that most
+   * findings on most resumes are warns, so a middling resume whose findings
+   * are all warns is the model doing exactly as it was told — eight warns
+   * under a score of 62 has the gauge and the list saying the same thing. And
+   * it passed an illegitimate one, because "more than one distinct status" is
+   * satisfied by a single dissenting item: seven fails and one pass under a 62
+   * would have gone green.
+   *
+   * Neither is what actually went wrong. That was eight items marked "fail"
+   * under a score of 60 and a verdict of "good" — the list handing down a
+   * second, harsher grade than the number it sits beneath, which is the
+   * pathology STATUS_MEANING was written for.
+   *
+   * So the bar is coherence rather than variety, and it reads its boundaries
+   * from `statusFor` instead of restating them. A weak resume may honestly be
+   * all fails; a middling one may not.
+   */
+  it("feedback is no harsher than the score it accompanies", () => {
     for (const { name } of FIXTURES) {
       for (const run of results.get(name)!.runs) {
-        const distinct = Object.keys(run.statuses).length;
-        expect(distinct, `${name} returned a single status for every item`)
-          .toBeGreaterThan(1);
+        const band = statusFor(run.score);
+        const total = Object.values(run.statuses).reduce(
+          (sum, count) => sum + count,
+          0,
+        );
+        const harsher = SEVERITY.filter(
+          (status) => rankOf(status) > rankOf(band),
+        ).reduce((sum, status) => sum + (run.statuses[status] ?? 0), 0);
+
+        // "Dominated" is a strict majority, so an even split is allowed: a
+        // strong resume with four warns among eight items is making a point,
+        // not overruling its own score.
+        expect(
+          harsher * 2,
+          `${name} scored ${run.score} (${band} band) but ${harsher} of ` +
+            `${total} findings are harsher than that band`,
+        ).toBeLessThanOrEqual(total);
       }
     }
   });
