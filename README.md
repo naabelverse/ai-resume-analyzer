@@ -570,6 +570,18 @@ rather than rediscovered.
   recognise", which describes a failure that did not happen. In session mode
   every shared or reopened link lands here, so it is the common case, not the
   edge. It needs its own `ErrorCode` and copy in `lib/errors.ts`.
+- **Three surfaces read as one depth — the intended look, not a defect on this
+  list.** `.panel` dresses both a container (the file preview, which nests its
+  own `.quote-well`) and a passive panel ("What you'll get"), so the two
+  resolve to `--surface-inset` and render identically at dL* 3.56 below the
+  card face. The JD textarea takes `--surface-field` at 6.81, but that figure
+  was measured against the card face rather than against the panels it sits
+  beside, which it clears by 3.26 — about a just-noticeable difference.
+  Recorded because the range is tight for anyone who later wants the three
+  separated: `--surface-inset` at 3.56 and `--disabled-surface` at 8.62
+  bracket the usable depth, and an input must not approach the colour of a
+  dead control — so separation has to come off the top by lifting the passive
+  panel, not off the bottom by sinking the field.
 
 ---
 
