@@ -54,7 +54,7 @@ export function JobDescriptionInput({
           "text-body font-medium transition-colors",
           open
             ? "px-1 text-ink-soft"
-            : "border border-line-strong bg-surface-inset px-3 text-ink hover:border-brand-600 hover:text-brand-600",
+            : "border border-line-strong bg-surface-field px-3 text-ink hover:border-brand-600 hover:text-brand-600",
         )}
       >
         <span>Paste the job description (optional)</span>
@@ -84,15 +84,17 @@ export function JobDescriptionInput({
           */
           placeholder={`Paste the entire job posting — responsibilities, requirements, nice-to-haves and all. The full text matches better than a summary, and there is room for ${JD_MAX_CHARS.toLocaleString()} characters.`}
           className={cn(
-            // Was `border-line bg-surface`: a white field on a card face that
-            // is also white, edged with the token meant for dividing two
-            // things already sharing a card. Unfocused it read as a gap rather
-            // than as an input, while the dropzone beside it — the other input
-            // in the same form — carried both a fill and an edge that holds.
-            // `--surface-inset` and `--line-strong` are the rungs for exactly
-            // this: a recessed surface, and an edge with the card on the far
-            // side of it.
-            "w-full resize-y rounded-panel border border-line-strong bg-surface-inset p-3 transition-colors",
+            // Was `bg-surface` — a white field on a white card face, which
+            // read as a gap rather than as somewhere to type. The fix is the
+            // fill, not the edge: a 1px line is hard to see at any colour,
+            // while two different surfaces are obvious at a glance.
+            //
+            // `--surface-field` rather than `--surface-inset` because the
+            // measurement said so. --surface-inset sits at dL* 3.56 from the
+            // card face, about a just-noticeable difference; --surface-field
+            // is 6.81. `.panel` keeps the shallower one, so a passive panel
+            // and a text field no longer wear the same surface.
+            "w-full resize-y rounded-panel border border-line-strong bg-surface-field p-3 transition-colors",
             "text-body text-ink placeholder:text-ink-soft",
             // `outline-none` used to sit here, which suppressed the app-wide
             // focus ring in globals.css and left focus as a one-pixel colour

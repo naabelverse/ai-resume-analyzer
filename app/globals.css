@@ -88,6 +88,28 @@
   --surface-inset: #f5f4fb;
 
   /*
+    Text-entry surface. Deeper than --surface-inset because the two are doing
+    different jobs, and the measurements say --surface-inset cannot do this one.
+
+    Against the card face it lands at dL* 6.81, near enough to twice
+    --surface-inset's 3.56 — and 3.56 is roughly a just-noticeable difference,
+    which is why a field wearing it read as a gap in the card rather than as
+    something to type in. Worth knowing that --drop-surface measures 3.55, so
+    the dropzone's fill is no deeper; what makes that zone unmistakable is its
+    2px dashed edge at 3.37:1, not its wash. A field with no dashes has to get
+    its signal from the fill instead.
+
+    It stops at 6.81 rather than going further because --disabled-surface sits
+    at 8.62 and an input must not approach the colour of a dead control. The
+    1.81 between them is thinner than ideal; it holds because "disabled" is a
+    button-only state here, so the two never appear side by side.
+
+    Ink stays comfortable on it: --ink at 15.76:1, --ink-soft at 6.75:1 for the
+    placeholder.
+  */
+  --surface-field: #eceaf7;
+
+  /*
     Disabled is its own surface, not the live one at half opacity. Opacity
     leaves the brand gradient legible underneath, which reads as "working on
     it"; a flat inert grey reads as "not yet".
@@ -120,6 +142,11 @@
   --color-danger-tint: var(--danger-tint);
   --color-muted-tint: var(--muted-tint);
   --color-gauge-track: var(--gauge-track);
+  /* Exposed so the field surface is applied by utility, like every other
+     colour. `.panel` keeps --surface-inset; these are two different surfaces
+     on purpose and must not collapse into one. */
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-field: var(--surface-field);
 
   /* next/font sets --font-jakarta and --font-inter on <html> */
   --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;

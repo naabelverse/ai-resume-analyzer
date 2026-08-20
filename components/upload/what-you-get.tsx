@@ -25,21 +25,7 @@ const OUTPUTS = [
 
 export function WhatYouGet() {
   return (
-    /*
-      `.panel` supplies the shape, then the fill and edge are lightened off it.
-      The trigger above is a control and this is a list of claims, so the
-      control has to win — and it could not, because both were wearing the same
-      recessed fill and the same strong edge, at which point the larger box
-      reads as the more important one.
-
-      Lightened here rather than by pushing the trigger harder: this panel is
-      the thing that should recede, and strengthening a control until it beats
-      its own supporting text is how a form ends up shouting in two places.
-
-      Overridden per instance, never on `.panel` itself — four other callers
-      use that class and all of them want the recessed surface.
-    */
-    <div className="panel border-line bg-transparent">
+    <div className="panel">
       <h3 className="text-title">What you&rsquo;ll get</h3>
 
       <ul className="mt-3.5 flex flex-col gap-2.5">
@@ -55,10 +41,7 @@ export function WhatYouGet() {
         ))}
       </ul>
 
-      {/* Divides two things inside one panel, which is `--line`'s actual job —
-          and it cannot outweigh the panel's own edge, now that that edge is
-          the lighter token too. */}
-      <p className="mt-4 flex items-start gap-2.5 border-t border-line pt-3.5">
+      <p className="mt-4 flex items-start gap-2.5 border-t border-line-strong pt-3.5">
         <Search
           aria-hidden="true"
           className="mt-0.5 size-4 shrink-0 text-ink-soft"
