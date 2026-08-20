@@ -178,7 +178,14 @@ export function AnalyzeForm() {
         */}
         <div className="flex flex-col gap-4">
           <JobDescriptionInput value={jobDescription} onChange={setJobDescription} />
-          <WhatYouGet />
+          {/*
+            Two columns only. Below the breakpoint the grid collapses and there
+            is no empty column left to fill, so this stops earning its place and
+            starts pushing the submit button off the first screen on a phone.
+          */}
+          <div className="hidden min-[880px]:block">
+            <WhatYouGet />
+          </div>
         </div>
       </div>
 

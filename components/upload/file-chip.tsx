@@ -1,14 +1,22 @@
-import { Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 interface FileChipProps {
   name: string;
+  /**
+   * The file was rejected but is still held — a dropzone that silently
+   * discards what you just gave it is the worse failure. What it must not do
+   * is wear the success tick while the error directly below says the opposite.
+   */
+  invalid?: boolean;
 }
 
 /**
- * Filename left, green check right, separated from the drop area above by a
+ * Filename left, status mark right, separated from the drop area above by a
  * subtle top border.
  */
-export function FileChip({ name }: FileChipProps) {
+export function FileChip({ name, invalid = false }: FileChipProps) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
       <span className="truncate text-body font-medium text-ink" title={name}>
@@ -16,11 +24,18 @@ export function FileChip({ name }: FileChipProps) {
       </span>
       <span
         aria-hidden="true"
-        className="grid size-5 shrink-0 place-items-center rounded-full bg-success-tint text-success"
+        className={cn(
+          "grid size-5 shrink-0 place-items-center rounded-full",
+          invalid ? "bg-danger-tint text-danger" : "bg-success-tint text-success",
+        )}
       >
-        <Check className="size-3.5" strokeWidth={3} />
+        {invalid ? (
+          <AlertTriangle className="size-3.5" strokeWidth={3} />
+        ) : (
+          <Check className="size-3.5" strokeWidth={3} />
+        )}
       </span>
-      <span className="sr-only">File ready</span>
+      <span className="sr-only">{invalid ? "File not accepted" : "File ready"}</span>
     </div>
   );
 }

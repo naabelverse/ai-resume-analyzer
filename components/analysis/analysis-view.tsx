@@ -178,7 +178,11 @@ export function AnalysisView({ id }: { id: string }) {
         <div className="flex flex-col gap-5">
           <Reveal index={3}>
             <Card>
-              <CardTitle>AI feedback</CardTitle>
+              {/* The banner above has just said the AI did not run; a card
+                  titled "AI feedback" underneath it contradicts that. */}
+              <CardTitle>
+                {meta.degraded ? "Automated checks" : "AI feedback"}
+              </CardTitle>
               <div className="mt-1">
                 <FeedbackList items={analysis.feedback} />
               </div>
@@ -189,7 +193,10 @@ export function AnalysisView({ id }: { id: string }) {
             <Card>
               <CardTitle>Keyword match</CardTitle>
               <div className="mt-4">
-                <KeywordMatchPanel data={analysis.keywordMatch} />
+                <KeywordMatchPanel
+                  data={analysis.keywordMatch}
+                  degraded={meta.degraded}
+                />
               </div>
             </Card>
           </Reveal>
@@ -200,7 +207,10 @@ export function AnalysisView({ id }: { id: string }) {
         <Card>
           <CardTitle>Suggested bullet rewrites</CardTitle>
           <div className="mt-4">
-            <BulletRewrites rewrites={analysis.bulletRewrites} />
+            <BulletRewrites
+              rewrites={analysis.bulletRewrites}
+              degraded={meta.degraded}
+            />
           </div>
         </Card>
       </Reveal>

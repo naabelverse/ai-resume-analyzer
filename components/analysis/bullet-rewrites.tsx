@@ -8,14 +8,25 @@ import type { BulletRewrite } from "@/types";
 
 interface BulletRewritesProps {
   rewrites: BulletRewrite[];
+  /**
+   * The AI leg failed, so the list is empty because nothing read the resume —
+   * not because the writing was judged and found fine. Paying that compliment
+   * on the strength of a request that never completed is the one thing this
+   * card must not do.
+   */
+  degraded?: boolean;
 }
 
-export function BulletRewrites({ rewrites }: BulletRewritesProps) {
+export function BulletRewrites({
+  rewrites,
+  degraded = false,
+}: BulletRewritesProps) {
   if (rewrites.length === 0) {
     return (
       <p className="text-body text-ink-soft">
-        No bullet rewrites for this resume — the experience section already
-        reads well.
+        {degraded
+          ? "No rewrites: these come from the AI review, and it did not run. Nothing here has read your bullet points."
+          : "No bullet rewrites for this resume — the experience section already reads well."}
       </p>
     );
   }

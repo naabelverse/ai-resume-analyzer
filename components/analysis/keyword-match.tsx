@@ -7,9 +7,18 @@ import type { KeywordMatch } from "@/types";
 interface KeywordMatchPanelProps {
   /** Null when no job description was supplied. */
   data: KeywordMatch | null;
+  /**
+   * The AI leg failed. `data` is null either way, but the reason differs and
+   * so does the advice — sending someone off to paste a job description they
+   * already pasted is work that cannot help them.
+   */
+  degraded?: boolean;
 }
 
-export function KeywordMatchPanel({ data }: KeywordMatchPanelProps) {
+export function KeywordMatchPanel({
+  data,
+  degraded = false,
+}: KeywordMatchPanelProps) {
   // No JD is a normal state, not a broken one.
   if (!data) {
     return (
@@ -21,7 +30,9 @@ export function KeywordMatchPanel({ data }: KeywordMatchPanelProps) {
           <Search className="size-4" strokeWidth={2.2} />
         </span>
         <p className="text-body text-ink-soft">
-          Paste a job description to see how well your resume matches it.
+          {degraded
+            ? "Keyword matching needs the AI review, and it did not run. Any job description you pasted was not compared."
+            : "Paste a job description to see how well your resume matches it."}
         </p>
       </div>
     );

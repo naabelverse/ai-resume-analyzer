@@ -64,9 +64,13 @@
     "put a file on me" from across the card, against a face that is nearly
     white. The interior wash is what stops the zone reading as empty space —
     a border alone leaves a hole in the card, which is what it looked like.
+
+    The line clears 3:1 against the card face, which WCAG 1.4.11 asks of a
+    non-text boundary. The first cut of this colour looked right on screen and
+    measured 2.20:1; looking right is not the test.
   */
-  --drop-line: #b7a3f2;
-  --drop-line-hover: #9878ec;
+  --drop-line: #9878ec;
+  --drop-line-hover: #7449d6;
   --drop-surface: #f7f3ff;
   --drop-surface-hover: #f0e9ff;
 

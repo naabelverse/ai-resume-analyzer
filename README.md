@@ -527,16 +527,31 @@ rather than rediscovered.
   40px and ideally 44px. The fix is an expanded pseudo-element rather than a
   bigger visible control, so no layout has to move — but the expanded areas
   must not overlap, which is why it is not a one-line change.
-- **`.panel` means two different things.** It is the dashed, interactive drop
-  target on the landing page, and it is also the non-interactive empty state
-  on the dashboard and inside the keyword-match card. Identical dashed borders
-  invite a drop onto something that cannot accept one. The two cases want
-  separate treatments; today they share a class because they shared a look.
-- **The scanning and degraded states have never been reviewed on screen.**
-  Both need a real upload to appear — the scanning card while the request is
-  in flight, the degraded banner when the AI leg fails — so the design pass
-  reasoned about them in code without seeing either rendered. Exercise them
-  against a dead `NVIDIA_API_KEY` before trusting how they look.
+- **Status pill text fails WCAG AA.** Measured from the tokens: `pass` is
+  2.07:1 (`--success` on `--success-tint`), `warn` 1.96:1, `fail` 3.30:1, and
+  the `IMPROVED` label on each bullet rewrite 2.07:1. All four are text and all
+  four want 4.5:1. It is not a one-line darkening: `--success` and `--warning`
+  are also the progress-bar and section-meter fills, where they are correct at
+  this lightness, so the fix is a separate pair of text tokens rather than a
+  new value for the existing ones.
+- **The report's two columns come apart in the degraded state.** The layout is
+  loaded so section breakdown carries one column against feedback plus keyword
+  match in the other, which balances for a full report. A degraded one has
+  three deterministic feedback items and an empty keyword panel, so the right
+  column ends around 400px above the left at 1440px.
+- **The submit button stays enabled when the held file is invalid.** The form
+  keeps a rejected file on purpose, but `disabled={!file || busy}` does not
+  consult the error, so the primary action invites a click that can only
+  re-show the same message. The chip beside it no longer claims success, so
+  this is now the last part of that state that misleads.
+- **Nothing marks the form as busy while the request is in flight** except the
+  button label. The drop target still reads and behaves as live, so a second
+  file can be chosen mid-analysis.
+- **A missing analysis reports `UNKNOWN`.** `/analyze/<id>` for an id this tab
+  has never held renders "the analysis stopped for a reason the app doesn't
+  recognise", which describes a failure that did not happen. In session mode
+  every shared or reopened link lands here, so it is the common case, not the
+  edge. It needs its own `ErrorCode` and copy in `lib/errors.ts`.
 
 ---
 

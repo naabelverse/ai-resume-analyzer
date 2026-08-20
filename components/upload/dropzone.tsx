@@ -127,7 +127,7 @@ export function Dropzone({
       )}
 
       {fileName && effectiveStatus !== "uploading" && (
-        <FileChip name={fileName} />
+        <FileChip name={fileName} invalid={effectiveStatus === "error"} />
       )}
 
       {/* Errors persist under the zone; the zone itself stays usable. */}

@@ -46,8 +46,13 @@ export function HistoryList() {
       <div className="panel flex flex-col items-center gap-3 px-6 py-10 text-center">
         <p className="text-body text-ink-soft">
           No analyses yet.
+          {/* Both variables, deliberately. The browser store reads the
+              NEXT_PUBLIC_ one; naming only PERSISTENCE here would send someone
+              to set a server-only value that reads as undefined in the browser
+              and leaves them pinned to session mode with no sign why. */}
           {persistenceMode === "session" &&
-            " History is kept for this browser tab only — set PERSISTENCE=db to keep it across sessions."}
+            " History is kept for this browser tab only — set PERSISTENCE=db" +
+              " and NEXT_PUBLIC_PERSISTENCE=db to keep it across sessions."}
         </p>
         <Button asChild>
           <Link href="/">Analyse a resume</Link>
@@ -57,7 +62,7 @@ export function HistoryList() {
   }
 
   return (
-    <ul className="divide-y divide-line">
+    <ul className="max-w-[736px] divide-y divide-line">
       {records.map((record) => (
         <li key={record.id} className="flex items-center gap-3 py-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">

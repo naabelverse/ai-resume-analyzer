@@ -28,7 +28,7 @@ export function DegradedBanner({ reason }: { reason: ErrorCode | null }) {
         className="mt-0.5 size-4 shrink-0 text-warning"
         strokeWidth={2.4}
       />
-      <div className="text-note leading-relaxed">
+      <div className="max-w-[72ch] text-note leading-relaxed">
         <p className="text-ink">
           <span className="font-semibold">
             {copy ? copy.title : "AI review unavailable"}.
