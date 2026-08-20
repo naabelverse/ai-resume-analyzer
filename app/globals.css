@@ -19,6 +19,14 @@
   /* Status */
   --success: #22c55e;
   --warning: #f59e0b;
+  /*
+    Amber dark enough to be read as text. --warning is a fill and a rule
+    colour; at 1.80:1 on the quote well it is illegible as type, and amber is
+    the one status hue where that gap is wide enough to matter. Same hue —
+    38deg, identical to --warning — carried down to 4.95:1, which clears AA for
+    small text with a modest margin.
+  */
+  --warning-ink: #8a5a06;
   --danger: #ef4444;
 
   /* Surfaces */
@@ -164,6 +172,7 @@
   --color-violet-600: var(--violet-600);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
   --color-danger: var(--danger);
   --color-surface: var(--surface);
   --color-line: var(--line);

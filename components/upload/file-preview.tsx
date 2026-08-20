@@ -80,22 +80,31 @@ function ExtractedText({ preview }: { preview: ExtractPreview }) {
 
   return (
     <>
+      {/* px-3 here, mx-3 on the band below: the text column and the band
+         share one left edge. */}
       <pre className={cn(RESUME_TEXT, "px-3 pt-3")}>{head}</pre>
 
       {/*
-        Full-bleed, which is why the padding sits on these children rather than
-        on the scroll container: a band inset by the container's own padding
-        reads as another paragraph, and the point of it is to read as a cut.
-        Sans face on purpose — nothing in the resume's own face should be the
-        app talking.
+        A section break, not an alert. The banner above the well already
+        announced the clipping and gave the numbers; this only has to mark the
+        place it happened, and a filled amber box competed with the banner for
+        attention while repeating what it said.
 
-        Same amber as the banner above the panel, on purpose: one summarises
-        the clip, the other marks where it happened, and they should read as
-        one system saying one thing in two places.
+        So: a hairline through the text column with the count sitting on it, no
+        fill and no border. `--warning` draws the rules, where 1.80:1 on the
+        well is right for a thing that should whisper; the text takes
+        `--warning-ink` instead, because the same amber at type size is
+        unreadable and a marker nobody can read marks nothing.
+
+        Still visibly not resume text: sans face against the mono either side,
+        amber against ink, and my-5 to give it room the running text never has.
       */}
-      <p className="my-2 border-y border-warning bg-warning-tint px-3 py-2 text-caption font-medium text-ink">
-        {formatCount(dropped)} characters cut from here. This part of your resume
-        is not sent to the model.
+      <p className="mx-3 my-5 flex items-center gap-3 text-caption font-medium text-warning-ink">
+        <span aria-hidden="true" className="h-px flex-1 bg-warning" />
+        <span className="shrink-0">
+          {formatCount(dropped)} characters cut from here
+        </span>
+        <span aria-hidden="true" className="h-px flex-1 bg-warning" />
       </p>
 
       <pre className={cn(RESUME_TEXT, "px-3 pb-3")}>{tail}</pre>
@@ -171,7 +180,7 @@ export function FilePreview({
           {preview.truncated && (
             <p
               role="status"
-              className="rounded-control bg-warning-tint px-3 py-2 text-caption text-ink"
+              className="rounded-control border border-warning bg-warning-tint px-3 py-2 text-caption text-ink"
             >
               Clipped to {formatCount(MAX_TEXT_CHARS)} characters for analysis —{" "}
               {formatCount(preview.charCount)} were extracted. The start and end
