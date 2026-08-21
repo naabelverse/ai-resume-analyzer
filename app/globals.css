@@ -125,9 +125,10 @@
   */
   --surface-quote: #e8ebef;
   --quote-line: #dbe0e6;
-  /* Scrollbar thumb. dL* 14.90 on the well (1.51:1) — present without
-     announcing itself. Applied through `scrollbar-color`, which colours the
-     browser's own scrollbar and leaves its geometry entirely alone. */
+  /* Scrollbar thumb. Applied through `scrollbar-color` by `.scrollbar-quiet`,
+     which colours the browser's own scrollbar and leaves its geometry entirely
+     alone. dL* 14.90 on the well (1.51:1) and 18.42 on the job-description
+     textarea (1.65:1) — present without announcing itself on either. */
   --quote-scroll: #b9c2cc;
 
   /*
@@ -336,7 +337,8 @@
     inherited ink: a well is cut into the surface rather than laid on it, and
     both of those say so in a way a scattered utility stack would not.
 
-    The scrollbar is the browser's own, recoloured and nothing else. Two
+    The scrollbar is the browser's own, recoloured by `.scrollbar-quiet` and
+    nothing else. Two
     earlier attempts to control it shipped worse bugs than they fixed: an
     opaque custom track painted over the corner arcs and squared the
     right-hand edge, and moving the radius onto a clipping wrapper to fix that
@@ -358,21 +360,32 @@
     border-radius: var(--radius-well);
     box-shadow: inset 0 1px 3px rgb(20 30 45 / 0.10);
     color: var(--ink-soft);
-    /*
-      Colour only. `scrollbar-color` recolours the scrollbar the browser was
-      already going to draw, in the position it was already going to draw it —
-      no width, no ::-webkit-scrollbar pseudo-elements, no scrollbar-gutter.
-      Those three are what moved the scrollbar out of the box twice, and none
-      of them is needed to stop it looking foreign.
+  }
 
-      Transparent track rather than the fill: the scrollbar sits on this
-      surface already, so transparent IS the fill, and naming the colour twice
-      is one more place for them to disagree.
+  /*
+    Scrollbar treatment, shared by the scroll containers that would otherwise
+    show a default one: the extracted-text well and the job-description
+    textarea. One class rather than the declaration written twice, so the two
+    cannot drift apart.
 
-      Firefox, and Chromium 121+. Older engines ignore it and draw their
-      default scrollbar, which is correct-but-plain — a degradation in looks
-      with no effect on geometry.
-    */
+    Colour only. `scrollbar-color` recolours the scrollbar the browser was
+    already going to draw, in the position it was already going to draw it —
+    no width, no ::-webkit-scrollbar pseudo-elements, no scrollbar-gutter.
+    Those three are what moved the scrollbar out of the box twice, and none of
+    them is needed to stop it looking foreign. Anything added here that touches
+    geometry brings both of those bugs back on two elements instead of one.
+
+    Transparent track rather than the fill: the scrollbar sits on whichever
+    surface the host element owns, so transparent IS the fill, and naming the
+    colour twice is one more place for them to disagree. That is also what lets
+    one class serve two surfaces — --quote-scroll reads 1.51:1 on the well's
+    --surface-quote and 1.65:1 on the textarea's --surface-inset.
+
+    Firefox, and Chromium 121+. Older engines ignore it and draw their default
+    scrollbar, which is correct-but-plain — a degradation in looks with no
+    effect on geometry.
+  */
+  .scrollbar-quiet {
     scrollbar-color: var(--quote-scroll) transparent;
   }
 
