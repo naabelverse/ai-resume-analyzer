@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+import { FeedbackLink } from "@/components/feedback/feedback-link";
+
 // Body/UI face. Bound to --font-inter, consumed by --font-sans in globals.css.
 const inter = Inter({
   variable: "--font-inter",
@@ -29,7 +31,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${inter.variable} ${jakarta.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      {/*
+        The feedback trigger is mounted here rather than in each page, so a
+        route added later gets it without anyone remembering to. It sits after
+        `{children}` — below `main`'s own `pb-20` and past every primary action
+        on every page — which is the whole of how it stays out of the way. See
+        `<FeedbackLink>` for why it is not in the header.
+
+        This layout stays a server component: the client boundary is that
+        component, the same way `<HeaderShell>` carries it for the header.
+      */}
+      <body className="min-h-full">
+        {children}
+        <FeedbackLink />
+      </body>
     </html>
   );
 }

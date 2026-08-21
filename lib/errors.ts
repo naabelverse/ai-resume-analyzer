@@ -24,6 +24,12 @@ export type ErrorCode =
   | "AI_RATE_LIMITED"
   | "AI_CREDITS_EXHAUSTED"
   | "RATE_LIMITED"
+  | "FEEDBACK_EMPTY"
+  | "FEEDBACK_TOO_LONG"
+  | "FEEDBACK_EMAIL_INVALID"
+  | "FEEDBACK_INVALID"
+  | "FEEDBACK_RATE_LIMITED"
+  | "FEEDBACK_SEND_FAILED"
   | "NETWORK"
   | "UNKNOWN";
 
@@ -137,6 +143,64 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     title: "Too many analyses",
     message: "This app allows 5 analyses every 10 minutes to keep costs predictable.",
     action: "Wait a few minutes, then run your analysis again.",
+  },
+  /* ------------------------------------------------------------- feedback --
+     The feedback form's own codes.
+
+     They do not reuse the analysis ones, and the reason is the same one that
+     split AI_RATE_LIMITED from RATE_LIMITED above: copy that names the wrong
+     activity is wrong in a way the reader can see. RATE_LIMITED says "this app
+     allows 5 analyses every 10 minutes", which is true and irrelevant to
+     someone whose bug report was refused; NETWORK ends "run the analysis
+     again", which is not what they were doing.
+
+     Four of the six are only reachable by a client that is not this app's
+     form — it caps the textarea, checks the address and always sends a valid
+     type. They are written for a person anyway, because the alternative is
+     copy nobody proof-read sitting in a public endpoint.
+  ------------------------------------------------------------------------- */
+  FEEDBACK_EMPTY: {
+    title: "There's no message to send",
+    message: "Feedback needs something written in the message box.",
+    action: "Describe what you ran into, then send it again.",
+  },
+  FEEDBACK_TOO_LONG: {
+    title: "That message is too long",
+    message: "Feedback messages are capped at 5,000 characters.",
+    action: "Trim it to the part that matters most and send it again.",
+  },
+  FEEDBACK_EMAIL_INVALID: {
+    title: "That email address doesn't look right",
+    message: "The address in the optional reply field couldn't be read.",
+    /* Names the escape hatch, because the field is optional and a message
+       nobody can reply to is still worth far more than one never sent. */
+    action: "Correct it, or clear the field and send without it.",
+  },
+  FEEDBACK_INVALID: {
+    title: "That submission couldn't be read",
+    message: "The feedback form sent something the server didn't recognise.",
+    action: "Reload the page and try again.",
+  },
+  FEEDBACK_RATE_LIMITED: {
+    title: "Too much feedback at once",
+    message: "This app accepts 3 feedback messages every 10 minutes.",
+    action: "Wait a few minutes, then send it again.",
+  },
+  FEEDBACK_SEND_FAILED: {
+    /*
+      Deliberately says nothing about why.
+
+      The real cause — which of the two environment variables is missing, what
+      Resend called the rejection, what status it carried — is logged on the
+      server and stops there. This message is what a scraper reads too.
+
+      What it must do is be honest that nothing was sent, because the one
+      outcome worse than a failed feedback form is a "Thanks!" over a message
+      that went nowhere.
+    */
+    title: "That feedback couldn't be sent",
+    message: "The message didn't go through, so it hasn't reached anyone.",
+    action: "Try again in a moment — what you wrote is still here.",
   },
   NETWORK: {
     title: "The connection dropped",
@@ -255,6 +319,68 @@ export class AiRateLimitedError extends AppError {
 export class AiCreditsExhaustedError extends AppError {
   constructor(cause?: unknown) {
     super("AI_CREDITS_EXHAUSTED");
+    this.cause = cause;
+  }
+}
+
+/* --------------------------------------------------------------- feedback --
+   Thrown by `/api/feedback` and by `lib/mail.ts`.
+
+   `FeedbackInvalidError` and friends carry no cause: everything they describe
+   is a fact about the request body, which the route already has. Only the send
+   failure takes one, because that is the only feedback failure with something
+   underneath it worth logging.
+--------------------------------------------------------------------------- */
+
+export class FeedbackEmptyError extends AppError {
+  constructor() {
+    super("FEEDBACK_EMPTY");
+  }
+}
+
+export class FeedbackTooLongError extends AppError {
+  constructor() {
+    super("FEEDBACK_TOO_LONG");
+  }
+}
+
+export class FeedbackEmailInvalidError extends AppError {
+  constructor() {
+    super("FEEDBACK_EMAIL_INVALID");
+  }
+}
+
+export class FeedbackInvalidError extends AppError {
+  constructor() {
+    super("FEEDBACK_INVALID");
+  }
+}
+
+/**
+ * This app throttling one IP on the feedback endpoint. Distinct from
+ * `RateLimitedError` for the same reason `AiRateLimitedError` is distinct from
+ * it: the two ceilings are different numbers on different buckets, and copy
+ * quoting the analysis allowance to someone sending a bug report is wrong in a
+ * way they can see.
+ */
+export class FeedbackRateLimitedError extends AppError {
+  constructor(readonly retryAfterSeconds: number) {
+    super("FEEDBACK_RATE_LIMITED");
+  }
+}
+
+/**
+ * The mail provider refused, threw, or was never configured.
+ *
+ * One class for all three on purpose. The differences matter to whoever runs
+ * this app and are logged for them; to the person who just wrote a bug report
+ * they are the same event — it did not send, and what they typed is still on
+ * screen. `cause` is carried for the log and is never serialised into a
+ * response.
+ */
+export class FeedbackSendFailedError extends AppError {
+  constructor(cause?: unknown) {
+    super("FEEDBACK_SEND_FAILED");
     this.cause = cause;
   }
 }

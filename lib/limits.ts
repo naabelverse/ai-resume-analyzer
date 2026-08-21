@@ -15,6 +15,16 @@ export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 /** Job description cap, enforced by the textarea and by the route. */
 export const JD_MAX_CHARS = 8_000;
 
+/**
+ * Feedback message cap, enforced by the textarea and by `/api/feedback`.
+ *
+ * Here rather than in `lib/feedback.ts` for the reason at the top of this
+ * file: a cap both sides enforce belongs in the module with no guard on it, so
+ * the counter under the textarea and the check in the route are the same
+ * number. Measured against the *trimmed* message, which is what gets sent.
+ */
+export const FEEDBACK_MAX_CHARS = 5_000;
+
 /** Below this, after normalisation, there is nothing to analyse. */
 export const MIN_TEXT_CHARS = 200;
 

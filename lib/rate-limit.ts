@@ -36,6 +36,38 @@ export const MAX_REQUESTS = 5;
  */
 export const MAX_PREVIEW_REQUESTS = 30;
 
+/**
+ * The feedback endpoint has two ceilings, because it has two costs.
+ *
+ * A send is a call to a metered third party. Everything else — a malformed
+ * body, a honeypot hit, a message that failed validation — is a JSON parse and
+ * some string checks, and never leaves the process. One counter covering both
+ * makes the cheap path spend the expensive path's allowance, which is how
+ * somebody who mistyped their email address twice ends up unable to report the
+ * bug they came to report.
+ *
+ * So: `MAX_FEEDBACK_SENDS` is charged at the send and nowhere else, and
+ * `MAX_FEEDBACK_REQUESTS` is charged on every request that reaches the route.
+ *
+ * Three sends in ten minutes, because nobody writes their third distinct bug
+ * report that fast, and because a send that FAILS is still charged — it cost a
+ * real API call, and making failures free would leave the expensive path
+ * unbounded during exactly the outage that would attract the most retries.
+ *
+ * Twenty requests in ten minutes is the second, cheaper ceiling. A real person
+ * cannot reach it: three sends plus every typo and rethink along the way is
+ * nowhere near twenty. A bot posting junk reaches it quickly and stops, which
+ * is the whole job — without it, metering only the send would leave the
+ * honeypot and validation paths free to hammer forever.
+ *
+ * The two caveats at the top of this file apply to both and are not softened
+ * by the low numbers: per-instance on serverless, and the counters reset on
+ * redeploy. This raises the cost of casual abuse. It will not hold up at
+ * scale, and it is not a security control.
+ */
+export const MAX_FEEDBACK_SENDS = 3;
+export const MAX_FEEDBACK_REQUESTS = 20;
+
 interface Bucket {
   count: number;
   resetAt: number;
@@ -93,6 +125,28 @@ export function checkRateLimit(
  */
 export function previewKeyFrom(request: Request): string {
   return `preview:${clientKeyFrom(request)}`;
+}
+
+/**
+ * The feedback buckets, prefixed for the same reason `preview:` is: sending a
+ * bug report must not spend an analysis, and being out of analyses must not
+ * stop someone telling us why.
+ *
+ * Two of them, one per ceiling above. Separate prefixes rather than separate
+ * Maps, so pruning and `resetRateLimits` keep working on both without knowing
+ * they exist.
+ *
+ * `checkRateLimit` is what makes the split work: it declines *without*
+ * incrementing when a bucket is already at its cap, so calling it immediately
+ * before the send charges only the requests that got that far. Nothing needs
+ * to peek first.
+ */
+export function feedbackSendKeyFrom(request: Request): string {
+  return `feedback:send:${clientKeyFrom(request)}`;
+}
+
+export function feedbackRequestKeyFrom(request: Request): string {
+  return `feedback:req:${clientKeyFrom(request)}`;
 }
 
 /**

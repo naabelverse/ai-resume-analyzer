@@ -27,6 +27,17 @@ const optionalSecret = z.preprocess(
   z.string().min(1).optional(),
 );
 
+/**
+ * The same blank-line rule, for a value that must be a real address when it is
+ * present. `FEEDBACK_EMAIL=` in .env.example has to read as "not configured"
+ * rather than as "configured with an invalid address", or shipping the example
+ * file would take boot down for exactly the reason above.
+ */
+const optionalEmail = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.email().optional(),
+);
+
 const EnvSchema = z
   .object({
     AI_PROVIDER: z.enum(["nvidia", "anthropic"]).default("nvidia"),
@@ -116,6 +127,27 @@ const EnvSchema = z
 
     PERSISTENCE: z.enum(["session", "db"]).default("session"),
     DATABASE_URL: optionalSecret,
+
+    /**
+     * The feedback form's transport. Both optional, because the form is not
+     * load-bearing: an app running without them serves every other route
+     * normally and refuses one POST with a logged reason.
+     *
+     * Absent from `describeEnvProblems()` for that reason. That report is the
+     * startup banner for things that degrade *every* request — no provider
+     * key, or a database mode with no database. A feedback form that cannot
+     * send affects one endpoint nobody reaches by accident, and `lib/mail.ts`
+     * logs the specific pair that is missing at the moment it matters.
+     *
+     * `FEEDBACK_EMAIL` is validated as an address rather than taken as a
+     * string. It is the only recipient this app ever has, and a typo in it
+     * fails at the provider — an async rejection in a log, looking exactly
+     * like a mail that was sent. Boot is where that should be caught, and
+     * unlike the provider keys there is nothing a valid value here costs
+     * anyone.
+     */
+    RESEND_API_KEY: optionalSecret,
+    FEEDBACK_EMAIL: optionalEmail,
   })
   /**
    * Legacy shim: ANTHROPIC_MODEL predates AI_MODEL. Honoured when the provider

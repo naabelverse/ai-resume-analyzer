@@ -1,10 +1,14 @@
 import {
   AlertTriangle,
+  AtSign,
   Ban,
   Clock,
   CreditCard,
   Gauge,
   FileWarning,
+  MailX,
+  MessageSquareText,
+  MessageSquareWarning,
   ScanLine,
   WifiOff,
   type LucideIcon,
@@ -34,6 +38,15 @@ const ICON: Record<ErrorCode, LucideIcon> = {
   AI_RATE_LIMITED: Gauge,
   AI_CREDITS_EXHAUSTED: CreditCard,
   RATE_LIMITED: Clock,
+  /* The feedback codes borrow their analysis counterparts' glyphs where the
+     event is the same kind of thing — a ceiling is a clock either way. Only
+     the wording differs, which is where the difference actually is. */
+  FEEDBACK_EMPTY: MessageSquareText,
+  FEEDBACK_TOO_LONG: MessageSquareText,
+  FEEDBACK_EMAIL_INVALID: AtSign,
+  FEEDBACK_INVALID: MessageSquareWarning,
+  FEEDBACK_RATE_LIMITED: Clock,
+  FEEDBACK_SEND_FAILED: MailX,
   NETWORK: WifiOff,
   UNKNOWN: Ban,
 };

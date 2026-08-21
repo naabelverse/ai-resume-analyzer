@@ -141,3 +141,18 @@ export interface AnalysisSummary {
   createdAt: string;
   overallScore: number;
 }
+
+/* -------------------------------------------------------------------------
+   Feedback
+
+   `/api/feedback` returns no data — the whole result is whether the message
+   was sent. It shares `ApiFailure` with the other two endpoints, so the form's
+   failure branch is the same shape as the analyse form's and `ERROR_COPY`
+   already knows what to say about every code it can carry.
+------------------------------------------------------------------------- */
+
+export interface FeedbackSuccess {
+  ok: true;
+}
+
+export type FeedbackResponse = FeedbackSuccess | ApiFailure;

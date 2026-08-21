@@ -139,6 +139,18 @@
   --disabled-surface: #e7e5f0;
   --disabled-ink: #9b99ac;
 
+  /*
+    Modal scrim. Not a new colour: 28 16 66 is the ink all three layers of
+    --shadow-card are already tinted with, carried up to a strength that dims a
+    page rather than seats a box on one. Neutral black would read as soot on a
+    lavender canvas, for the same reason the shadows do not use it.
+
+    0.42 puts the page behind clearly out of reach while leaving the report
+    legible underneath — the modal is where you describe what you were just
+    looking at, and blacking it out would hide the thing being described.
+  */
+  --scrim: rgb(28 16 66 / 0.42);
+
   /* Rhythm */
   --pad-card: 24px;
   --pad-panel: 16px;
@@ -178,6 +190,8 @@
   /* Exposed so the panel surface can be applied by utility as well as through
      `.panel` — the job-description trigger and textarea wear it that way. */
   --color-surface-inset: var(--surface-inset);
+  /* Carries its own alpha, so `bg-scrim` needs no opacity modifier. */
+  --color-scrim: var(--scrim);
 
   /* next/font sets --font-jakarta and --font-inter on <html> */
   --font-display: var(--font-jakarta), "Segoe UI", Arial, sans-serif;

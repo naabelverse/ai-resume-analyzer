@@ -17,6 +17,17 @@ const HTTP_STATUS: Partial<Record<ErrorCode, number>> = {
   FILE_TOO_LARGE: 413,
   UNSUPPORTED_FILE: 415,
   LEGACY_DOC: 415,
+  FEEDBACK_RATE_LIMITED: 429,
+  /*
+    502, not 500. The mail provider refused or could not be reached; this app
+    did nothing wrong and there is nothing in it to fix. Both statuses mean
+    "try again", but only one is true about where the fault was, and a monitor
+    watching 5xx should be able to tell "our upstream is down" from "we threw".
+
+    The three feedback validation codes are absent and take the 400 default,
+    which is what they are.
+  */
+  FEEDBACK_SEND_FAILED: 502,
 };
 
 export function statusFor(code: ErrorCode): number {
