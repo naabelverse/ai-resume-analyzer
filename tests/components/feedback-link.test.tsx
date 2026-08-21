@@ -106,6 +106,40 @@ describe("<FeedbackLink>", () => {
     ).toBeInTheDocument();
   });
 
+  it("credits the author beside the trigger, on one line", async () => {
+    render(<FeedbackLink />);
+
+    const footer = screen.getByRole("contentinfo");
+    const credit = within(footer).getByRole("link", { name: "Muhammad Nabil" });
+
+    expect(credit).toHaveAttribute(
+      "href",
+      "https://www.linkedin.com/in/muhammad-nabil-82b16642b",
+    );
+    // A new tab, and `noopener` so the opened page cannot reach back through
+    // `window.opener`. `noreferrer` for good measure.
+    expect(credit).toHaveAttribute("target", "_blank");
+    expect(credit).toHaveAttribute("rel", "noopener noreferrer");
+
+    // One line, so both sit in the same element.
+    const line = credit.closest("p");
+    expect(line).not.toBeNull();
+    expect(within(line!).getByRole("button", { name: "Send feedback" })).toBeInTheDocument();
+    // A real space, not a flex gap: a gap looks the same and vanishes from
+    // textContent, so the credit would copy-paste as "Built byMuhammad Nabil".
+    expect(line).toHaveTextContent("Built by Muhammad Nabil");
+    expect(credit.parentElement?.textContent).toBe("Built by Muhammad Nabil");
+  });
+
+  it("does not announce the separator", () => {
+    // Decoration between two elements that are already distinct to a screen
+    // reader — reading "middot" aloud adds nothing.
+    render(<FeedbackLink />);
+
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByText("·")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("opens a labelled dialog with the three types and both fields", async () => {
     const { dialog } = await open();
 

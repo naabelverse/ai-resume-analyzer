@@ -43,6 +43,26 @@ import { useFeedbackForm } from "./use-feedback-form";
 /** The route whose next segment is an analysis id. */
 const ANALYZE_PREFIX = "/analyze/";
 
+/** Where the credit points. A public profile, not contact details. */
+const AUTHOR_URL = "https://www.linkedin.com/in/muhammad-nabil-82b16642b";
+
+/**
+ * The footer's one link treatment, worn by both the credit and the trigger so
+ * they read as a single line rather than as two things that happen to sit
+ * together.
+ *
+ * A resting underline rather than hover-only: there is no hover on a touch
+ * screen, and a bare grey line of text is not obviously something you can
+ * press. The underline is in `--line-strong` so it marks the words as
+ * interactive without pulling the eye — at caption size, a full-strength rule
+ * under twelve-pixel type reads as emphasis, which is the opposite of what a
+ * credit wants.
+ */
+const QUIET_LINK = cn(
+  "underline decoration-line-strong underline-offset-4 transition-colors",
+  "hover:text-ink hover:decoration-ink-soft",
+);
+
 /**
  * The id of the report being read, or null anywhere else.
  *
@@ -100,17 +120,63 @@ export function FeedbackLink() {
           isNarrowRoute(pathname) && "shell-narrow",
         )}
       >
-        <Dialog.Trigger
-          className={cn(
-            // A resting underline rather than hover-only: there is no hover on
-            // a touch screen, and a bare grey line of text is not obviously
-            // something you can press.
-            "inline-flex min-h-10 items-center text-caption text-ink-soft underline decoration-line-strong underline-offset-4 transition-colors",
-            "hover:text-ink hover:decoration-ink-soft",
-          )}
-        >
-          Send feedback
-        </Dialog.Trigger>
+        {/*
+          Credit and trigger on one line, at one weight.
+
+          `flex-wrap` rather than anything that shrinks: at 390px the line
+          measures well inside the column, but a larger default font size or a
+          longer name should push "Send feedback" onto a second line rather
+          than take either half below the caption rung.
+
+          Nothing here is positioned. It is in the document flow at the end of
+          the page, so it cannot overlay the report above it — a credit, not a
+          badge.
+
+          `gap-y-0`: both children already carry `min-h-10` for the pointer
+          target, and a row gap on top of that would open a visible hole
+          between two wrapped lines of 12px type.
+        */}
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-0 text-caption text-ink-soft">
+          {/*
+            The inner span keeps normal inline flow, so the space between
+            "Built by" and the name is a real character rather than a flex
+            gap. A gap looks identical on screen and disappears from
+            `textContent` — the line copy-pastes as "Built byMuhammad Nabil"
+            and reads that way to anything consuming the text.
+
+            The link stays inline rather than becoming an atomic inline-flex
+            box: it sits mid-sentence, and an atomic inline takes the line
+            box's half-leading with it. `py-1.5` grows the pointer target
+            without touching the line box, since padding on an inline element
+            expands its hit area but not its height.
+          */}
+          <span className="inline-flex min-h-10 items-center">
+            <span>
+              Built by{" "}
+              <a
+                href={AUTHOR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(QUIET_LINK, "py-1.5")}
+              >
+                Muhammad Nabil
+              </a>
+            </span>
+          </span>
+
+          {/*
+            Decoration, not content. `aria-hidden` so it is not announced as
+            "middot" between two things already separate elements to anything
+            reading this aloud.
+          */}
+          <span aria-hidden="true" className="select-none">
+            &middot;
+          </span>
+
+          <Dialog.Trigger className={cn("inline-flex min-h-10 items-center", QUIET_LINK)}>
+            Send feedback
+          </Dialog.Trigger>
+        </p>
       </footer>
 
       <Dialog.Portal>
