@@ -143,6 +143,16 @@
   --pad-card: 24px;
   --pad-panel: 16px;
   --shell-max: 1200px;
+  --shell-pad: 20px;
+
+  /*
+    The narrow content column. /dashboard is a single list rather than the
+    upload page's two columns, so its card is constrained to this and the
+    header above it matches — see `.shell-narrow`. 48rem is Tailwind's `3xl`,
+    written as a token because two files depend on the two widths being the
+    same number and `max-w-3xl` in both would drift the first time one moved.
+  */
+  --shell-narrow: 48rem;
 }
 
 /* Expose tokens to Tailwind as utilities (text-ink, bg-surface, border-line…) */
@@ -304,7 +314,27 @@
     width: 100%;
     max-width: var(--shell-max);
     margin-inline: auto;
-    padding-inline: 20px;
+    padding-inline: var(--shell-pad);
+  }
+
+  /*
+    A `.shell` holding the narrow column — the header on /dashboard.
+
+    Wider than `--shell-narrow` by its own padding, and that is the whole
+    point rather than a fudge. A shell centres its *border* box and then insets
+    its content by `--shell-pad`; the card centres its border box inside a
+    full-width shell and has no padding of its own, so its border box is its
+    visible edge. Give both the same max-width and the boxes line up while the
+    header's content starts 20px further in — which is the misalignment this
+    class exists to remove, just smaller. Adding the padding back makes the
+    header's *content* the narrow column, so the wordmark's edge lands on the
+    card's.
+
+    Ordered after `.shell` so it wins on equal specificity when both are on
+    one element.
+  */
+  .shell-narrow {
+    max-width: calc(var(--shell-narrow) + 2 * var(--shell-pad));
   }
 
   .card {

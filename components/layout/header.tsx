@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 
 import { HeaderNav } from "./header-nav";
+import { HeaderShell } from "./header-shell";
 
 /**
  * Document icon in a rounded blue-tinted square, wordmark in the display face
@@ -14,9 +15,17 @@ import { HeaderNav } from "./header-nav";
  * itself on the page it points at, so /dashboard sees a header with no nav at
  * all.
  *
- * Stays a server component. The pathname that decision needs is read inside
- * `<HeaderNav>`, which is the only part of this header that ships JavaScript;
- * the wordmark renders from the server as it always did.
+ * Stays a server component. Both pathname-dependent decisions — whether the
+ * nav item appears, and how wide the row is — are made in the two client
+ * components around this markup, `<HeaderNav>` and `<HeaderShell>`; the
+ * wordmark renders from the server as it always did, arriving at the shell as
+ * `children` rather than being re-rendered inside the client bundle.
+ *
+ * The width is not the same on every route. `/dashboard` is one list and puts
+ * its card in the narrow column, and a full-width header above a centred
+ * narrow card leaves its left edge 132px adrift of the card's — the offset
+ * `app/page.tsx` describes as reading like an accident. `<HeaderShell>` owns
+ * that rule and the list of routes it applies to.
  *
  * The brand block is a link to `/` because this header is shared by all three
  * routes, and it is what keeps hiding the nav item from stranding anyone:
@@ -30,7 +39,7 @@ import { HeaderNav } from "./header-nav";
  */
 export function Header() {
   return (
-    <header className="shell flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-12 pb-9">
+    <HeaderShell>
       <Link href="/" className="flex min-w-0 items-center gap-4">
         <span
           aria-hidden="true"
@@ -52,6 +61,6 @@ export function Header() {
           child left the row keeps the wordmark's height and `justify-between`
           has nothing to push against, so no gap is left where it was. */}
       <HeaderNav />
-    </header>
+    </HeaderShell>
   );
 }
