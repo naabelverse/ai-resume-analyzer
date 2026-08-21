@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Check, ChevronDown, X } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SEVERITY_ORDER, type FeedbackItem, type Status } from "@/types";
 
 const ICON: Record<Status, typeof Check> = {
   pass: Check,
-  warn: AlertTriangle,
+  warn: AlertCircle,
   fail: X,
 };
 

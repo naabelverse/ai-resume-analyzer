@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
@@ -221,14 +221,17 @@ export function AnalysisView({ id }: { id: string }) {
             <CardTitle>Red flags</CardTitle>
             <ul className="mt-4 flex flex-col gap-2">
               {analysis.redFlags.map((flag) => (
-                <li key={flag} className="flex items-start gap-2.5">
-                  <AlertTriangle
+                <li
+                  key={flag}
+                  className="flex items-start gap-2.5 text-note leading-relaxed"
+                >
+                  <span
                     aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0 text-warning"
-                  />
-                  <span className="text-note leading-relaxed text-ink-soft">
-                    {flag}
+                    className="flex h-[1lh] shrink-0 items-center"
+                  >
+                    <AlertCircle className="size-4 text-warning" />
                   </span>
+                  <span className="text-ink-soft">{flag}</span>
                 </li>
               ))}
             </ul>

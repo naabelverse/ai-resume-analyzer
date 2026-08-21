@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { ERROR_COPY, type ErrorCode } from "@/lib/errors";
 
@@ -21,14 +21,15 @@ export function DegradedBanner({ reason }: { reason: ErrorCode | null }) {
   return (
     <div
       role="status"
-      className="flex items-start gap-3 rounded-panel border border-warning/30 bg-warning-tint px-4 py-3"
+      className="flex items-start gap-3 rounded-panel border border-warning/30 bg-warning-tint px-4 py-3 text-note leading-relaxed"
     >
-      <AlertTriangle
-        aria-hidden="true"
-        className="mt-0.5 size-4 shrink-0 text-warning"
-        strokeWidth={2.4}
-      />
-      <div className="max-w-[72ch] text-note leading-relaxed">
+      {/* The row carries the type so the slot below can measure one line
+          against it; the glyph then centres on the first line of the message
+          rather than on the whole block. */}
+      <span aria-hidden="true" className="flex h-[1lh] shrink-0 items-center">
+        <AlertCircle className="size-4 text-warning" strokeWidth={2.4} />
+      </span>
+      <div className="max-w-[72ch]">
         <p className="text-ink">
           <span className="font-semibold">
             {copy ? copy.title : "AI review unavailable"}.
