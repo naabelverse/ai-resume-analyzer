@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { persistenceMode, store } from "@/lib/store";
+import { store } from "@/lib/store";
 import type { AnalysisSummary } from "@/types";
 
 /**
@@ -44,15 +44,15 @@ export function HistoryList() {
   if (records.length === 0) {
     return (
       <div className="panel flex flex-col items-center gap-3 px-6 py-10 text-center">
+        {/* Says what happens to the history, not how to change it. The old
+            copy named both persistence variables, which is a setup instruction
+            wearing an empty state's clothes: an env var means nothing to
+            someone using the app, and reading one here suggests they missed a
+            step or that the app is misconfigured. Turning on `db` mode is a
+            developer's job and it is documented in the README. */}
         <p className="text-body text-ink-soft">
-          No analyses yet.
-          {/* Both variables, deliberately. The browser store reads the
-              NEXT_PUBLIC_ one; naming only PERSISTENCE here would send someone
-              to set a server-only value that reads as undefined in the browser
-              and leaves them pinned to session mode with no sign why. */}
-          {persistenceMode === "session" &&
-            " History is kept for this browser tab only — set PERSISTENCE=db" +
-              " and NEXT_PUBLIC_PERSISTENCE=db to keep it across sessions."}
+          No analyses yet. Your history stays in this browser tab — it clears
+          when you close it.
         </p>
         <Button asChild>
           <Link href="/">Analyse a resume</Link>
