@@ -1,20 +1,27 @@
 import Link from "next/link";
-import { FileText, History } from "lucide-react";
+import { FileText } from "lucide-react";
+
+import { HeaderNav } from "./header-nav";
 
 /**
  * Document icon in a rounded blue-tinted square, wordmark in the display face
- * carrying the brand gradient, subtitle beneath — and one nav item opposite.
+ * carrying the brand gradient, subtitle beneath — and, opposite it, at most
+ * one nav item.
  *
- * One, deliberately. The demo link sat here beside it for a while and the two
+ * At most one on two counts. The demo link sat here for a while and the two
  * competed with each other and with the wordmark; it has gone to the form,
- * next to the drop target it is an alternative to. What is left is the only
- * link here that is really navigation — a place in the app you go to.
+ * next to the drop target it is an alternative to. And what is left hides
+ * itself on the page it points at, so /dashboard sees a header with no nav at
+ * all.
+ *
+ * Stays a server component. The pathname that decision needs is read inside
+ * `<HeaderNav>`, which is the only part of this header that ships JavaScript;
+ * the wordmark renders from the server as it always did.
  *
  * The brand block is a link to `/` because this header is shared by all three
- * routes. "Past analyses" is how you leave the upload page; the wordmark is
- * how you get back from wherever it led, so /dashboard and /analyze/[id] are
- * never dead ends. On the upload page it is a self-link, which is what a
- * wordmark is on every site that has one.
+ * routes, and it is what keeps hiding the nav item from stranding anyone:
+ * whatever page you land on, the wordmark is the way back. On the upload page
+ * it is a self-link, which is what a wordmark is on every site that has one.
  *
  * The row wraps rather than shrinks. The wordmark sets the header's height and
  * the nav item is one short line, so when they stop fitting side by side —
@@ -41,22 +48,10 @@ export function Header() {
         </div>
       </Link>
 
-      {/*
-        `-mx-3` takes the link's padding back out of the layout. The padding is
-        there so the pointer target clears 40px on both axes; without the pull
-        the label would sit 12px inside the shell on the right — off the edge
-        every card below it lines up on — and 12px in from the wordmark on the
-        wrapped row.
-      */}
-      <nav className="-mx-3">
-        <Link
-          href="/dashboard"
-          className="inline-flex min-h-10 items-center gap-1.5 px-3 text-body font-medium text-brand-600 hover:underline"
-        >
-          <History className="size-3.5" aria-hidden="true" />
-          Past analyses
-        </Link>
-      </nav>
+      {/* Renders nothing on the page it points at — see `<HeaderNav>`. With one
+          child left the row keeps the wordmark's height and `justify-between`
+          has nothing to push against, so no gap is left where it was. */}
+      <HeaderNav />
     </header>
   );
 }
