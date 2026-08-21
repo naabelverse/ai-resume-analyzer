@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { store } from "@/lib/store";
+import { persistenceMode, store } from "@/lib/store";
 import type { AnalysisSummary } from "@/types";
 
 /**
@@ -44,15 +44,22 @@ export function HistoryList() {
   if (records.length === 0) {
     return (
       <div className="panel flex flex-col items-center gap-3 px-6 py-10 text-center">
-        {/* Says what happens to the history, not how to change it. The old
-            copy named both persistence variables, which is a setup instruction
-            wearing an empty state's clothes: an env var means nothing to
-            someone using the app, and reading one here suggests they missed a
-            step or that the app is misconfigured. Turning on `db` mode is a
-            developer's job and it is documented in the README. */}
+        {/* Says what happens to the history, not how to change it. This once
+            named both persistence variables and told the reader to set them,
+            which is a setup instruction wearing an empty state's clothes: an
+            env var means nothing to someone using the app, and reading one
+            here suggests they missed a step. Turning on `db` mode is a
+            developer's job and it is documented in the README.
+
+            The branch is on the store that is actually running, not on a flag
+            the copy then names. Both sentences are true of the mode they
+            appear in — "it clears when you close the tab" is a promise the db
+            store does not keep, and one the session store must make, since
+            losing a report you waited a minute for is worth a warning. */}
         <p className="text-body text-ink-soft">
-          No analyses yet. Your history stays in this browser tab — it clears
-          when you close it.
+          {persistenceMode === "session"
+            ? "No analyses yet. Your history stays in this browser tab — it clears when you close it."
+            : "No analyses yet. Anything you analyse will be saved here."}
         </p>
         <Button asChild>
           <Link href="/">Analyse a resume</Link>
