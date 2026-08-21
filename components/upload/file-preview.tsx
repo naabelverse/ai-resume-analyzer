@@ -209,9 +209,11 @@ export function FilePreview({
             aria-label="Extracted text"
             tabIndex={0}
             /*
-              `.quote-well` owns the surface, the edge, the inset and the
-              scrollbar — the last of which is why it is a class and not a
-              stack of utilities.
+              `.quote-well` owns the surface, the edge and the inset, which is
+              why it is a class and not a stack of utilities. The scrollbar
+              moved to `.scrollbar-quiet` when the job-description textarea
+              needed the same treatment; same property, same value, so this
+              well renders exactly as it did before.
 
               This was white inside a tinted panel, so the innermost element
               was the brightest thing on screen and the nesting read
@@ -222,7 +224,7 @@ export function FilePreview({
               say it. The amber band below depends on that hue gap: see the
               token's own note for why lightness cannot carry it.
             */
-            className="quote-well max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto"
+            className="quote-well scrollbar-quiet max-h-[22rem] min-h-[8.5rem] flex-1 overflow-auto"
           >
             <ExtractedText preview={preview} />
           </div>

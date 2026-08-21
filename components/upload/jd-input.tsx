@@ -95,7 +95,13 @@ export function JobDescriptionInput({
             // darkest thing in the form, and matching the panels is the read
             // this form wants. At 3.56 it still separates from the card face;
             // what marks it as the live control is focus, not resting depth.
+            //
+            // `.scrollbar-quiet` is the extracted-text well's scrollbar
+            // treatment, shared rather than copied. Colour only — it changes
+            // nothing about this field's size, padding, edge, radius or resize
+            // handle.
             "w-full resize-y rounded-panel border border-line-strong bg-surface-inset p-3 transition-colors",
+            "scrollbar-quiet",
             "text-body text-ink placeholder:text-ink-soft",
             // `outline-none` used to sit here, which suppressed the app-wide
             // focus ring in globals.css and left focus as a one-pixel colour
