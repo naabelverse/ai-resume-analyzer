@@ -18,6 +18,15 @@ const TONE: Record<Status, string> = {
   fail: "bg-danger-tint text-danger",
 };
 
+/**
+ * Both end icons sit in a box exactly one body line tall, so each centres on
+ * the first line of the title rather than on the whole wrapped block. A shared
+ * box also means the two agree with each other for free: they used to carry
+ * the same `mt-0.5` nudge despite being different sizes, which left the 24px
+ * badge 4px below the 16px chevron.
+ */
+const ICON_SLOT = "flex h-[1lh] shrink-0 items-center";
+
 interface FeedbackListProps {
   items: FeedbackItem[];
 }
@@ -49,25 +58,32 @@ function FeedbackRow({ item }: { item: FeedbackItem }) {
         onClick={() => setOpen((previous) => !previous)}
         className="flex w-full items-start gap-3 py-3 text-left"
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            "mt-0.5 grid size-6 shrink-0 place-items-center rounded-full",
-            TONE[item.status],
-          )}
-        >
-          <Icon className="size-3.5" strokeWidth={3} />
+        <span aria-hidden="true" className={ICON_SLOT}>
+          <span
+            className={cn(
+              "grid size-6 place-items-center rounded-full",
+              TONE[item.status],
+            )}
+          >
+            <Icon className="size-3.5" strokeWidth={3} />
+          </span>
         </span>
 
         <span className="min-w-0 flex-1 text-body text-ink">{item.text}</span>
 
-        <ChevronDown
-          aria-hidden="true"
-          className={cn(
-            "mt-0.5 size-4 shrink-0 text-ink-soft transition-transform duration-200 motion-reduce:transition-none",
-            open && "rotate-180",
-          )}
-        />
+        {/* The chevron gets the badge's 24px circle so the row has equal
+            weight at both ends; a bare stroke glyph opposite a filled badge
+            reads left-heavy however well the two are aligned. */}
+        <span aria-hidden="true" className={ICON_SLOT}>
+          <span className="grid size-6 place-items-center rounded-full bg-muted-tint text-ink-soft">
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform duration-200 motion-reduce:transition-none",
+                open && "rotate-180",
+              )}
+            />
+          </span>
+        </span>
       </button>
 
       {open && (
