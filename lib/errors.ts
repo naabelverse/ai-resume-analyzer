@@ -120,8 +120,18 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     title: "Your NVIDIA API credits have run out",
     message:
       "The provider rejected the request for lack of credit, not for load — waiting will not help.",
+    /*
+      Addressed to the reader, who is not the operator. The previous wording
+      told them to top up an account they do not hold and to set an environment
+      variable they cannot reach — an instruction only whoever deployed the app
+      can act on, and one that reads to everyone else as though they had missed
+      a setup step.
+
+      It does not promise a retry will work: the message directly above says
+      waiting will not help, and this is the one AI failure where that is true.
+    */
     action:
-      "Top up or renew your free credits at build.nvidia.com, or set AI_PROVIDER=anthropic with an Anthropic key.",
+      "Retrying won't help until that's restored — check back later, or let whoever runs this app know.",
   },
   RATE_LIMITED: {
     title: "Too many analyses",
