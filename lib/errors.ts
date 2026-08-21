@@ -117,7 +117,7 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     action: "Wait about a minute, then run the analysis again.",
   },
   AI_CREDITS_EXHAUSTED: {
-    title: "Your NVIDIA API credits have run out",
+    title: "This app's NVIDIA credits have run out",
     message:
       "The provider rejected the request for lack of credit, not for load — waiting will not help.",
     /*
