@@ -49,7 +49,7 @@ function stubFetch() {
 function preview(overrides: Partial<ExtractPreview> = {}): ExtractPreview {
   return {
     kind: "pdf",
-    text: "JORDAN BLAKE\nBackend engineer.",
+    text: "MUHAMMAD NABIL\nBackend engineer.",
     pageCount: 1,
     charCount: 29,
     truncated: false,
@@ -92,7 +92,7 @@ describe("useFilePreview", () => {
     });
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(result.current.preview?.text).toContain("JORDAN BLAKE");
+    expect(result.current.preview?.text).toContain("MUHAMMAD NABIL");
     expect(result.current.errorCode).toBeNull();
   });
 

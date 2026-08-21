@@ -434,8 +434,8 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     const logged = vi.mocked(console.log).mock.calls.flat().join(" ");
     expect(logged).toContain("chars");
     expect(logged).toContain(harness.name);
-    expect(logged).not.toContain("JORDAN BLAKE");
-    expect(logged).not.toContain("jordan.blake@example.com");
+    expect(logged).not.toContain("MUHAMMAD NABIL");
+    expect(logged).not.toContain("muhammad.nabil@example.com");
   });
 });
 

@@ -58,8 +58,8 @@ describe("extractFromBuffer", () => {
 
     expect(result.kind).toBe("pdf");
     expect(result.pageCount).toBe(1);
-    expect(result.text).toContain("JORDAN BLAKE");
-    expect(result.text).toContain("jordan.blake@example.com");
+    expect(result.text).toContain("MUHAMMAD NABIL");
+    expect(result.text).toContain("muhammad.nabil@example.com");
     expect(result.truncated).toBe(false);
   });
 
@@ -110,7 +110,7 @@ describe("extractFromBuffer", () => {
   });
 
   it("rejects a document with too little text to analyse", async () => {
-    await expectCode(extractFromBuffer(makeDocx(["Jordan Blake"])), "EMPTY_RESUME");
+    await expectCode(extractFromBuffer(makeDocx(["Muhammad Nabil"])), "EMPTY_RESUME");
   });
 
   it("truncates a long resume and keeps the tail", async () => {
@@ -118,7 +118,7 @@ describe("extractFromBuffer", () => {
 
     expect(result.truncated).toBe(true);
     expect(result.charCount).toBeGreaterThan(MAX_TEXT_CHARS);
-    expect(result.text).toContain("JORDAN BLAKE");
+    expect(result.text).toContain("MUHAMMAD NABIL");
     // The tail matters: education and skills live on the last page, and the
     // rubric scores them.
     expect(result.text).toContain("FINAL PAGE MARKER");

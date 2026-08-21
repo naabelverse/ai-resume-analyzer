@@ -244,8 +244,8 @@ export function makeLegacyDoc(): Uint8Array {
 
 /** A realistic resume body, long enough to clear the 200-character floor. */
 export const RESUME_LINES = [
-  "JORDAN BLAKE",
-  "jordan.blake@example.com | +44 7700 900123 | github.com/jordanblake",
+  "MUHAMMAD NABIL",
+  "muhammad.nabil@example.com | +44 7700 900123 | github.com/muhammadnabil",
   "",
   "SUMMARY",
   "Backend engineer with four years building payment and booking systems.",

@@ -66,7 +66,7 @@ describe("POST /api/extract", () => {
 
     expect(payload.data.kind).toBe("pdf");
     expect(payload.data.pageCount).toBe(1);
-    expect(payload.data.text).toContain("JORDAN BLAKE");
+    expect(payload.data.text).toContain("MUHAMMAD NABIL");
     expect(payload.data.text).toContain("BSc Computer Science");
     expect(payload.data.charCount).toBe(payload.data.text.length);
     expect(payload.data.truncated).toBe(false);
@@ -81,7 +81,7 @@ describe("POST /api/extract", () => {
 
     expect(payload.ok && payload.data.kind).toBe("docx");
     expect(payload.ok && payload.data.pageCount).toBeNull();
-    expect(payload.ok && payload.data.text).toContain("JORDAN BLAKE");
+    expect(payload.ok && payload.data.text).toContain("MUHAMMAD NABIL");
   });
 
   it("reports truncation and returns the clamped text, not the original", async () => {
@@ -168,8 +168,8 @@ describe("POST /api/extract", () => {
     await POST(request(sampleResumePdf()));
 
     const logged = vi.mocked(console.log).mock.calls.flat().join(" ");
-    expect(logged).not.toContain("JORDAN BLAKE");
-    expect(logged).not.toContain("jordan.blake@example.com");
+    expect(logged).not.toContain("MUHAMMAD NABIL");
+    expect(logged).not.toContain("muhammad.nabil@example.com");
   });
 
   describe("rate limiting", () => {

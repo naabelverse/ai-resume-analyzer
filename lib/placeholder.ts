@@ -6,7 +6,7 @@ import type { AnalysisResult } from "@/types";
  * it. Phase 4 replaces these imports with the live API response and this file
  * is deleted.
  */
-export const PLACEHOLDER_FILE_NAME = "jordan-blake-resume.pdf";
+export const PLACEHOLDER_FILE_NAME = "muhammad-nabil-resume.pdf";
 
 export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
   scoreRationale:

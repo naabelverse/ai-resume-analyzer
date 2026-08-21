@@ -19,7 +19,7 @@ import type { ExtractPreview } from "@/types";
 function preview(overrides: Partial<ExtractPreview> = {}): ExtractPreview {
   return {
     kind: "pdf",
-    text: "JORDAN BLAKE\njordan.blake@example.com\n\nSUMMARY\nBackend engineer.",
+    text: "MUHAMMAD NABIL\nmuhammad.nabil@example.com\n\nSUMMARY\nBackend engineer.",
     pageCount: 1,
     charCount: 64,
     truncated: false,

@@ -45,7 +45,7 @@ describe("runDeterministicChecks", () => {
   });
 
   it("reports missing sections rather than guessing", () => {
-    const sparse = runDeterministicChecks("Jordan Blake\nSome prose about work.", null);
+    const sparse = runDeterministicChecks("Muhammad Nabil\nSome prose about work.", null);
     expect(sparse.sectionsPresent.education).toBe(false);
     expect(sparse.hasEmail).toBe(false);
   });
