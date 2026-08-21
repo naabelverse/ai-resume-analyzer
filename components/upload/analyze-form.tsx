@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/error-state";
@@ -174,6 +176,32 @@ export function AnalyzeForm() {
           {/* A rejected file states its own reason inside the panel above, so
               only a failed submit needs saying here. */}
           {submitError && <InlineError code={submitError} />}
+
+          {/*
+            The alternative to the ask, next to the ask. Someone weighing
+            whether this is worth an upload is looking at the drop target when
+            they hesitate, and this is the answer to that hesitation — so it
+            reads as an invitation here, where in the header it read as a
+            destination and competed with the wordmark.
+
+            It hangs off the column rather than the panel opposite because that
+            panel is `hidden` below 880px and this must not be. The column has
+            no breakpoint on it at all, which is a stronger guarantee than
+            remembering not to add one.
+
+            `flex w-fit`, not `inline-flex`: an atomic inline sits on the
+            parent's baseline and takes the line box's half-leading with it,
+            which is a few pixels nobody can account for later. `min-h-10` is
+            the 40px pointer target — the drop target above gives up that much
+            height for it on two columns, and nothing moves on one.
+          */}
+          <Link
+            href="/analyze/demo"
+            className="mt-3 flex w-fit min-h-10 items-center gap-1.5 text-note font-medium text-brand-600 hover:underline"
+          >
+            Preview the results layout
+            <ArrowRight className="size-3.5" aria-hidden="true" />
+          </Link>
         </div>
 
         {/*
