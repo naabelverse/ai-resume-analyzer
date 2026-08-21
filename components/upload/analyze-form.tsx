@@ -199,7 +199,7 @@ export function AnalyzeForm() {
             href="/analyze/demo"
             className="mt-3 flex w-fit min-h-10 items-center gap-1.5 text-note font-medium text-brand-600 hover:underline"
           >
-            Preview the results layout
+            See what a full report looks like
             <ArrowRight className="size-3.5" aria-hidden="true" />
           </Link>
         </div>
