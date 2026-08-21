@@ -69,7 +69,7 @@ export function HistoryList() {
   }
 
   return (
-    <ul className="max-w-[736px] divide-y divide-line">
+    <ul className="divide-y divide-line">
       {records.map((record) => (
         <li key={record.id} className="flex items-center gap-3 py-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">
@@ -90,24 +90,41 @@ export function HistoryList() {
             </p>
           </div>
 
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/analyze/${record.id}`}>
-              View
-              <ArrowRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </Button>
+          {/* The two actions are one cluster and own their spacing. They used
+              to be direct children of the row, so the only thing between them
+              was its `gap-3` — the same 12px that separates the score badge
+              from the filename, which is what made them read as two unrelated
+              controls rather than a pair. The 12px was never the whole story
+              either: both buttons are ghosts, so their padding is invisible at
+              rest and adds to whatever gap is set. The trailing `px-3` on View
+              plus the icon button's 10px centring put 34px between the arrow
+              and the bin, and 55px between the word and the bin.
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-9 text-ink-soft hover:text-danger"
-            disabled={pendingId === record.id}
-            onClick={() => void remove(record.id)}
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-            <span className="sr-only">Delete the analysis of {record.fileName}</span>
-          </Button>
+              So the fix is the grouping, not a smaller number bolted onto the
+              row: nested, the pair sets its own near-zero gap while the row
+              keeps the 12px rhythm it wants everywhere else. Padding stays —
+              it is the hit area, and shrinking a 36px target to close a visual
+              gap trades a real affordance for an optical one. */}
+          <div className="flex shrink-0 items-center gap-0.5">
+            <Button asChild variant="ghost" size="sm">
+              <Link href={`/analyze/${record.id}`}>
+                View
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </Link>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-9 text-ink-soft hover:text-danger"
+              disabled={pendingId === record.id}
+              onClick={() => void remove(record.id)}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              <span className="sr-only">Delete the analysis of {record.fileName}</span>
+            </Button>
+          </div>
         </li>
       ))}
     </ul>

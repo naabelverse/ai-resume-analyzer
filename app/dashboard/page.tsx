@@ -15,8 +15,14 @@ export default function DashboardPage() {
       <Header />
 
       <div className="shell">
+        {/* Narrower than the shell the header and the upload page use. That
+            width is there for the upload page's two columns; this page is one
+            list, and stretched to 1160px every row ran a filename against the
+            left edge and its actions against the right with ~270px of nothing
+            between them. The constraint belongs to the card rather than to
+            `.shell` so the upload page keeps the width it needs. */}
         <Reveal index={0}>
-          <Card>
+          <Card className="mx-auto max-w-3xl">
             <CardTitle>Past analyses</CardTitle>
             <CardDescription>
               Scores and filenames only. The resume itself is never stored.
