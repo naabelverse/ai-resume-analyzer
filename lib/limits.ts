@@ -36,10 +36,6 @@ export const TAIL_CHARS = 3_000;
 export const TRUNCATION_MARKER =
   "\n\n[... middle of resume omitted for length ...]\n\n";
 
-export const ACCEPTED_MIME = {
-  pdf: "application/pdf",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-} as const;
 
 /* --------------------------------------------------------------- timing -- */
 

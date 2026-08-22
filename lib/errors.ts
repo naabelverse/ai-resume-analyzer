@@ -214,11 +214,6 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   },
 };
 
-/** The one-line message for a code. Used where there's no room for full copy. */
-export function messageFor(code: ErrorCode): string {
-  return ERROR_COPY[code].message;
-}
-
 /** Narrows an arbitrary string to an ErrorCode, falling back to UNKNOWN. */
 export function toErrorCode(value: unknown): ErrorCode {
   return typeof value === "string" && value in ERROR_COPY
