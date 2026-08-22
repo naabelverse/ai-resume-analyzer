@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="AI Resume Analyzer">
+  <!--
+    The tab icon, matching the header's brand block.
+
+    Glyph: lucide-react's `FileText`, the same icon `<Header>` renders — its
+    path data is copied here rather than imported, because a favicon is a
+    static file and cannot run React. If lucide ever reshapes `file-text`, this
+    file is the second copy that has to be updated by hand; that is the cost of
+    the file convention, and it is written down here so the next person knows
+    to look.
+
+    Simplified for 16x16. The source glyph has three interior lines — a short
+    stub at M10 9H8 and two full-width rules. At tab size all three collapse
+    into a smudge, so the stub is dropped and the strokes are heavier than the
+    header's 2.2: fewer marks, drawn harder, rather than the same marks shrunk.
+
+    Solid --brand-600 (#2563eb) rather than the header's --brand-tint. The
+    header's pale square works at 48px against a white card; at 16px a pale
+    glyph on a pale ground disappears, and a transparent ground would vanish
+    into whichever theme the browser is wearing. White on brand blue holds in
+    both.
+
+    Corner radius is 10/32, the same ratio the header's rounded-[16px] on a
+    size-12 square gives. `apple-icon.png` deliberately has none: iOS applies
+    its own mask and would round an already-rounded square twice.
+  -->
+  <rect width="32" height="32" rx="10" fill="#2563eb"/>
+  <g transform="translate(2.8 2.8) scale(1.1)"
+     fill="none" stroke="#ffffff" stroke-width="2.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
+    <path d="M14 2v5a1 1 0 0 0 1 1h5"/>
+    <path d="M16 13H8"/>
+    <path d="M16 17H8"/>
+  </g>
+</svg>
