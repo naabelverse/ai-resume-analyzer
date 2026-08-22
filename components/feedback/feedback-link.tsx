@@ -6,7 +6,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { isNarrowRoute } from "@/components/layout/narrow-routes";
 import { cn } from "@/lib/utils";
 import { FeedbackForm } from "./feedback-form";
 import { useFeedbackForm } from "./use-feedback-form";
@@ -22,13 +21,20 @@ import { useFeedbackForm } from "./use-feedback-form";
  * available spot at 390px, where the row wraps around 600px and a second item
  * would stack under an already two-line wordmark, above the drop target.
  *
- * Not the centred link row that used to sit under the card either. That was
- * two brand-blue body-size links reading as navigation, at `Reveal index={1}`,
- * on the first screen beside the submit button. This is one caption-size line
- * in `--ink-soft`, aligned left on the shell edge, below `main`'s own bottom
- * padding — past every primary action by position rather than by restraint,
- * which is the only version of "does not compete" that survives someone
- * restyling it later.
+ * Not the centred link row that used to sit under the card either, even though
+ * this one is also centred. That row was two brand-blue body-size links reading
+ * as navigation, at `Reveal index={1}`, on the first screen beside the submit
+ * button. This is one caption-size line in `--ink-soft`, below `main`'s own
+ * bottom padding — past every primary action by position rather than by
+ * restraint, which is the only version of "does not compete" that survives
+ * someone restyling it later. Where it sits on the axis was never what kept the
+ * two apart; how loud it is and how far down it sits are.
+ *
+ * It was left-aligned on the shell edge until the credit joined the trigger.
+ * One short link could hold that edge; a credit line reads as page furniture,
+ * and left-aligned under a full-width shell it left a very wide empty run to
+ * its right. See `.footer-line` in globals.css for the centring and for why it
+ * needs no route rule.
  *
  * `<footer>` for the landmark, not for the row. One control at the end of a
  * document is what `contentinfo` is for, and it gives a screen-reader user a
@@ -111,32 +117,24 @@ export function FeedbackLink() {
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <footer
-        className={cn(
-          // Lines up with the card above it on both widths. `.shell` alone
-          // would leave this 132px left of the card on /dashboard — the
-          // offset `<HeaderShell>` exists to remove for the header.
-          "shell pb-12",
-          isNarrowRoute(pathname) && "shell-narrow",
-        )}
-      >
+      {/*
+        A plain `.shell`, with no narrow-route variant. Both shells centre
+        their own border box, so a centred row inside a full-width one sits on
+        the same axis a narrow one would put it — /dashboard's narrower card
+        cannot move it, which is the whole point of centring on the page rather
+        than on the card.
+      */}
+      <footer className="shell pb-12">
         {/*
-          Credit and trigger on one line, at one weight.
-
-          `flex-wrap` rather than anything that shrinks: at 390px the line
-          measures well inside the column, but a larger default font size or a
-          longer name should push "Send feedback" onto a second line rather
-          than take either half below the caption rung.
+          Credit and trigger on one line, at one weight. Layout lives in
+          `.footer-line`, which also owns the rule for what happens when the
+          two stop fitting: they stack, centred, and the dot goes with them.
 
           Nothing here is positioned. It is in the document flow at the end of
           the page, so it cannot overlay the report above it — a credit, not a
           badge.
-
-          `gap-y-0`: both children already carry `min-h-10` for the pointer
-          target, and a row gap on top of that would open a visible hole
-          between two wrapped lines of 12px type.
         */}
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-0 text-caption text-ink-soft">
+        <p className="footer-line text-caption text-ink-soft">
           {/*
             The inner span keeps normal inline flow, so the space between
             "Built by" and the name is a real character rather than a flex
@@ -169,7 +167,14 @@ export function FeedbackLink() {
             "middot" between two things already separate elements to anything
             reading this aloud.
           */}
-          <span aria-hidden="true" className="select-none">
+          {/*
+            `aria-hidden` in both states, so nothing changes for a screen
+            reader when `.footer-line` drops it on the stacked layout. The two
+            items either side are a link and a button — discrete nodes in the
+            accessibility tree that are announced with their roles, never run
+            together as one string, with or without a dot between them.
+          */}
+          <span aria-hidden="true" className="footer-sep select-none">
             &middot;
           </span>
 

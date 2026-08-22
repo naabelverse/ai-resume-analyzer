@@ -351,6 +351,52 @@
     max-width: calc(var(--shell-narrow) + 2 * var(--shell-pad));
   }
 
+  /*
+    The page-end footer: build credit, separator, feedback trigger.
+
+    Centred on the page rather than on the card, which is what lets it sit in
+    the same place on every route. `.shell` and `.shell-narrow` differ only in
+    max-width and both centre their own border box, so a centred row inside
+    either lands on the same axis — /dashboard's narrower card cannot move it,
+    and the footer needs no route rule of its own.
+
+    That is a deliberate break from how this footer used to work. It was
+    left-aligned on the shell edge so it met the card's left edge, which meets
+    the header's wordmark; against a full-width shell that left a very wide
+    empty run to its right and read as stranded rather than as placed. A credit
+    line is page furniture, not part of the content column.
+
+    Dropping the separator and stacking the row happen at the same breakpoint,
+    and they have to. Hide the dot alone and the two items still sit side by
+    side at that width, reading as a separator someone forgot. Stack alone and
+    the dot dangles at the end of the first line, which is the one thing it
+    must never do.
+
+    18em rather than a pixel width. The line is a fixed string whose rendered
+    width scales with the reader's font size, and an em-based query scales with
+    it; a px query would hold one line at 320px for someone whose default font
+    is 24px, which is exactly when it stops fitting.
+  */
+  .footer-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 0.5rem;
+  }
+
+  @media (max-width: 18em) {
+    .footer-line {
+      flex-direction: column;
+    }
+
+    /* Out of the layout entirely, not just invisible — a hidden glyph still
+       occupying the gap would centre the stacked items off-axis. */
+    .footer-sep {
+      display: none;
+    }
+  }
+
   .card {
     background: var(--surface-card);
     /* --line divides two things already sharing a card; the card's own edge
