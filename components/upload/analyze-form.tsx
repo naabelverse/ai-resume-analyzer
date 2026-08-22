@@ -7,7 +7,10 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/error-state";
-import { ScanningCard } from "@/components/analysis/scanning-card";
+import {
+  IN_FLIGHT_CEILING,
+  ScanningCard,
+} from "@/components/analysis/scanning-card";
 import { Dropzone } from "./dropzone";
 import { FilePreview } from "./file-preview";
 import { useFilePreview } from "./use-file-preview";
@@ -32,9 +35,16 @@ import type { AnalysisRecord, AnalyzeResponse } from "@/types";
 /**
  * Advances the scanning card while the request is in flight.
  *
- * The bar approaches 90% and stops there. It completes only when the response
- * actually lands, so it can never claim to be finished before the work is —
- * the specific dishonesty that makes most progress bars useless.
+ * The bar approaches `IN_FLIGHT_CEILING` and stops there. It completes only
+ * when the response actually lands, so it can never claim to be finished
+ * before the work is — the specific dishonesty that makes most progress bars
+ * useless.
+ *
+ * The ceiling is imported rather than written again here. `<ScanningCard>`
+ * owns it and clamps to it independently, so a second copy could not make the
+ * bar lie — but it could make this curve asymptote to a number the card no
+ * longer uses, leaving the bar parked short of its own ceiling with nothing
+ * failing to say so.
  *
  * Driven by the request's start timestamp rather than an elapsed counter the
  * effect has to reset: elapsed time is derived during render, so there is no
@@ -56,9 +66,9 @@ function useScanProgress(startedAt: number | null) {
     // Asymptotic: fast at first, never reaching the ceiling on its own. The
     // time constant is tuned for open-weight inference on shared capacity,
     // which runs far slower than a frontier hosted model — a curve tuned for a
-    // 5s response would sit pinned at 90% for most of a 40s one, which reads as
-    // a hang rather than as progress.
-    progress: Math.round(90 * (1 - Math.exp(-elapsed / 22_000))),
+    // 5s response would sit pinned at the ceiling for most of a 40s one, which
+    // reads as a hang rather than as progress.
+    progress: Math.round(IN_FLIGHT_CEILING * (1 - Math.exp(-elapsed / 22_000))),
     stageIndex:
       elapsed < 1_200 ? 0 : elapsed < 4_000 ? 1 : elapsed < 30_000 ? 2 : 3,
   };
