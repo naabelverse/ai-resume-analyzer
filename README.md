@@ -501,6 +501,38 @@ moving to Postgres is a change of adapter in `lib/db.ts` and provider in
 Deploy target is **Railway**, or any host that runs a normal long-lived Node
 process. Not Vercel.
 
+### Node version
+
+**Node 22.13 or newer.** `package.json` declares
+`engines.node: ">=22.13.0"`, and the number is not arbitrary — four separate
+things in the toolchain require Node 22 or above:
+
+| What | Requires | Why it matters |
+| --- | --- | --- |
+| `pnpm@11.22.0` (from `packageManager`) | `>=22.13` | The binding constraint, and the loudest. |
+| `unpdf` | `>=22` | Every PDF extraction. |
+| `openai` | `>=22.0.0` | The NVIDIA transport. |
+| `resend` | `>=20`, dev `>=22.12` | The feedback form. |
+
+This was originally declared as `>=20`, which is what `next` alone asks for.
+A host is free to satisfy the range however it likes, and Railway picked Node
+20.20.2 — legal against `>=20`, and fatal, because pnpm 11 uses `node:sqlite`,
+a builtin that does not exist before 22.5:
+
+```
+ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite
+```
+
+pnpm crashed before installing anything, so the failure surfaced at install
+rather than at runtime. That was luck worth noticing: `unpdf` and `openai` both
+need Node 22 too, so Node 20 would have broken PDF extraction and every model
+call anyway — later, in production, and much less legibly. A floor that only
+satisfies `next` is not a floor for this project.
+
+Pick the version once, in `engines.node`, and let the host resolve it. There is
+deliberately no `.nvmrc`: a second file naming the same requirement is a second
+thing to forget to update.
+
 ### Why not Vercel
 
 One analysis can legitimately outlast what a serverless function is allowed to
