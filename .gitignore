@@ -55,3 +55,6 @@ quality-report.txt
 
 # RuVector plugin scratch database — a local tool artefact, not part of the app.
 ruvector.db
+
+# Captured stdout from a live suite run - a measurement artefact, not source.
+run.log
