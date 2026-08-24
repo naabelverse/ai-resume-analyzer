@@ -543,6 +543,26 @@ run, so the signal lives in middling and weak. If it does not clearly drop, this
 belongs beside the frequency penalty, the count rule and the headline cap as a
 fourth lever that read well and moved nothing.
 
+**Measured, and it works — with a cost still being chased.** Five runs per
+fixture either side: restatement fell from **13/52 (25%) to 0/26 (0%)**. But the
+after-run lost **8 of 15 calls against 4 of 15**, and the scrollback put
+empty-`detail` validation errors at **2 -> 5** while the `max_tokens` runaway
+went **2 -> 4**. Both roughly doubled, so the two are not cleanly separated and
+endpoint variance is not excluded — a doubling at n=15 is p ≈ 0.26 on its own.
+Empty `detail` is nonetheless the shape a model reaches for when it is told it
+may not restate and given no cheaper way out.
+
+So RULE 1 now puts **DROP THE ITEM** ahead of the restructure it already
+offered, cites the `ARRAY_CAPS.feedbackMin` floor so the model knows a drop is
+cheap, and forbids an empty `detail` outright with the consequence stated: one
+dropped item costs the candidate one item, an empty `detail` can cost them the
+whole review.
+
+Note what the 0% rests on: 26 surviving items rather than 52, weak.txt
+contributing 3 of them. It is a real drop on a thin sample, not a settled one,
+and the calls that failed are exactly the ones that could not comply — so the
+rate is optimistic by an unknown margin until the failure rate comes down.
+
 ---
 
 ---

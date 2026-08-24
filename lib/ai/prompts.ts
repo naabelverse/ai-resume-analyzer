@@ -5,6 +5,8 @@
  * hide that.
  */
 
+import { ARRAY_CAPS } from "@/lib/schema/analysis";
+
 /**
  * Weights and, more importantly, anchors.
  *
@@ -109,9 +111,18 @@ what it costs the candidate, and what to change.
         of eleven carry one.
         <- the same sentence reworded is still a repeat
 
-If \`detail\` would do nothing but say the headline again, the item does not need
-two fields: make \`text\` the shorter claim and put the evidence and the advice
-in \`detail\`.
+If you have nothing to add past the headline, DROP THE ITEM. The floor is
+${ARRAY_CAPS.feedbackMin} items, so writing one fewer is cheap, and an item whose detail only
+repeats its headline is worth less to the candidate than no item at all.
+
+NEVER leave \`detail\` empty, and never put a placeholder in it. An empty field
+is not an escape from this rule: it fails validation, the whole analysis is
+retried, and the candidate can end up with the automated fallback instead of a
+review. Dropping one item costs them one item. An empty \`detail\` can cost them
+all of them.
+
+If the finding IS worth keeping and the headline already said all of it, make
+\`text\` the shorter claim and move the evidence and the advice into \`detail\`.
 
 If you cannot point at a specific line and quote it, DO NOT EMIT THAT ITEM.
 Fewer items that each quote real text beat eight items of generic advice.

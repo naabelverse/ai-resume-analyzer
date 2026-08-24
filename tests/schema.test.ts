@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AnalysisResultSchema,
   AnalysisWireSchema,
+  ARRAY_CAPS,
   RUBRIC_DIMENSIONS,
   RUBRIC_DIMENSION_LABELS,
   RUBRIC_WEIGHTS,
@@ -204,6 +205,33 @@ describe("the headline contract reaches the decoder", () => {
    * the reader read one sentence twice. RULE 1 had told `detail` to open with
    * a verbatim quote and never said it must not open with the headline again.
    */
+  /**
+   * Restating was forbidden before there was a cheap way out of it, and the
+   * measured cost was empty `detail` fields: 2 such validation errors before
+   * the rule, 5 after, across fifteen calls each. So the drop path is stated
+   * first and the empty field is refused outright.
+   */
+  it("offers dropping the item before restructuring it", () => {
+    const drop = SYSTEM_PROMPT.indexOf("DROP THE ITEM");
+    // Fragment, not the full phrase: the prompt wraps after "make", so a
+    // search spanning the break matches the source and not the built string.
+    const restructure = SYSTEM_PROMPT.indexOf("the shorter claim");
+
+    expect(drop).toBeGreaterThan(-1);
+    expect(restructure).toBeGreaterThan(-1);
+    expect(drop).toBeLessThan(restructure);
+  });
+
+  it("refuses an empty detail outright", () => {
+    expect(SYSTEM_PROMPT).toMatch(/NEVER leave .detail. empty/);
+  });
+
+  /** The floor is quoted to the model, so it must be the floor the schema sets. */
+  it("states the floor the schema actually enforces", () => {
+    expect(SYSTEM_PROMPT).toContain(`The floor is
+${ARRAY_CAPS.feedbackMin} items`);
+  });
+
   it("forbids the detail opening by restating the headline", () => {
     // Split rather than one phrase: the prompt wraps this sentence across a
     // line, so a regex spanning the break matches the source and not the string.
