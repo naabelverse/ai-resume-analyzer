@@ -563,6 +563,34 @@ contributing 3 of them. It is a real drop on a thin sample, not a settled one,
 and the calls that failed are exactly the ones that could not comply — so the
 rate is optimistic by an unknown margin until the failure rate comes down.
 
+**Resolved at 5.1%, across three runs of five per fixture, all at cap 90.**
+
+| | restatement | successful calls | empty `detail` | `max_tokens` |
+|---|---|---|---|---|
+| baseline | 13/52 (25%) | 11/15 | 2 | 2 |
+| restatement rule | 0/26 (0%) | 7/15 | 5 | 4 |
+| + drop path | **2/39 (5.1%)** | **11/15** | 4 | 2 |
+
+The number that decides this is not the restatement rate but the failure rate.
+Successful calls went from 7/15 back to 11/15, exactly the baseline. That would
+not have recovered if the rule had been unrelated to the failures: the drop path
+gave the model somewhere to go when it had nothing to add, and it went there.
+The middle row's 0% was never the better result — it was the same rule with no
+way out, measured on the 26 items that survived it.
+
+Empty `detail` is **not fully resolved**: 2, then 5, then 4. Down but not back,
+and four events against two is far too small to separate from this endpoint's
+own variance. The `max_tokens` runaway sat at 2 in the first and third runs and
+4 in the second, within the noise it has always shown, and remains the one
+failure mode nothing here has ever moved.
+
+**What to watch, and it is deliberately not fixed.** Items per successful call
+fell to **~3.5** (39/11), with most runs returning exactly
+`ARRAY_CAPS.feedbackMin` — three. The model takes the drop path readily, so
+reports are thinner than they were: three findings where it used to write five
+or six. That is the rule working as written, and it is the trade the 5.1%
+bought. If it falls further, the floor is what to revisit — not the rule.
+
 ---
 
 ---
