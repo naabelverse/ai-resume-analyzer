@@ -454,18 +454,33 @@ async function measure(): Promise<void> {
   */
   say();
   say("detail restating its headline (>=60% content-word overlap):");
+  let restatingTotal = 0;
+  let restatingItems = 0;
   for (const { name } of FIXTURES) {
     const items = results.get(name)!.runs.flatMap((run) => run.feedbackItems);
     const restating = items.filter(
       (item) => restatementOverlap(item.text, item.detail) >= 0.6,
     );
+    restatingTotal += restating.length;
+    restatingItems += items.length;
+    // Three examples, trimmed. The full list ran to twenty-three headlines on
+    // one fixture and buried the number it was printed to support.
+    const examples = restating
+      .slice(0, 3)
+      .map((item) => JSON.stringify(item.text.slice(0, 55)));
     say(
       `  ${pad(name, 9, true)} ${restating.length}/${items.length}` +
-        (restating.length > 0
-          ? ` -> ${restating.map((item) => JSON.stringify(item.text)).join(", ")}`
+        `${items.length ? ` (${((restating.length / items.length) * 100).toFixed(1)}%)` : ""}` +
+        (examples.length > 0
+          ? ` -> ${examples.join(", ")}${restating.length > 3 ? ` +${restating.length - 3} more` : ""}`
           : ""),
     );
   }
+  say(
+    `  ${pad("TOTAL", 9, true)} ${restatingTotal}/${restatingItems}` +
+      `${restatingItems ? ` (${((restatingTotal / restatingItems) * 100).toFixed(1)}%)` : ""}` +
+      "   <- compare this line between runs",
+  );
   /* ------------------------------------------------------- the questions -- */
 
   const complete = FIXTURES.every(({ name }) => scoresFor(name).length > 0);

@@ -526,6 +526,23 @@ That gap is why `RunRecord` now keeps both fields. Twenty-eight paid calls had
 already been spent on runs that recorded statuses only, and none of them could
 answer the question that was actually asked.
 
+**The detail-restates-headline rule ships UNMEASURED.** RULE 1 now states the
+contract between the two fields — `detail` must ADD to `text` and must never
+open by restating it, neither in the headline's words nor reworded — with
+GOOD/BAD examples in the shape the `text` contract uses.
+
+Nothing about it has been measured. The only restatement numbers on record
+(23/26 middling, 6/17 weak, 0/16 strong) come from a run at the 70-character cap
+that was itself reverted, so they are not a baseline for the cap that ships.
+
+To measure it, run the quality suite twice with `QUALITY_RUNS=5` — once at
+`ce3e010`, this change's parent, and once here — and compare the TOTAL line
+under "detail restating its headline". It has worked if that rate at least
+halves and lands in single figures. strong.txt scored 0 even in the confounded
+run, so the signal lives in middling and weak. If it does not clearly drop, this
+belongs beside the frequency penalty, the count rule and the headline cap as a
+fourth lever that read well and moved nothing.
+
 ---
 
 ---

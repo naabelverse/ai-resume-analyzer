@@ -199,6 +199,22 @@ describe("the headline contract reaches the decoder", () => {
   });
 
   /**
+   * The other half of the contract. Every detail in production opened by
+   * repeating its own headline and then continuing, so expanding a row made
+   * the reader read one sentence twice. RULE 1 had told `detail` to open with
+   * a verbatim quote and never said it must not open with the headline again.
+   */
+  it("forbids the detail opening by restating the headline", () => {
+    // Split rather than one phrase: the prompt wraps this sentence across a
+    // line, so a regex spanning the break matches the source and not the string.
+    expect(SYSTEM_PROMPT).toMatch(/must ADD to .text./);
+    expect(SYSTEM_PROMPT).toMatch(/never repeat it/);
+    expect(SYSTEM_PROMPT).toMatch(/opens by repeating the headline/);
+    // The obvious evasion, named explicitly.
+    expect(SYSTEM_PROMPT).toMatch(/reworded is still a repeat/);
+  });
+
+  /**
    * The live suite's leak detector checks headlines against
    * RUBRIC_DIMENSION_LABELS. Let those drift from what the rubric actually
    * says and it goes on looking for headings nobody states, catching nothing

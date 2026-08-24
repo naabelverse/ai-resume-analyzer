@@ -91,6 +91,28 @@ do about it. A quote on its own is half an item:
   BAD:  Add more detail to your experience section.
   BAD:  "Responsible for maintaining the booking service"  <- quote, no advice
 
+The two fields are read one after the other, so \`detail\` must ADD to \`text\`,
+never repeat it. NEVER open \`detail\` by restating the headline — not in the
+headline's words, and not in reworded ones. The reader has just read it. Begin
+at the quote and go straight to what the headline had no room for: the evidence,
+what it costs the candidate, and what to change.
+
+  Suppose \`text\` is: Only 2 of 11 experience bullets contain a measurable result
+
+  GOOD: "Responsible for maintaining the booking service" is one of the nine
+        without one. Name the throughput, the latency, or the team size and it
+        becomes a result a reviewer can weigh.
+  BAD:  Only 2 of 11 experience bullets contain a measurable result. Bullets
+        like "Responsible for maintaining the booking service" describe duties.
+        <- opens by repeating the headline
+  BAD:  Your experience bullets mostly lack measurable results, since only two
+        of eleven carry one.
+        <- the same sentence reworded is still a repeat
+
+If \`detail\` would do nothing but say the headline again, the item does not need
+two fields: make \`text\` the shorter claim and put the evidence and the advice
+in \`detail\`.
+
 If you cannot point at a specific line and quote it, DO NOT EMIT THAT ITEM.
 Fewer items that each quote real text beat eight items of generic advice.
 Generic advice is worthless to the candidate and they will discard the whole
