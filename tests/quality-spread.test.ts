@@ -37,6 +37,7 @@ import {
   summariseChecksForModel,
 } from "@/lib/scoring";
 import type { AnalyzeOutcome } from "@/lib/ai/analyze";
+import { leakedHeadlines } from "./helpers";
 
 const OUT = "quality-report.txt";
 
@@ -113,6 +114,13 @@ interface RunRecord {
    * is worth watching even where nothing fails on it.
    */
   statuses: Record<string, number>;
+  /**
+   * The headlines themselves, so the offending strings can be named in a
+   * failure rather than merely counted. The two observed shapes — a rubric
+   * heading and a schema key — have different causes, and a bare count cannot
+   * tell them apart.
+   */
+  feedbackTexts: string[];
   matchPercent: number | null;
 }
 
@@ -277,6 +285,7 @@ async function measure(): Promise<void> {
           }),
           {},
         ),
+        feedbackTexts: result.feedback.map((item) => item.text),
         matchPercent: result.keywordMatch?.matchPercent ?? null,
       });
 
@@ -301,6 +310,14 @@ async function measure(): Promise<void> {
       );
       say(
         `  feedback : ${result.feedback.map((f) => f.status).join(" ")}`,
+      );
+      const leaked = leakedHeadlines(result.feedback.map((f) => f.text));
+      say(
+        `  headlines: ${result.feedback.length} items, ${leaked.length} leaked${
+          leaked.length > 0
+            ? ` -> ${leaked.map((t) => JSON.stringify(t)).join(", ")}`
+            : ""
+        }`,
       );
     }
   }
@@ -347,6 +364,46 @@ async function measure(): Promise<void> {
     });
     say(`  ${pad(name, 9, true)} ${cells.join("  |  ") || "-"}`);
   }
+
+  /*
+    The rate, so a change to the prompt can be judged against a number rather
+    than against one clean run. 26c7f3b is the reason this is here: a prompt
+    hypothesis formed on n=2 was reverted three runs later, having moved
+    nothing. Reported per item AND per run, because the two say different
+    things — six leaked headlines in one run of eight is a different failure
+    from one leaked headline in each of six runs.
+  */
+  say();
+  say("headline leakage (category names in feedback[].text):");
+  let leakedItems = 0;
+  let totalItems = 0;
+  let leakedRuns = 0;
+  let totalRuns = 0;
+  for (const { name } of FIXTURES) {
+    const runs = results.get(name)!.runs;
+    const items = runs.reduce((sum, run) => sum + run.feedbackTexts.length, 0);
+    const leaked = runs.reduce(
+      (sum, run) => sum + leakedHeadlines(run.feedbackTexts).length,
+      0,
+    );
+    const hit = runs.filter(
+      (run) => leakedHeadlines(run.feedbackTexts).length > 0,
+    ).length;
+    leakedItems += leaked;
+    totalItems += items;
+    leakedRuns += hit;
+    totalRuns += runs.length;
+    say(
+      `  ${pad(name, 9, true)} ${leaked}/${items} items` +
+        `${items ? ` (${((leaked / items) * 100).toFixed(1)}%)` : ""}` +
+        `, ${hit}/${runs.length} runs affected`,
+    );
+  }
+  say(
+    `  ${pad("TOTAL", 9, true)} ${leakedItems}/${totalItems} items` +
+      `${totalItems ? ` (${((leakedItems / totalItems) * 100).toFixed(1)}%)` : ""}` +
+      `, ${leakedRuns}/${totalRuns} runs affected`,
+  );
 
   /* ------------------------------------------------------- the questions -- */
 
@@ -434,6 +491,28 @@ describe("score spread across resume quality", () => {
   it("finds at least one genuine strength in strong.txt", () => {
     for (const run of results.get("strong")!.runs) {
       expect(run.statuses.pass ?? 0).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  /**
+   * The check that was missing when the headline leak shipped.
+   *
+   * See `FORBIDDEN_HEADLINES` above for what it catches and why nothing else
+   * could. Asserted per run rather than against the aggregate rate: one leaked
+   * headline is a visibly broken item on somebody's report, and a percentage
+   * averaged over fifteen runs is exactly the shape that hides it.
+   */
+  it("feedback headlines are findings, not category names", () => {
+    for (const { name } of FIXTURES) {
+      for (const [index, run] of results.get(name)!.runs.entries()) {
+        const leaked = leakedHeadlines(run.feedbackTexts);
+        expect(
+          leaked,
+          `${name} round ${index + 1}: ${leaked.length} of ` +
+            `${run.feedbackTexts.length} headlines name a category instead of ` +
+            `stating a finding: ${leaked.map((t) => JSON.stringify(t)).join(", ")}`,
+        ).toEqual([]);
+      }
     }
   });
 

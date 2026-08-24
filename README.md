@@ -467,6 +467,34 @@ status harsher than the band its own score falls in. Eight warns under a 60 is
 coherent and passes; eight fails under a 60 is the list overruling the gauge and
 fails.
 
+**What moved it was removing the compulsion, not arguing with it.** The feedback
+array's floor reached the decoder as `minItems: 5`, and NVIDIA's strict
+`json_schema` enforces that during generation — so the grammar could not stop
+before five items however little the resume gave the model to say, while RULE 1
+told it to emit nothing it could not quote. Told to stop and forbidden to stop,
+it filled the gap with the nearest list of headings to hand. Measured at five
+runs per fixture: **26 of 95 feedback items** came back with `text` set to a
+rubric heading ("Impact and quantification") or a schema key ("impact",
+"Summary"), affecting **5 of 14 runs**, all-or-nothing — a run that leaked
+leaked every headline it had. `text` was the one free-text field the system
+prompt never mentioned, so there was no contract for it to violate: RULE 1
+governed `detail` and gave it worked examples, while `text` had eight words of
+schema description and no example anywhere.
+
+Two changes, measured the same way. RULE 1 now specifies `text` with GOOD/BAD
+examples as it always did for `detail`, and `ARRAY_CAPS.feedbackMin` dropped
+from 5 to 3. Leakage went to **0 of 64 items across 13 runs** (one-tailed Fisher
+exact on runs affected, p ≈ 0.025). Item counts moved with it: middling.txt had
+returned eight items marked 8/8 "fail" in all five baseline runs, and afterwards
+returned 3, 5, 8, 5 and 6 items with mixed statuses — the uniformity above
+clearing as a side effect of no longer being forced to fill the array. That is
+n=5 on one fixture, and is reported rather than claimed.
+
+The check that would have caught this from the start is now in the live suite,
+with the detector itself unit-tested offline against the exact strings that
+leaked. The metric it replaces inspected `detail` alone and reported "5/5
+feedback items quote the resume" on a run whose every headline was a JSON key.
+
 ---
 
 ---

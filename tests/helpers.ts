@@ -1,4 +1,77 @@
+import {
+  RUBRIC_DIMENSIONS,
+  RUBRIC_DIMENSION_LABELS,
+  SECTION_NAMES,
+} from "@/lib/schema/analysis";
 import type { AnalysisResult, DimensionScores } from "@/lib/schema/analysis";
+/* ------------------------------------------------------ headline leakage -- */
+
+/**
+ * A feedback headline that names a category instead of stating a finding.
+ *
+ * `feedback[].text` is what the UI renders as the headline, and it was the one
+ * free-text field the system prompt never mentioned: RULE 1 governed `detail`
+ * and gave it worked GOOD/BAD examples, while `text` had eight words of schema
+ * description and no example anywhere. Live runs filled it with whatever
+ * taxonomy was nearest — the six rubric headings verbatim in one run, the
+ * schema's own key names ("impact", "relevance", "clarity") in another, with
+ * `detail` reduced to a bare quote.
+ *
+ * Nothing caught it. Those runs validated on the FIRST attempt, because the
+ * only constraint on `text` is its length, and the live metric of the day read
+ * `detail` alone: it reported "5/5 feedback items quote the resume" on a run
+ * whose every headline was a JSON key.
+ *
+ * This lives here rather than in the live suite so it can be unit-tested
+ * offline. A detector that quietly stops detecting is the exact failure it was
+ * written to catch.
+ */
+
+/**
+ * Letters and digits only, with "the" dropped.
+ *
+ * The leak is not always verbatim. The production run that prompted this
+ * returned "Relevance to target role" where the rubric says "Relevance to the
+ * target role", and an exact comparison would have missed it. Equality after
+ * normalising is still a tight test: every forbidden term is under 30
+ * characters, while a real headline is asked to run to about 65.
+ */
+function normaliseHeadline(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter((word) => word.length > 0 && word !== "the")
+    .join("");
+}
+
+/** Every name in front of the model that is a topic rather than a finding. */
+const FORBIDDEN_HEADLINES = new Set(
+  [
+    ...SECTION_NAMES,
+    ...RUBRIC_DIMENSIONS,
+    ...Object.values(RUBRIC_DIMENSION_LABELS),
+    // The wire schema's own field names, which is what one run reached for:
+    // they are generated immediately before `feedback`, so they are the
+    // freshest list in context when the first headline has to be written.
+    "scoreRationale",
+    "dimensions",
+    "summary",
+    "sections",
+    "feedback",
+    "bulletRewrites",
+    "keywordMatch",
+    "redFlags",
+    "status",
+    "text",
+    "detail",
+  ].map(normaliseHeadline),
+);
+
+/** The subset of `texts` that name a category instead of stating a finding. */
+export function leakedHeadlines(texts: string[]): string[] {
+  return texts.filter((text) => FORBIDDEN_HEADLINES.has(normaliseHeadline(text)));
+}
 
 /**
  * The six rubric dimensions the model actually returns. Weighted by

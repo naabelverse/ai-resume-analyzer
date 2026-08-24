@@ -68,7 +68,30 @@ export const FIELD_CAPS = {
  * whitespace, so no array bound can stop it. Only `max_tokens` bounds that.
  */
 export const ARRAY_CAPS = {
-  feedbackMin: 5,
+  /**
+   * Three, not five.
+   *
+   * `z.toJSONSchema` emits this as `minItems` and NVIDIA's strict json_schema
+   * enforces it while decoding, so a floor of five was a grammar that could not
+   * stop before five items whatever the resume contained. That contradicts
+   * RULE 1 outright: the prompt tells the model that if it cannot quote a
+   * specific line it must not emit the item, and the grammar then refuses to
+   * let it stop. Told to stop and forbidden to stop, it padded — one live run
+   * returned exactly five items whose headlines were the schema's own key
+   * names, and the production run that prompted this returned eight, six of
+   * them rubric headings.
+   *
+   * Three is the smallest count that is still a review rather than a remark:
+   * room for a strength and two problems, which is what the pass-item rule and
+   * the three statuses together already imply. Note what this does NOT claim to
+   * do — it does not stop the model reaching for the ceiling when it has eight
+   * things to say. `26c7f3b` established that telling it not to pad changes
+   * nothing. This only stops the schema *compelling* the padding.
+   *
+   * The ceiling is unchanged at eight, so the response-size arithmetic below
+   * and the `AI_MAX_TOKENS` figure derived from it are untouched.
+   */
+  feedbackMin: 3,
   feedbackMax: 8,
   bulletRewrites: 5,
   redFlags: 6,
@@ -152,6 +175,27 @@ export const RUBRIC_WEIGHTS: Record<RubricDimension, number> = {
   structure: 0.15,
   skills: 0.1,
   ats: 0.1,
+};
+
+/**
+ * The prose name `SCORING_RUBRIC` gives each dimension.
+ *
+ * Carried here rather than only inside that template string so the live
+ * quality suite can check feedback headlines against the same six names the
+ * model is shown. A test asserts each still appears in the rubric, so the two
+ * cannot drift into a detector looking for headings nobody states.
+ *
+ * They are here because they leaked: a live run returned all six as feedback
+ * items, verbatim, in place of findings. See the headline contract on
+ * `feedback[].text` below.
+ */
+export const RUBRIC_DIMENSION_LABELS: Record<RubricDimension, string> = {
+  impact: "Impact and quantification",
+  relevance: "Relevance to the target role",
+  clarity: "Clarity and concision",
+  structure: "Structure and completeness",
+  skills: "Skills and technologies",
+  ats: "ATS-friendliness",
 };
 
 const dimension = (what: string) =>
@@ -263,7 +307,9 @@ export const AnalysisWireSchema = z.object({
         text: z
           .string()
           .max(FIELD_CAPS.feedbackText)
-          .describe("The headline finding. Aim for 65 characters, never exceed 85."),
+          .describe(
+            "ONE short sentence in your own words stating what you FOUND in this resume — a finding, not a topic. Never a rubric heading, a dimension name, or a schema field name ('impact', 'Skills and technologies', 'ATS-friendliness'): those name the subject without saying anything about this document. Never a bare quote either; the quote belongs in detail. Aim for 65 characters, never exceed 85.",
+          ),
         detail: z
           .string()
           .max(FIELD_CAPS.feedbackDetail)
@@ -275,7 +321,7 @@ export const AnalysisWireSchema = z.object({
     .min(ARRAY_CAPS.feedbackMin)
     .max(ARRAY_CAPS.feedbackMax)
     .describe(
-      "Between 5 and 8 items. Include at least one 'pass' whenever the resume has a genuine strength.",
+      "Between 3 and 8 items. Include at least one 'pass' whenever the resume has a genuine strength.",
     ),
   bulletRewrites: z
     .array(

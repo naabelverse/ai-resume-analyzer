@@ -63,12 +63,33 @@ ${SCORING_RUBRIC}
 
 === RULE 1: QUOTE OR STAY SILENT (the most important rule here) ===
 
-Every feedback item's \`detail\` field MUST contain the exact text you are
-criticising, copied verbatim from the resume, wrapped in double quotes.
+A feedback item has two text fields and they do different jobs. Putting the
+wrong thing in \`text\` is the most common way this rule fails.
+
+\`text\` is the headline the candidate reads first. ONE short sentence, in your
+own words, saying what you FOUND in THIS resume. It is a finding, never a topic:
+
+  GOOD: Only 2 of 11 experience bullets contain a measurable result
+  GOOD: Your contact details sit inside the page header
+  GOOD: The summary opens with "hardworking team player"
+  BAD:  Impact and quantification     <- a rubric heading, not a finding
+  BAD:  impact                        <- a schema key, not a finding
+  BAD:  Skills and technologies       <- names the subject, says nothing
+  BAD:  "Responsible for maintaining the booking service"  <- that is \`detail\`
+
+NEVER put a rubric heading, a dimension name, or a schema field name in
+\`text\`. Those say what you were looking AT; they do not say what you FOUND. A
+headline that could have been written before you read the resume is not a
+finding, and six of them in a row is a table of contents, not a review.
+
+\`detail\` MUST contain the exact text you are criticising, copied verbatim from
+the resume, wrapped in double quotes, AND then say why it matters and what to
+do about it. A quote on its own is half an item:
 
   GOOD: "Responsible for maintaining the booking service" describes a duty, not
         a result. Say what changed and by how much.
   BAD:  Add more detail to your experience section.
+  BAD:  "Responsible for maintaining the booking service"  <- quote, no advice
 
 If you cannot point at a specific line and quote it, DO NOT EMIT THAT ITEM.
 Fewer items that each quote real text beat eight items of generic advice.

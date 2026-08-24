@@ -4,6 +4,7 @@ import {
   AnalysisResultSchema,
   AnalysisWireSchema,
   RUBRIC_DIMENSIONS,
+  RUBRIC_DIMENSION_LABELS,
   RUBRIC_WEIGHTS,
   SECTION_COHERENCE_TOLERANCE,
   SECTION_NAMES,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/schema/analysis";
 import { z } from "zod";
 
-import { SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { SCORING_RUBRIC, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { validDimensions, validResult } from "./helpers";
 
 /** The wire shape: no verdict, no overallScore, sections keyed by name. */
@@ -61,9 +62,16 @@ describe("AnalysisResultSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("rejects fewer than 5 feedback items", () => {
-    const short = validResult().feedback.slice(0, 4);
+  it("rejects fewer than 3 feedback items", () => {
+    const short = validResult().feedback.slice(0, 2);
     expect(AnalysisResultSchema.safeParse(validResult({ feedback: short })).success).toBe(false);
+  });
+
+  // The floor moved from 5 to 3 so the decoder's minItems would stop
+  // overriding RULE 1. Pinned in both directions: the old floor rejected this.
+  it("accepts three feedback items, the floor RULE 1 needs", () => {
+    const three = validResult().feedback.slice(0, 3);
+    expect(AnalysisResultSchema.safeParse(validResult({ feedback: three })).success).toBe(true);
   });
 
   it("rejects more than 8 feedback items", () => {
@@ -156,6 +164,50 @@ describe("the pass-item rule reaches the decoder", () => {
 
   it("keeps the rule in the system prompt too", () => {
     expect(SYSTEM_PROMPT).toMatch(/at least one feedback item must be a "pass"/);
+  });
+});
+
+describe("the headline contract reaches the decoder", () => {
+  /**
+   * `feedback[].text` is what the UI renders as the headline, and it was the
+   * one free-text field the system prompt never mentioned. RULE 1 governed
+   * `detail` and gave it worked GOOD/BAD examples; `text` had eight words of
+   * schema description and no example anywhere, so live runs filled it with
+   * whatever taxonomy was nearest — six rubric headings verbatim in one case,
+   * the schema's own key names in another.
+   *
+   * Both validated on the FIRST attempt, because the only constraint on `text`
+   * is its length. So the contract lives in two places now, and a test pins
+   * each: dropping either is otherwise silent.
+   */
+  it("tells the decoder a headline is a finding, not a topic", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        feedback: { items: { properties: { text: { description?: string } } } };
+      };
+    };
+    const description =
+      json.properties.feedback.items.properties.text.description ?? "";
+
+    expect(description).toMatch(/finding, not a topic/i);
+    expect(description).toMatch(/never a rubric heading/i);
+  });
+
+  it("gives the headline worked examples, as detail has", () => {
+    expect(SYSTEM_PROMPT).toMatch(/a rubric heading, not a finding/);
+    expect(SYSTEM_PROMPT).toMatch(/a schema key, not a finding/);
+  });
+
+  /**
+   * The live suite's leak detector checks headlines against
+   * RUBRIC_DIMENSION_LABELS. Let those drift from what the rubric actually
+   * says and it goes on looking for headings nobody states, catching nothing
+   * while still reporting green.
+   */
+  it("states the same six dimension names the rubric does", () => {
+    for (const label of Object.values(RUBRIC_DIMENSION_LABELS)) {
+      expect(SCORING_RUBRIC).toContain(label);
+    }
   });
 });
 
