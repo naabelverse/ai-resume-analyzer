@@ -498,19 +498,122 @@ moving to Postgres is a change of adapter in `lib/db.ts` and provider in
 
 ## Deployment
 
-`/api/analyze` needs the **Node runtime** (unpdf and mammoth both do). In
+Deploy target is **Railway**, or any host that runs a normal long-lived Node
+process. Not Vercel.
+
+### Why not Vercel
+
+One analysis can legitimately outlast what a serverless function is allowed to
+run. `AI_TIMEOUT_MS` defaults to 120s per model call, `analyzeResume` makes a
+second attempt when the first fails validation, and extraction and
+serialisation cost about 5s on top — so the worst case a request must be
+allowed to reach is 2 x 120 + 5 = **245s**. That is what `maxDuration = 300` in
+`app/api/analyze/route.ts` declares.
+
+Vercel's function ceiling sits below that on the plans this project targets,
+and the failure mode is the bad kind: the platform kills the request
+mid-generation, the user sees a network error rather than a degraded report,
+and nothing in the app gets the chance to fall back. A long-running server has
+no per-request ceiling to hit, so that whole class of failure disappears.
+
+`maxDuration` stays in the route on Railway even though nothing reads it there.
+It is inert, not harmful — Next's docs say deployment platforms *may* use it —
+and it is the one place in the codebase that states what a request is allowed
+to cost. `tests/api-analyze.test.ts` asserts the arithmetic against it, so
+raising `AI_TIMEOUT_MS` past what it covers fails the suite rather than
+production.
+
+`/api/analyze` also needs the **Node runtime** (unpdf and mammoth both do). In
 Next 16 that is the default and the Edge runtime is deprecated, so there is no
 `export const runtime` — but the requirement is real.
 
-The route exports `maxDuration = 300`, which must cover the whole worst case
-(2 attempts x `AI_TIMEOUT_MS` + 5s = 245s) rather than a single model call. On
-Railway this is inert — a long-running Node server has no per-request ceiling to
-declare — but it is the one place that states what a request is allowed to cost,
-and `tests/api-analyze.test.ts` holds `AI_TIMEOUT_MS` to it. Deploying somewhere
-that does enforce a cap means lowering both together.
+### The one thing that will break a first deploy
 
-For production persistence, point `DATABASE_URL` at Postgres, swap the
-datasource provider and the adapter, and run `pnpm db:migrate`.
+`prisma/schema.prisma` generates its client into `lib/generated/`, which is
+gitignored — so a fresh checkout does not have it, and `lib/db.ts` imports it
+statically. Without a generate step the build fails at the host with:
+
+```
+Module not found: Can't resolve '@/lib/generated/prisma/client'
+```
+
+This happens **even with no database**, because the import is static and does
+not care that `PERSISTENCE=session` never reaches it. `package.json` therefore
+runs `prisma generate` from `postinstall`, which fixes fresh clones locally for
+the same reason. Nothing puts it back on its own: Prisma 7's `prisma-client`
+generator writes outside `node_modules`, so no dependency's install hook can.
+
+### Recommended configuration: `PERSISTENCE=session`
+
+Deploy with session persistence. It is the configuration this app is built
+around, and the one to use unless you have a specific reason not to:
+
+- no volume to attach, no migrations at deploy, no Postgres to stand up
+- history still works — per-tab rather than cross-device, which is an honest
+  thing for a demo to offer
+- one fewer moving part that can be down while someone is reading a report
+
+The database path is real and tested, but it is neither the default nor free.
+`lib/db.ts` is hardcoded to the `better-sqlite3` adapter and `schema.prisma` to
+`provider = "sqlite"`, so Postgres is a schema edit, an adapter swap and a
+dependency — not a config change. SQLite on Railway needs an attached volume,
+because the container filesystem is ephemeral and the database would be
+discarded on every redeploy. If you do want it: set `PERSISTENCE=db` and
+`NEXT_PUBLIC_PERSISTENCE=db`, provide `DATABASE_URL`, and run
+`prisma migrate deploy` — not `pnpm db:migrate`, which is `migrate dev` and
+prompts.
+
+### Steps
+
+1. Create a Railway project from the GitHub repo. Nixpacks detects Node and
+   pnpm on its own; no Dockerfile is needed.
+2. Leave the build and start commands alone. `next build` and `next start` are
+   already right, and `next start` reads `PORT` from the environment and binds
+   `0.0.0.0` by default — **do not** set `PORT` yourself or add `-p $PORT`.
+   Railway injects it.
+3. Set the variables below **before the first build**. One of them is baked
+   into the bundle at build time; see the warning under the table.
+4. Point the healthcheck at `/api/health`. It reports readiness without echoing
+   any secret.
+5. Deploy, then open `/analyze/demo`. It renders the sample report without
+   touching a provider, so it separates "the app is up" from "the key works".
+
+### Environment variables
+
+Required:
+
+| Variable | What it does |
+| --- | --- |
+| `NVIDIA_API_KEY` | The provider key. Without it the app still runs, but every analysis silently degrades to the deterministic checks. |
+| `NEXT_PUBLIC_PERSISTENCE` | `session` for the recommended deploy. Chooses the store **in the browser**. |
+
+> **`NEXT_PUBLIC_PERSISTENCE` is inlined at build time, not read at runtime.**
+> Setting or changing it in the Railway dashboard after a build leaves the
+> deployed bundle pinned to whatever it was when that bundle was compiled.
+> Changing it needs a rebuild, not a restart. It has to be `NEXT_PUBLIC_` at
+> all because the store is chosen in the browser, where a server-only variable
+> reads as `undefined` and silently pins everyone to session mode.
+
+Optional — every one of these has a working default:
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `AI_PROVIDER` | `nvidia` | Transport: `nvidia` or `anthropic`. |
+| `AI_MODEL` | `nvidia/nemotron-3-super-120b-a12b` | Model id for the selected provider. |
+| `AI_MAX_TOKENS` | `4000` | Floored at 4000. Bounds the whitespace runaway, not answer size. |
+| `AI_TEMPERATURE` | `0.2` | Low for repeatability. |
+| `AI_TIMEOUT_MS` | `120000` | Per model call. 2x this + 5s must stay under `maxDuration`. |
+| `NVIDIA_BASE_URL` | NVIDIA hosted | Override only for a self-hosted NIM container. |
+| `NVIDIA_ENABLE_THINKING` | `false` | Off deliberately: 7s vs 129s for the same score. |
+| `NVIDIA_REASONING_BUDGET` | `4096` | Only consulted when thinking is on. |
+| `ANTHROPIC_API_KEY` | — | Required only when `AI_PROVIDER=anthropic`. |
+| `ANTHROPIC_EFFORT` | `medium` | Anthropic reasoning effort. |
+| `PERSISTENCE` | `session` | Server-side half of the persistence switch. |
+| `DATABASE_URL` | — | Required only when `PERSISTENCE=db`. |
+| `RESEND_API_KEY` | — | Feedback form transport. This and the next are both needed, or the form refuses to send. |
+| `FEEDBACK_EMAIL` | — | Where feedback is delivered. Must be the address the Resend account is registered under, since the app sends from `onboarding@resend.dev`. |
+
+`PORT` is injected by Railway. Do not set it.
 
 ---
 
@@ -518,18 +621,21 @@ datasource provider and the adapter, and run `pnpm db:migrate`.
 
 ```
 app/
-  api/analyze/route.ts        validate → extract → measure → Claude → validate
+  api/analyze/route.ts        validate → extract → measure → model → validate
+  api/extract/route.ts        the same extraction, without the analysis
   api/analyses/               history CRUD
+  api/feedback/route.ts       feedback form → Resend, two rate-limit buckets
   api/health/route.ts         readiness without echoing secrets
   analyze/[id]/page.tsx       server shell around the client view
 lib/
-  ai/         client (server-only), analyze (retry + degrade), prompts
+  ai/         providers (server-only), analyze (retry + degrade), prompts
   extract/    magic-byte dispatch, unpdf, mammoth, normalise, truncate
   schema/     the two-schema strategy
   store/      persistence seam: session · remote, one interface
   scoring.ts  deterministic checks + the degraded report
   errors.ts   typed failures, one copy map for the whole app
-tests/        118 tests; fixtures are built in memory, not committed
+  mail.ts     the one place this app sends mail from
+tests/        325 tests; fixtures are built in memory, not committed
 ```
 
 ---
