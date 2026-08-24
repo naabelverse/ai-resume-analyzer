@@ -2,27 +2,31 @@
   <!--
     The tab icon, matching the header's brand block.
 
-    Glyph: lucide-react's `FileText`, the same icon `<Header>` renders — its
-    path data is copied here rather than imported, because a favicon is a
-    static file and cannot run React. If lucide ever reshapes `file-text`, this
-    file is the second copy that has to be updated by hand; that is the cost of
-    the file convention, and it is written down here so the next person knows
-    to look.
+    Glyph: lucide-react's `FileText`, the same icon that `<Header>` renders. Its
+    path data is copied here rather than imported, because a favicon is a static
+    file and cannot run React. If lucide ever reshapes `file-text`, this file is
+    the second copy that has to be updated by hand; that is the cost of the file
+    convention, and it is written down so the next person knows to look.
 
-    Simplified for 16x16. The source glyph has three interior lines — a short
-    stub at M10 9H8 and two full-width rules. At tab size all three collapse
-    into a smudge, so the stub is dropped and the strokes are heavier than the
-    header's 2.2: fewer marks, drawn harder, rather than the same marks shrunk.
+    Simplified for 16x16. The source glyph has three interior lines, a short stub
+    at M10 9H8 plus two full width rules, and at tab size all three collapse into
+    a smudge. The stub is dropped and the strokes are heavier than the header's
+    2.2: fewer marks, drawn harder, rather than the same marks shrunk.
 
-    Solid --brand-600 (#2563eb) rather than the header's --brand-tint. The
-    header's pale square works at 48px against a white card; at 16px a pale
-    glyph on a pale ground disappears, and a transparent ground would vanish
-    into whichever theme the browser is wearing. White on brand blue holds in
-    both.
+    Fill is the brand-600 token from globals.css (#2563eb), not the paler
+    brand-tint the header square wears. That pale square works at 48px on a white
+    card; at 16px a pale glyph on a pale ground disappears, and a transparent
+    ground would vanish into whichever theme the browser is wearing. White on
+    brand blue holds in both.
 
-    Corner radius is 10/32, the same ratio the header's rounded-[16px] on a
-    size-12 square gives. `apple-icon.png` deliberately has none: iOS applies
-    its own mask and would round an already-rounded square twice.
+    Note for editors: XML forbids a double hyphen inside a comment, so the two
+    tokens above are named without the leading hyphens CSS gives them. Writing
+    them the CSS way makes this file fail to parse, and a malformed SVG does not
+    render at all rather than rendering imperfectly.
+
+    Corner radius is 10 of 32, the ratio the header's rounded-[16px] on a size-12
+    square gives. apple-icon.png deliberately has none: iOS applies its own mask
+    and would round an already rounded square twice.
   -->
   <rect width="32" height="32" rx="10" fill="#2563eb"/>
   <g transform="translate(2.8 2.8) scale(1.1)"
