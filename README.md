@@ -495,6 +495,37 @@ with the detector itself unit-tested offline against the exact strings that
 leaked. The metric it replaces inspected `detail` alone and reported "5/5
 feedback items quote the resume" on a run whose every headline was a JSON key.
 
+**Lowering the headline cap does not shorten the headline.** `feedback[].text`
+was capped at 90 and the model averaged 79.4 against it — long enough to wrap
+into a block that reads as a headline with its detail already showing, which is
+how it was reported. The cap went to 70 on the reasoning that moved
+`feedbackMin`: the model anchors on the ceiling, so move the ceiling. Measured
+at five runs per fixture the mean did fall, to 62.1 / 61.9 / 63.9 — and the fall
+was an artifact. **47 of 59 headlines came back cut mid-word by the decoder**,
+against roughly one in five at the old cap. The model went on writing the same
+~80-character headline and simply got truncated earlier. Reverted to 90, and
+filed here beside the frequency penalty and the count rule as a third obvious
+lever that moved nothing it was aimed at.
+
+What holds the layout together instead is the clamp: `line-clamp-2` on the
+collapsed headline in `feedback-list.tsx`, released when the row opens. A row
+that only looks right when the response behaves is one bad response away from
+four lines of body text where a headline belongs, and no schema bound fixes
+that — the component has to be robust on its own.
+
+**A detail that restates its own headline is real, and now measured.** The same
+run found **23 of 26** middling items and **6 of 17** weak items whose `detail`
+repeats 60% or more of its own `text`'s content words, against **0 of 16** on
+strong. It is not merely an artifact of the truncation above: strong.txt had
+every headline cut and no restatement at all. It is **unfixed**. The run that
+measured it was confounded by the 70-cap, so the rate at 90 is still unknown,
+and RULE 1 tells `detail` to open with a verbatim quote without ever saying it
+must not open with the headline again.
+
+That gap is why `RunRecord` now keeps both fields. Twenty-eight paid calls had
+already been spent on runs that recorded statuses only, and none of them could
+answer the question that was actually asked.
+
 ---
 
 ---

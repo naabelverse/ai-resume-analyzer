@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { leakedHeadlines } from "./helpers";
+import { leakedHeadlines, restatementOverlap } from "./helpers";
 
 /**
  * The detector that guards `feedback[].text`, tested on the strings that
@@ -70,5 +70,45 @@ describe("leakedHeadlines", () => {
         "ATS-friendliness",
       ]),
     ).toEqual(["Impact and quantification", "ATS-friendliness"]);
+  });
+});
+
+/**
+ * The restatement metric, which exists because an item whose `detail` repeats
+ * its `text` spends both fields saying one thing — the expanded row then adds
+ * nothing the collapsed row did not already show.
+ */
+describe("restatementOverlap", () => {
+  it("scores a near-verbatim restatement high", () => {
+    expect(
+      restatementOverlap(
+        "Your contact details sit inside the page header",
+        "Your contact details sit inside the page header, which is a problem.",
+      ),
+    ).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it("scores a detail that quotes and then advises low", () => {
+    expect(
+      restatementOverlap(
+        "Only 2 of 11 experience bullets contain a measurable result",
+        '"Responsible for maintaining the booking service" describes a duty, not a result. Say what changed and by how much.',
+      ),
+    ).toBeLessThan(0.6);
+  });
+
+  /** Every real pair measured off disk scored under 40%. */
+  it("does not fire on the shipped placeholder report", () => {
+    expect(
+      restatementOverlap(
+        "Your contact details are inside the page header",
+        "Several applicant tracking systems ignore header and footer regions entirely, so your email and phone number may never reach a recruiter.",
+      ),
+    ).toBeLessThan(0.6);
+  });
+
+  it("is 0 when either side has no content words", () => {
+    expect(restatementOverlap("", "anything at all here")).toBe(0);
+    expect(restatementOverlap("a to the of", "anything at all here")).toBe(0);
   });
 });

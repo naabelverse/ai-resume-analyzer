@@ -72,6 +72,41 @@ const FORBIDDEN_HEADLINES = new Set(
 export function leakedHeadlines(texts: string[]): string[] {
   return texts.filter((text) => FORBIDDEN_HEADLINES.has(normaliseHeadline(text)));
 }
+/* --------------------------------------------------- headline restatement -- */
+
+/**
+ * How much of the shorter string's vocabulary the longer one repeats.
+ *
+ * A `detail` that restates its own headline wastes the only two fields an item
+ * has, and the expanded row then says nothing the collapsed row did not. This
+ * is deliberately crude — a set overlap of content words, order ignored —
+ * because it is a screening statistic printed beside a distribution, not a
+ * judgement about writing quality.
+ *
+ * Words of three characters or fewer are dropped so that "the", "and" and "of"
+ * do not manufacture agreement between two unrelated sentences. Dividing by the
+ * SMALLER set matters: `detail` is allowed to be four times longer than `text`,
+ * and dividing by the union would score a genuine restatement low simply
+ * because the detail went on to add advice.
+ */
+export function restatementOverlap(text: string, detail: string): number {
+  const words = (value: string) =>
+    new Set(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]+/g, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 3),
+    );
+
+  const a = words(text);
+  const b = words(detail);
+  if (a.size === 0 || b.size === 0) return 0;
+
+  let shared = 0;
+  for (const word of a) if (b.has(word)) shared += 1;
+  return shared / Math.min(a.size, b.size);
+}
 
 /**
  * The six rubric dimensions the model actually returns. Weighted by

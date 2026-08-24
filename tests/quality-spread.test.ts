@@ -37,7 +37,8 @@ import {
   summariseChecksForModel,
 } from "@/lib/scoring";
 import type { AnalyzeOutcome } from "@/lib/ai/analyze";
-import { leakedHeadlines } from "./helpers";
+import { FIELD_CAPS } from "@/lib/schema/analysis";
+import { leakedHeadlines, restatementOverlap } from "./helpers";
 
 const OUT = "quality-report.txt";
 
@@ -115,12 +116,16 @@ interface RunRecord {
    */
   statuses: Record<string, number>;
   /**
-   * The headlines themselves, so the offending strings can be named in a
-   * failure rather than merely counted. The two observed shapes — a rubric
-   * heading and a schema key — have different causes, and a bare count cannot
-   * tell them apart.
+   * The items themselves, both fields.
+   *
+   * Headlines are kept so the offending strings can be named in a failure
+   * rather than merely counted — a rubric heading and a schema key have
+   * different causes, and a bare count cannot tell them apart. Details are kept
+   * because the run that would have answered whether a detail restates its own
+   * headline recorded statuses only, and twenty-eight paid calls turned out to
+   * hold no evidence on the question actually being asked.
    */
-  feedbackTexts: string[];
+  feedbackItems: { text: string; detail: string }[];
   matchPercent: number | null;
 }
 
@@ -285,7 +290,10 @@ async function measure(): Promise<void> {
           }),
           {},
         ),
-        feedbackTexts: result.feedback.map((item) => item.text),
+        feedbackItems: result.feedback.map((item) => ({
+          text: item.text,
+          detail: item.detail,
+        })),
         matchPercent: result.keywordMatch?.matchPercent ?? null,
       });
 
@@ -381,14 +389,14 @@ async function measure(): Promise<void> {
   let totalRuns = 0;
   for (const { name } of FIXTURES) {
     const runs = results.get(name)!.runs;
-    const items = runs.reduce((sum, run) => sum + run.feedbackTexts.length, 0);
-    const leaked = runs.reduce(
-      (sum, run) => sum + leakedHeadlines(run.feedbackTexts).length,
+    const headlines = runs.map((run) => run.feedbackItems.map((i) => i.text));
+    const items = headlines.reduce((sum, texts) => sum + texts.length, 0);
+    const leaked = headlines.reduce(
+      (sum, texts) => sum + leakedHeadlines(texts).length,
       0,
     );
-    const hit = runs.filter(
-      (run) => leakedHeadlines(run.feedbackTexts).length > 0,
-    ).length;
+    const hit = headlines.filter((texts) => leakedHeadlines(texts).length > 0)
+      .length;
     leakedItems += leaked;
     totalItems += items;
     leakedRuns += hit;
@@ -405,6 +413,59 @@ async function measure(): Promise<void> {
       `, ${leakedRuns}/${totalRuns} runs affected`,
   );
 
+
+  /*
+    Headline length, against the cap and against the layout.
+
+    The list's design was built around headlines of 34-59 characters
+    (PLACEHOLDER_ANALYSIS averages 45.7). A live run measured 79.4 with two of
+    five items at the cap and one cut mid-word by the decoder — long enough to
+    wrap into a block that reads as a headline followed by a detail, which is
+    the bug this block exists to make visible. Printed, not asserted: a long
+    headline is a layout problem, not a wrong answer, and the component clamps
+    it now regardless.
+  */
+  say();
+  say(`headline length (cap ${FIELD_CAPS.feedbackText}, layout was built for ~46):`);
+  for (const { name } of FIXTURES) {
+    const texts = results.get(name)!.runs.flatMap((run) =>
+      run.feedbackItems.map((item) => item.text),
+    );
+    if (texts.length === 0) {
+      say(`  ${pad(name, 9, true)} -`);
+      continue;
+    }
+    const lengths = texts.map((text) => text.length);
+    const atCap = lengths.filter(
+      (length) => length >= FIELD_CAPS.feedbackText - 5,
+    ).length;
+    const cut = texts.filter((text) => text.endsWith("…")).length;
+    say(
+      `  ${pad(name, 9, true)} mean ${mean(lengths).toFixed(1)}` +
+        `, max ${Math.max(...lengths)}` +
+        ` | at/near cap ${atCap}/${texts.length}` +
+        ` | decoder-cut ${cut}/${texts.length}`,
+    );
+  }
+
+  /*
+    And whether the detail simply says the headline again, which is the other
+    half of the same report: an expanded row that adds nothing.
+  */
+  say();
+  say("detail restating its headline (>=60% content-word overlap):");
+  for (const { name } of FIXTURES) {
+    const items = results.get(name)!.runs.flatMap((run) => run.feedbackItems);
+    const restating = items.filter(
+      (item) => restatementOverlap(item.text, item.detail) >= 0.6,
+    );
+    say(
+      `  ${pad(name, 9, true)} ${restating.length}/${items.length}` +
+        (restating.length > 0
+          ? ` -> ${restating.map((item) => JSON.stringify(item.text)).join(", ")}`
+          : ""),
+    );
+  }
   /* ------------------------------------------------------- the questions -- */
 
   const complete = FIXTURES.every(({ name }) => scoresFor(name).length > 0);
@@ -505,11 +566,12 @@ describe("score spread across resume quality", () => {
   it("feedback headlines are findings, not category names", () => {
     for (const { name } of FIXTURES) {
       for (const [index, run] of results.get(name)!.runs.entries()) {
-        const leaked = leakedHeadlines(run.feedbackTexts);
+        const texts = run.feedbackItems.map((item) => item.text);
+        const leaked = leakedHeadlines(texts);
         expect(
           leaked,
           `${name} round ${index + 1}: ${leaked.length} of ` +
-            `${run.feedbackTexts.length} headlines name a category instead of ` +
+            `${texts.length} headlines name a category instead of ` +
             `stating a finding: ${leaked.map((t) => JSON.stringify(t)).join(", ")}`,
         ).toEqual([]);
       }

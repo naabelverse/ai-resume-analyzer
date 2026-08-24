@@ -40,6 +40,25 @@ export const FIELD_CAPS = {
   scoreRationale: 220,
   summary: 500,
   sectionNote: 160,
+  /**
+   * Ninety. Seventy was tried and reverted — see the README.
+   *
+   * The list was designed around headlines of 34-59 characters
+   * (`PLACEHOLDER_ANALYSIS` averages 45.7) and the model averages 79.4 against
+   * this cap, which is what made a headline wrap into something that read as a
+   * headline with its detail already showing.
+   *
+   * Dropping the cap to 70 did not shorten what the model writes. Across five
+   * runs per fixture the mean fell to ~62 and 47 of 59 headlines came back cut
+   * mid-word by the decoder, against roughly one in five here: the same
+   * sentence, truncated earlier. The lever that actually holds the layout is
+   * `line-clamp-2` on the collapsed row, which is robust to any length.
+   *
+   * Note what this means for the ceiling-is-the-lever reasoning that
+   * `ARRAY_CAPS.feedbackMin` records: it holds for a bound the model can
+   * satisfy by making a different choice, and not for one it can only satisfy
+   * by writing a shorter sentence than it has decided to write.
+   */
   feedbackText: 90,
   feedbackDetail: 300,
   rewriteOriginal: 300,

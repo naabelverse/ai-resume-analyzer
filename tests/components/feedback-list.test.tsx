@@ -85,3 +85,38 @@ describe("FeedbackList", () => {
     expect(items.map((item) => item.status)).toEqual(before);
   });
 });
+
+/**
+ * A live run returned headlines averaging 79.4 characters against a cap of 90,
+ * two of five sitting on the cap. Nothing in this component clamped them, so a
+ * headline that long wrapped into a block of body text and was reported as an
+ * item "showing its detail without being expanded". The cap is 70 now, but the
+ * clamp is what makes the row robust to a response that ignores it.
+ */
+describe("FeedbackList headline length", () => {
+  const LONG: FeedbackItem = {
+    status: "warn",
+    text: "This bullet describes a duty rather than an outcome so add a metric here",
+    detail: '"Responsible for maintaining the notification pipeline." Say what changed.',
+  };
+
+  it("clamps the headline while collapsed and releases it once open", async () => {
+    const user = userEvent.setup();
+    render(<FeedbackList items={[LONG]} />);
+
+    const headline = screen.getByText(LONG.text);
+    expect(headline.className).toContain("line-clamp-2");
+
+    await user.click(screen.getByRole("button"));
+    expect(headline.className).not.toContain("line-clamp-2");
+  });
+
+  it("still shows the detail only once expanded", async () => {
+    const user = userEvent.setup();
+    render(<FeedbackList items={[LONG]} />);
+
+    expect(screen.queryByText(LONG.detail)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button"));
+    expect(screen.getByText(LONG.detail)).toBeInTheDocument();
+  });
+});

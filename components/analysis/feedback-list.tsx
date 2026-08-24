@@ -69,7 +69,19 @@ function FeedbackRow({ item }: { item: FeedbackItem }) {
           </span>
         </span>
 
-        <span className="min-w-0 flex-1 text-body text-ink">{item.text}</span>
+        {/* Clamped while collapsed. The schema bounds the headline, but a row
+            that only looks right when the response behaves is one bad response
+            away from four lines of body text where a headline belongs — and a
+            headline long enough to wrap that far reads as a headline with its
+            detail already showing. Opening the row releases it. */}
+        <span
+          className={cn(
+            "min-w-0 flex-1 text-body text-ink",
+            !open && "line-clamp-2",
+          )}
+        >
+          {item.text}
+        </span>
 
         {/* The chevron gets the badge's 24px circle so the row has equal
             weight at both ends; a bare stroke glyph opposite a filled badge
