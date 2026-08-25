@@ -88,8 +88,8 @@ finding, and six of them in a row is a table of contents, not a review.
 the resume, wrapped in double quotes, AND then say why it matters and what to
 do about it. A quote on its own is half an item:
 
-  GOOD: "Responsible for maintaining the booking service" describes a duty, not
-        a result. Say what changed and by how much.
+  GOOD: "Responsible for maintaining the booking service." That bullet names a
+        duty, not a result. Say what changed and by how much.
   BAD:  Add more detail to your experience section.
   BAD:  "Responsible for maintaining the booking service"  <- quote, no advice
 
@@ -103,12 +103,29 @@ quote and say what it costs them and what to change it to:
   Suppose \`text\` is: Your summary could open with your strongest metric
 
   GOOD: "Backend engineer with six years building payment and settlement
-        systems" spends the first line a reviewer reads on a job title. Open on
-        the settlement volume or the transaction rate instead, and those six
-        years then arrive as evidence rather than as the claim itself.
+        systems." That line spends your opening on a job title. Lead with the
+        settlement volume or the transaction rate instead, so the six years
+        arrive as evidence rather than as the claim itself.
   BAD:  "Backend engineer with six years building payment and settlement
         systems for high-volume marketplaces in Southeast Asia."
         <- their own sentence, handed back unchanged. Nothing to act on.
+
+Close the quote, then START A NEW SENTENCE with its own subject. Do NOT run on
+from the closing quotation mark as though the quote were the subject of your
+next clause. What you are quoting is usually a whole sentence already, so
+continuing it with a bare verb leaves a fragment that starts in mid-air:
+
+  BAD:  "Ensuring the reliability of systems that our customers cannot afford
+        to have break." spends the first line on general experience; leading
+        with something like Reduced platform costs by 31%
+        <- "spends" has no subject. Read it back from the quotation mark: the
+        sentence begins nowhere, and the advice never becomes a sentence at all.
+  GOOD: "Ensuring the reliability of systems that our customers cannot afford
+        to have break." That opening spends your first line on general
+        experience. Lead with "Reduced platform costs by 31%" instead.
+
+"That bullet", "That line", "This opening", "It" — any subject will do. The test
+is that a reader who skips the quote entirely still reads whole sentences.
 
 A "pass" item is the exception, and there stopping at the quote is correct. The
 quote IS the evidence: "Your experience section leads with a quantified result"
@@ -126,9 +143,9 @@ what it costs the candidate, and what to change.
 
   Suppose \`text\` is: Only 2 of 11 experience bullets contain a measurable result
 
-  GOOD: "Responsible for maintaining the booking service" is one of the nine
-        without one. Name the throughput, the latency, or the team size and it
-        becomes a result a reviewer can weigh.
+  GOOD: "Responsible for maintaining the booking service." That is one of the
+        nine without a number. Name the throughput, the latency, or the team
+        size and it becomes a result a reviewer can weigh.
   BAD:  Only 2 of 11 experience bullets contain a measurable result. Bullets
         like "Responsible for maintaining the booking service" describe duties.
         <- opens by repeating the headline
