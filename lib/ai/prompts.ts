@@ -5,7 +5,7 @@
  * hide that.
  */
 
-import { ARRAY_CAPS } from "@/lib/schema/analysis";
+import { ARRAY_CAPS, FIELD_CAPS } from "@/lib/schema/analysis";
 
 /**
  * Weights and, more importantly, anchors.
@@ -126,6 +126,31 @@ continuing it with a bare verb leaves a fragment that starts in mid-air:
 
 "That bullet", "That line", "This opening", "It" — any subject will do. The test
 is that a reader who skips the quote entirely still reads whole sentences.
+
+Quote only the FRAGMENT that carries the problem — never a whole line, bullet,
+or section. \`detail\` holds ${FIELD_CAPS.feedbackDetail} characters for the quote AND the advice
+together, so every extra word you copy is a word the fix does not get. Copy
+enough to locate the text, which is usually a handful of words, and spend what
+is left on what to change:
+
+  Suppose \`text\` is: Your skills section lists tools without showing any depth
+
+  BAD:  "Languages: Scala, Python, Go, Java, Bash. Frameworks: Spark, Akka,
+        Play, FastAPI. Infrastructure: AWS, GCP, Kubernetes, Terraform, Helm,
+        ArgoCD, Prometheus, Gra
+        <- four category lines copied whole. The cap arrives before the advice
+        does, so the candidate gets their own list back, cut mid-word, and no
+        fix at all.
+  GOOD: "Infrastructure: AWS, GCP, Kubernetes, Terraform". That line runs on
+        without saying which you have used in production. Name the three you
+        would be interviewed on and cut the rest — a reviewer reads depth, not
+        inventory.
+        <- about 215 characters, and the advice is the larger half of them.
+
+A quote is a pointer, not a reproduction. The candidate has the resume in front
+of them and does not need to read it again; they need to know WHICH line you
+mean. If the quote is so long that the advice will not fit after it, the quote
+is the part to cut.
 
 A "pass" item is the exception, and there stopping at the quote is correct. The
 quote IS the evidence: "Your experience section leads with a quantified result"
