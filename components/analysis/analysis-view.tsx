@@ -111,7 +111,7 @@ export function AnalysisView({ id }: { id: string }) {
       <Reveal index={0}>
         <Card>
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
-            <ScoreGauge score={analysis.overallScore} verdict={analysis.verdict} />
+            <ScoreGauge score={analysis.overallScore} />
             <div className="grid min-w-0 flex-1 gap-5 min-[1040px]:grid-cols-2 min-[1040px]:gap-8">
               <div className="min-w-0">
                 <CardTitle>Resume score</CardTitle>
@@ -120,10 +120,15 @@ export function AnalysisView({ id }: { id: string }) {
                 </p>
               </div>
               {/*
-                The model's own justification for the band it chose. Shown
-                rather than hidden: a score with visible reasoning behind it
-                can be argued with, and one without it can only be believed
-                or ignored.
+                The model's own account of what drove the score. Shown rather
+                than hidden: a score with visible reasoning behind it can be
+                argued with, and one without it can only be believed or
+                ignored.
+
+                Not "the band it chose" — it chooses no band. The score is
+                computed from its six dimension scores, and the prompt now
+                forbids it naming a band or a range here at all, because
+                "Band 60-74" is our vocabulary and means nothing to a reader.
               */}
               <p className="min-w-0 border-t border-line pt-4 text-note leading-relaxed text-ink-soft min-[1040px]:border-t-0 min-[1040px]:border-l min-[1040px]:pt-0 min-[1040px]:pl-8">
                 <span className="font-medium text-ink">Why this score: </span>

@@ -464,14 +464,47 @@ describe("section-score coherence", () => {
 });
 
 describe("deriveVerdict", () => {
+  /*
+    Boundaries read from `STATUS_THRESHOLDS` rather than restated, for the same
+    reason the `statusFor` case above reads them: a literal here is a second
+    copy that can drift. These were 85/60 until the score header was unified.
+  */
   it.each([
     [0, "needs-work"],
-    [59, "needs-work"],
-    [60, "good"],
-    [84, "good"],
-    [85, "great"],
+    [STATUS_THRESHOLDS.warn - 1, "needs-work"],
+    [STATUS_THRESHOLDS.warn, "good"],
+    [STATUS_THRESHOLDS.pass - 1, "good"],
+    [STATUS_THRESHOLDS.pass, "great"],
     [100, "great"],
   ])("maps %i to %s", (score, expected) => {
     expect(deriveVerdict(score)).toBe(expected);
+  });
+
+  /*
+    The actual guard, and the reason this file is worth reading twice.
+
+    The two banding systems disagreed for a long time — 85/60 on the gauge,
+    75/50 on the six sections — so a resume scoring 72 was labelled "good"
+    above a breakdown that labelled the same number "warn". Pinning the two
+    boundary sets separately is what let that happen: both suites passed the
+    whole time, because neither ever asked whether they AGREED.
+
+    So this asserts the relationship, not the numbers. Any future edit that
+    moves one banding system without the other fails here, at every score in
+    between, rather than shipping as two green suites and one contradictory
+    screen.
+  */
+  it("bands every score exactly as statusFor bands a section", () => {
+    const SAME_RANK = {
+      fail: "needs-work",
+      warn: "good",
+      pass: "great",
+    } as const;
+
+    for (let score = 0; score <= 100; score += 1) {
+      expect(deriveVerdict(score), `score ${score}`).toBe(
+        SAME_RANK[statusFor(score)],
+      );
+    }
   });
 });

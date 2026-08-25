@@ -243,6 +243,15 @@ Fill scoreRationale BEFORE dimensions. Name in one sentence the single biggest
 thing lifting or holding this resume back, citing something specific in it. Do
 not state an overall score there — you are not asked for one and cannot set it.
 
+Never name a band or a score range there either. The anchors above are your
+working scale, not the candidate's: they have never seen this rubric, so
+"Band 60-74:" and "in the 60-74 range" tell them nothing about their own
+resume. Open with what is true of THIS resume, in plain words:
+
+  GOOD: Only two of eleven bullets carry a metric, so the impact is asserted
+        rather than shown.
+  BAD:  Band 60-74: only two of eleven bullets carry a metric.
+
 Then score the six dimensions. The overall score is computed from them, so the
 only way to move it is to score the dimensions honestly. Do not try to work
 backwards from a total you have in mind.

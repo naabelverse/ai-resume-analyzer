@@ -10,7 +10,7 @@ export const PLACEHOLDER_FILE_NAME = "muhammad-nabil-resume.pdf";
 
 export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
   scoreRationale:
-    "Band 60-74: real engineering scope, but only two of eleven bullets carry a metric, so the impact is asserted rather than shown.",
+    "Real engineering scope, but only two of eleven bullets carry a metric, so the impact is asserted rather than shown.",
   overallScore: 72,
   verdict: "good",
   summary:

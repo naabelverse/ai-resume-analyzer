@@ -24,11 +24,49 @@ export { SECTION_NAMES, deriveVerdict } from "@/lib/schema/analysis";
 
 import type { AnalysisResult, Status, Verdict } from "@/lib/schema/analysis";
 
-/** Maps `verdict` to the label shown under the gauge number. */
+/**
+ * Maps `verdict` to the label shown under the gauge number.
+ *
+ * Rewritten when the gauge moved onto `STATUS_THRESHOLDS`. The old set was
+ * calibrated for 85/60 and could not survive the move:
+ *
+ * - "Good work" for the middle band. That band now opens at 50, and the rubric
+ *   calls 40-59 "a real weakness a reviewer would notice". Praising it is the
+ *   overclaim the whole unification was meant to remove.
+ * - "Needs work" for the BOTTOM band — while `STATUS_LABEL` in
+ *   `<SectionBreakdown>` uses the identical phrase for its MIDDLE one. One
+ *   phrase naming two different grades in one report is the same defect as two
+ *   sets of thresholds, just spelled in words instead of numbers.
+ *
+ * So the rule here is: no word may name two bands. Different words for the
+ * same band are fine — a badge on a section row and a headline addressed to a
+ * candidate are allowed to differ in register — but "Strong", "Needs work" and
+ * "Poor" each mean exactly one thing across the report. "Strong" is the
+ * rubric's own word for 75-89, which is what the top band now is.
+ */
 export const VERDICT_LABEL: Record<Verdict, string> = {
-  "needs-work": "Needs work",
-  good: "Good work",
-  great: "Great job",
+  "needs-work": "Poor",
+  good: "Needs work",
+  great: "Strong",
+};
+
+/**
+ * The gauge ring's stroke, keyed by the same `verdict` the label is.
+ *
+ * One lookup key for both means the colour and the words cannot disagree —
+ * the failure `4a99c2e` fixed for section rows, arriving on a different
+ * channel. Same green/amber/red as `BAR_TONE` in `<SectionBreakdown>`, because
+ * the ring is reporting the same kind of fact.
+ *
+ * It carried a blue-purple brand gradient until this commit, which left the
+ * one number the page exists to deliver as the only status in the report that
+ * did not state its status in colour. The gradient is still right everywhere
+ * it is decoration; here it was carrying information and saying nothing.
+ */
+export const VERDICT_TONE: Record<Verdict, string> = {
+  "needs-work": "var(--danger)",
+  good: "var(--warning)",
+  great: "var(--success)",
 };
 
 /** Severity order for the feedback list: actionable items first. */

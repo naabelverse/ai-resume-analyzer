@@ -383,7 +383,7 @@ export const AnalysisWireSchema = z.object({
     .string()
     .max(FIELD_CAPS.scoreRationale)
     .describe(
-      "In ONE sentence, name the single biggest thing lifting or holding back this resume, citing something specific in it. Do not state an overall score: it is computed from your dimension scores. Aim for 170 characters, never exceed 210.",
+      "In ONE sentence, name the single biggest thing lifting or holding back this resume, citing something specific in it. Do not state an overall score: it is computed from your dimension scores. Never name a band or a score range either — no \"Band 60-74\", no \"in the 60-74 range\". Those anchors are your working scale, not the reader's. Aim for 170 characters, never exceed 210.",
     ),
   /**
    * Six dimensions rather than one score. See the note above
@@ -597,10 +597,28 @@ export type SectionName = z.infer<typeof SectionNameSchema>;
 /**
  * The single place a score becomes a band. Derived rather than model-supplied
  * so the number on the gauge and the label under it can never contradict
- * each other. Boundaries follow the rubric anchors in `lib/ai/prompts.ts`.
+ * each other.
+ *
+ * The boundaries are `STATUS_THRESHOLDS` — the same ones `statusFor` applies
+ * to the six sections. The overall score IS the weighted average of those six
+ * numbers (`deriveOverallScore`): same 0-100 scale, same rubric anchors. So
+ * the same value means the same thing in both places, and saying otherwise
+ * needs a reason.
+ *
+ * There was one, and it did not hold. These used to band at 85/60, which put
+ * a 72 in "good" on the gauge and in "warn" on every section row scoring the
+ * same number, two inches below it. The defence was that an average of six
+ * dimensions deserves a stricter bar than any one of them — but averaging
+ * changes how OFTEN a value comes up, not what it means, and a band label
+ * states meaning. The compression already makes a high average rare; a second
+ * set of thresholds only bought a contradiction visible in one viewport.
+ *
+ * 85 was also the one boundary here that sat on no anchor at all. The anchors
+ * in `lib/ai/prompts.ts` break at 90, 75, 60 and 40, and `STATUS_THRESHOLDS`
+ * was already on 75.
  */
 export function deriveVerdict(overallScore: number): Verdict {
-  if (overallScore >= 85) return "great";
-  if (overallScore >= 60) return "good";
+  if (overallScore >= STATUS_THRESHOLDS.pass) return "great";
+  if (overallScore >= STATUS_THRESHOLDS.warn) return "good";
   return "needs-work";
 }

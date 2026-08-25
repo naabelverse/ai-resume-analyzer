@@ -275,7 +275,7 @@ export function validResult(
 ): AnalysisResult {
   return {
     scoreRationale:
-      "Band 60-74: competent but generic, with only two bullets carrying a metric.",
+      "Competent but generic, with only two bullets carrying a metric.",
     overallScore: 72,
     verdict: "good",
     summary: "Solid engineering background, but most bullets describe duties rather than outcomes.",

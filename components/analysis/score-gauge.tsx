@@ -1,9 +1,8 @@
 "use client";
 
-import { useId } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-import { VERDICT_LABEL, type Verdict } from "@/types";
+import { deriveVerdict, VERDICT_LABEL, VERDICT_TONE } from "@/types";
 
 const SIZE = 180;
 const STROKE = 12;
@@ -12,19 +11,34 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 interface ScoreGaugeProps {
   score: number;
-  verdict: Verdict;
 }
 
 /**
  * The box is a fixed 180x180 and the number is absolutely centred inside it,
  * so the sweep animation cannot shift layout (no CLS from the gauge).
  */
-export function ScoreGauge({ score, verdict }: ScoreGaugeProps) {
-  const gradientId = useId();
+export function ScoreGauge({ score }: ScoreGaugeProps) {
   const reduceMotion = useReducedMotion();
 
   const clamped = Math.min(100, Math.max(0, Math.round(score)));
   const targetOffset = CIRCUMFERENCE * (1 - clamped / 100);
+
+  /*
+    Derived here, not accepted as a prop.
+
+    `AnalysisResult` carries a `verdict`, and on the AI and degraded paths it
+    is already `deriveVerdict(overallScore)`. But anything that authors a
+    result by hand can carry one that disagrees with its own number — the demo
+    fixture did exactly that for section statuses, which is what `4a99c2e`
+    fixed by deriving at the point of display. Not taking the prop at all
+    applies the same fix one level up: there is no way to hand this component
+    a grade that its own number contradicts.
+
+    From `clamped`, not `score`, so the band matches the number actually on
+    screen. A 74.6 renders "75" and has to be graded as the 75 a reader sees,
+    not as the 74 it came in as.
+  */
+  const verdict = deriveVerdict(clamped);
 
   return (
     <div
@@ -39,13 +53,6 @@ export function ScoreGauge({ score, verdict }: ScoreGaugeProps) {
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         aria-hidden="true"
       >
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#2563EB" />
-            <stop offset="100%" stopColor="#7C3AED" />
-          </linearGradient>
-        </defs>
-
         {/* Rotate so the sweep starts at 12 o'clock. */}
         <g transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}>
           <circle
@@ -61,7 +68,11 @@ export function ScoreGauge({ score, verdict }: ScoreGaugeProps) {
             cy={SIZE / 2}
             r={RADIUS}
             fill="none"
-            stroke={`url(#${gradientId})`}
+            /*
+              Same key as the label below, so the ring and the words are one
+              judgement rendered twice rather than two that happen to agree.
+            */
+            stroke={VERDICT_TONE[verdict]}
             strokeWidth={STROKE}
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}

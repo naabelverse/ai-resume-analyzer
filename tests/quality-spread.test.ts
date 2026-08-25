@@ -721,20 +721,12 @@ describe("score spread across resume quality", () => {
    * from `statusFor` instead of restating them. A weak resume may honestly be
    * all fails; a middling one may not.
    *
-   * KNOWN INCONSISTENCY, left deliberately — do not spend an afternoon
-   * rediscovering it. `statusFor` bands at `STATUS_THRESHOLDS`, 75/50, and
-   * those are SECTION thresholds: they exist for the six section scores, and
-   * both `lib/scoring.ts` and the derivation in `lib/ai/analyze.ts` apply them
-   * there. `run.score` below is the OVERALL score, and the overall score has
-   * its own bands in `deriveVerdict` — 85/60. So a run scoring 62 is "good" on
-   * the gauge and "warn" here, and the two never meet.
-   *
-   * It is tolerable because this check only needs SOME monotone banding to ask
-   * "is the feedback harsher than the score it sits under", and 75/50 is the
-   * stricter of the two, so it errs toward flagging rather than missing. It is
-   * not correct, though, and putting it right is a decision about band anchors
-   * rather than about this file — which is why it is written down here instead
-   * of quietly patched.
+   * `run.score` is the OVERALL score and `statusFor` bands the six sections,
+   * which used to be a documented inconsistency here: the overall carried its
+   * own anchors in `deriveVerdict`, 85/60, so a run scoring 62 was "good" on
+   * the gauge and "warn" in this check and the two never met. `deriveVerdict`
+   * now reads `STATUS_THRESHOLDS` too, so there is one set of boundaries and
+   * this check bands a score exactly as the report does.
    */
   it("feedback is no harsher than the score it accompanies", () => {
     for (const { name } of FIXTURES) {
