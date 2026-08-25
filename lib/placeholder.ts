@@ -25,7 +25,15 @@ export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
     },
     {
       name: "summary",
-      score: 58,
+      // 45 so the demo exercises the "fail" band, which nothing rendered
+      // before: every section here scored above STATUS_THRESHOLDS.warn, so the
+      // red state had never appeared anywhere. The note below already reads as
+      // a poor section rather than a middling one.
+      //
+      // `status` below is now ignored by `<SectionBreakdown>`, which derives it
+      // from this score. Left in place because it is still part of a stored
+      // `SectionScore`; it is dead weight here, not a second opinion.
+      score: 45,
       status: "warn",
       note: "Opens with 'hardworking team player' — generic, says nothing specific.",
     },

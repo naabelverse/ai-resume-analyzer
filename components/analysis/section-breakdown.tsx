@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { statusFor } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
 import { SECTION_LABEL, type SectionScore, type Status } from "@/types";
 
@@ -27,16 +28,31 @@ interface SectionBreakdownProps {
 export function SectionBreakdown({ sections }: SectionBreakdownProps) {
   return (
     <ul className="flex flex-col gap-4">
-      {sections.map((section) => (
+      {sections.map((section) => {
+        /*
+          Derived here, not read from `section.status`.
+
+          `2b44aaf` stopped the MODEL supplying a status, but the field is still
+          part of a stored `SectionScore`, so anything that authors a result by
+          hand can still carry one that disagrees with its own score — the demo
+          fixture did, which is how a section scoring 45 kept an amber "Needs
+          work" beside it. Deriving at the point of display means score, label
+          and bar cannot disagree on ANY path: the AI one, the degraded one,
+          hand-written fixtures, and records stored before that commit.
+
+          `statusFor` rather than a second set of thresholds here, so this and
+          `lib/scoring.ts` cannot drift on what "warn" means.
+        */
+        const status = statusFor(section.score);
+
+        return (
         <li key={section.name}>
           <div className="flex items-center justify-between gap-3">
             <span className="text-body font-medium text-ink">
               {SECTION_LABEL[section.name] ?? section.name}
             </span>
             <div className="flex items-center gap-2">
-              <Badge tone={section.status}>
-                {STATUS_LABEL[section.status]}
-              </Badge>
+              <Badge tone={status}>{STATUS_LABEL[status]}</Badge>
               <span className="w-9 text-right text-note font-semibold text-ink tabular-nums">
                 {section.score}
               </span>
@@ -45,7 +61,7 @@ export function SectionBreakdown({ sections }: SectionBreakdownProps) {
 
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gauge-track">
             <div
-              className={cn("h-full rounded-full", BAR_TONE[section.status])}
+              className={cn("h-full rounded-full", BAR_TONE[status])}
               style={{ width: `${Math.min(100, Math.max(0, section.score))}%` }}
             />
           </div>
@@ -54,7 +70,8 @@ export function SectionBreakdown({ sections }: SectionBreakdownProps) {
             {section.note}
           </p>
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
