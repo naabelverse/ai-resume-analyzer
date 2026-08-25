@@ -6,6 +6,7 @@ import {
   quoteCoverage,
   restatementOverlap,
 } from "./helpers";
+import { stripLeadingMarker } from "@/lib/text";
 
 /**
  * The detector that guards `feedback[].text`, tested on the strings that
@@ -253,5 +254,56 @@ describe("endsAtQuote", () => {
   it("is false when there is nothing on either side to compare", () => {
     expect(endsAtQuote("", RESUME)).toBe(false);
     expect(endsAtQuote(REPORTED_DETAIL, "")).toBe(false);
+  });
+});
+
+/**
+ * The detectors against the marker strip, pinned rather than reasoned about.
+ *
+ * `stripLeadingMarker` removes a bullet from `detail` and nothing removes one
+ * from the resume side, which is the exact shape of a check that quietly stops
+ * matching. It does not bite here, and the reason is worth stating: both sides
+ * go through `contentWords`, which replaces every non-alphanumeric run with a
+ * space, so a leading "• " is gone before either side is compared.
+ *
+ * That is a property of `contentWords`, not a coincidence, so it is asserted
+ * rather than trusted. If anyone narrows that normalisation to preserve
+ * punctuation, these fail and say why — instead of the live suite reporting a
+ * clean run forever.
+ */
+describe("the marker strip against the quote detectors", () => {
+  const QUOTED =
+    "Responsible for maintaining the booking service used by partner airlines.";
+
+  it.each(["•", "-", "*", "·", "–"])(
+    "scores a detail identically with and without a leading %s",
+    (marker) => {
+      const withMarker = `${marker} ${QUOTED}`;
+      const stripped = stripLeadingMarker(withMarker);
+
+      expect(stripped).toBe(QUOTED);
+      expect(quoteCoverage(stripped, RESUME)).toEqual(
+        quoteCoverage(withMarker, RESUME),
+      );
+      expect(endsAtQuote(stripped, RESUME)).toBe(
+        endsAtQuote(withMarker, RESUME),
+      );
+    },
+  );
+
+  /** Both must still FIND the quote — equality alone would be satisfied by 0 = 0. */
+  it("still attributes the stripped quote to the resume", () => {
+    const stripped = stripLeadingMarker(`• ${QUOTED}`);
+    const { fromResume, ownWords } = quoteCoverage(stripped, RESUME);
+
+    expect(fromResume).toBeGreaterThan(0);
+    expect(ownWords).toBe(0);
+    expect(endsAtQuote(stripped, RESUME)).toBe(true);
+  });
+
+  /** The resume side carries "- " markers of its own; they normalise away too. */
+  it("matches across the resume's own bullet markers", () => {
+    expect(RESUME).toContain(`- ${QUOTED}`);
+    expect(quoteCoverage(QUOTED, RESUME).ownWords).toBe(0);
   });
 });

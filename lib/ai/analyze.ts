@@ -16,7 +16,7 @@ import {
 } from "@/lib/schema/analysis";
 import { buildRetryTurn, buildUserTurn, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/providers";
-import { repairTruncation } from "@/lib/text";
+import { repairTruncation, stripLeadingMarker } from "@/lib/text";
 import type { AnalysisProvider, ProviderCompletion } from "@/lib/ai/types";
 
 /**
@@ -93,6 +93,11 @@ interface Attempt {
  */
 function repair(value: unknown, limit: number): unknown {
   return typeof value === "string" ? repairTruncation(value, limit) : value;
+}
+
+/** `stripLeadingMarker`, guarded the same way and for the same reason. */
+function stripMarker(value: unknown): unknown {
+  return typeof value === "string" ? stripLeadingMarker(value) : value;
 }
 
 async function attempt(
@@ -184,7 +189,13 @@ async function attempt(
           return {
             ...entry,
             text: repair(entry.text, FIELD_CAPS.feedbackText),
-            detail: repair(entry.detail, FIELD_CAPS.feedbackDetail),
+            // Repair BEFORE stripping, not after. `repairTruncation` decides
+            // "was this cut?" by how close the length sits to the cap, so it
+            // has to see the string the decoder actually produced — strip
+            // first and a marker's two characters could carry a cut detail out
+            // of the suspicion window and lose its ellipsis. Stripping only
+            // ever shortens, so this order is safe in the other direction.
+            detail: stripMarker(repair(entry.detail, FIELD_CAPS.feedbackDetail)),
           };
         })
       : wire.feedback,

@@ -152,6 +152,24 @@ of them and does not need to read it again; they need to know WHICH line you
 mean. If the quote is so long that the advice will not fit after it, the quote
 is the part to cut.
 
+Do NOT carry the list marker across. Resume bullets begin with a glyph — •, -,
+*, ·, or similar — and that glyph belongs to the resume's LAYOUT, not to the
+sentence you are quoting. Start the quote at the first word. What you write is
+a paragraph, and a marker dropped into the middle of one reads as a list item
+that has lost its list:
+
+  BAD:  "• Responsible for maintaining the booking service." That bullet names
+        a duty, not a result.
+        <- the glyph is the resume's formatting, not the candidate's words.
+  BAD:  - Responsible for maintaining the booking service. That bullet names a
+        duty, not a result.
+        <- worse: no quotation marks either, so the dash is doing the quoting.
+  GOOD: "Responsible for maintaining the booking service." That bullet names a
+        duty, not a result. Say what changed and by how much.
+
+This covers every marker at the START of what you quote, including one you
+might add yourself to set the quote off. The quotation marks already do that.
+
 A "pass" item is the exception, and there stopping at the quote is correct. The
 quote IS the evidence: "Your experience section leads with a quantified result"
 followed by the bullet that proves it is complete as it stands. Never bolt

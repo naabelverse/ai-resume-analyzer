@@ -52,6 +52,57 @@ export function clampToWord(text: string, limit: number): string {
 }
 
 /**
+ * List markers that never legitimately open a sentence.
+ *
+ * These are glyphs whose only job is to mark a list item, so one at the start
+ * of a quote means the resume's LAYOUT came across with the words. Word
+ * bullets extract into the private use area (U+F0B7 and neighbours) rather
+ * than as U+2022, which is why those are here: for a DOCX that is the common
+ * case, not an exotic one.
+ */
+const BULLET_GLYPH = /^[•·‣⁃∙▪▫■□●○◦◘❯❖]/;
+
+/**
+ * Markers that are only markers when whitespace follows.
+ *
+ * A hyphen or an asterisk can legitimately open a quote — "-15% margin" is a
+ * figure, not a bullet — so these are stripped only in the shape that makes
+ * them a list marker: marker, whitespace, then the sentence.
+ */
+const AMBIGUOUS_MARKER = /^[-*–—−‐‑]\s+/;
+
+/** An opening quotation mark, which RULE 1 requires `detail` to begin with. */
+const OPEN_QUOTE = /^["'“‘«„]/;
+
+/**
+ * Removes a list marker the model carried over from the resume's formatting.
+ *
+ * The model is told not to do this (RULE 1); this is the net for when it does
+ * anyway. Deliberately narrow, for the reason `repairTruncation` is narrow: a
+ * wrong guess mangles good output.
+ *
+ *  - Only at the START. A dash mid-sentence is punctuation and is left alone.
+ *  - A marker just inside the opening quotation mark is still the start. RULE 1
+ *    tells `detail` to OPEN with the quote, so `"• Responsible for..."` is
+ *    where this actually shows up — stripping index 0 only would miss the
+ *    common case and leave the bug looking half fixed.
+ *  - Ambiguous markers need a following space, so a quote opening on a
+ *    negative number survives.
+ *  - One marker, not a run. Nothing observed emits two, and looping invites
+ *    eating a real character behind an unlucky first one.
+ */
+export function stripLeadingMarker(text: string): string {
+  const quote = OPEN_QUOTE.exec(text)?.[0] ?? "";
+  const rest = text.slice(quote.length);
+
+  const stripped = BULLET_GLYPH.test(rest)
+    ? rest.slice(1).trimStart()
+    : rest.replace(AMBIGUOUS_MARKER, "");
+
+  return stripped === rest ? text : quote + stripped;
+}
+
+/**
  * Repairs a string the *decoder* cut, rather than one this app is truncating.
  *
  * Constrained decoding enforces `maxLength` by stopping mid-word, with no

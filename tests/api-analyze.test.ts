@@ -331,6 +331,53 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     expect(LONG_DETAIL[kept.length]).toBe(" ");
   });
 
+  /**
+   * The prompt tells the model not to carry the resume's list marker into the
+   * quote; this is the net for when it does anyway. Asserted at the route
+   * rather than on the function alone, because the value that matters is the
+   * one that reaches the store and the UI.
+   */
+  it("strips a list marker the model carried into the detail", async () => {
+    const quoted = "Responsible for maintaining the booking service.";
+    // A glyph needs no space after it; an ambiguous marker does, which is what
+    // keeps a quote opening on "-15%" intact. Both shapes are exercised here.
+    const carried = ["• ", "- ", "* ", "·"];
+    const feedback = validResult().feedback.map((item, index) => ({
+      ...item,
+      detail: `${carried[index % carried.length]}${quoted} That bullet names a duty.`,
+    }));
+    harness.reply(wire({ feedback }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+
+    for (const item of payload.data.feedback) {
+      expect(item.detail.startsWith(quoted)).toBe(true);
+    }
+  });
+
+  /** A dash doing real work mid-sentence is punctuation, and must survive. */
+  it("leaves a dash inside the detail alone", async () => {
+    const kept = "That bullet — the booking one — names a duty, not a result.";
+    const feedback = validResult().feedback.map((item) => ({
+      ...item,
+      detail: kept,
+    }));
+    harness.reply(wire({ feedback }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok && payload.data.feedback[0]!.detail).toBe(kept);
+  });
+
   it("leaves a complete sentence at the cap untouched", async () => {
     const complete = "A finished sentence that happens to run right up to the cap.".padStart(
       FIELD_CAPS.feedbackDetail,
