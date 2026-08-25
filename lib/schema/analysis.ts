@@ -41,26 +41,57 @@ export const FIELD_CAPS = {
   summary: 500,
   sectionNote: 160,
   /**
-   * Ninety. Seventy was tried and reverted — see the README.
+   * A hundred and twenty. It was 90, and before that 70 — see the README.
    *
-   * The list was designed around headlines of 34-59 characters
-   * (`PLACEHOLDER_ANALYSIS` averages 45.7) and the model averages 79.4 against
-   * this cap, which is what made a headline wrap into something that read as a
-   * headline with its detail already showing.
+   * Both earlier numbers were attempts to make the cap shape the sentence, and
+   * neither worked. Dropping it to 70 did not shorten what the model writes:
+   * across five runs per fixture the mean fell to ~62, but 47 of 59 headlines
+   * came back cut mid-word by the decoder, against roughly one in five at 90.
+   * The same sentence, truncated earlier. What that established is that the
+   * model writes to a length it has already decided on, and the cap only
+   * decides where the cut lands.
    *
-   * Dropping the cap to 70 did not shorten what the model writes. Across five
-   * runs per fixture the mean fell to ~62 and 47 of 59 headlines came back cut
-   * mid-word by the decoder, against roughly one in five here: the same
-   * sentence, truncated earlier. The lever that actually holds the layout is
-   * `line-clamp-2` on the collapsed row, which is robust to any length.
+   * 120 takes that finding seriously in the other direction. Measured
+   * distribution against the 90 cap: mean 70.7 / 74.4, max 84. A ceiling of
+   * 120 clears the whole observed range, so the cuts stop because the tail
+   * fits — not because the model wrote anything different. The evidence they
+   * were happening at all is a live capture where `text` arrived at exactly 90,
+   * cut mid-token, ending on a stray character from another script.
    *
-   * Note what this means for the ceiling-is-the-lever reasoning that
-   * `ARRAY_CAPS.feedbackMin` records: it holds for a bound the model can
-   * satisfy by making a different choice, and not for one it can only satisfy
-   * by writing a shorter sentence than it has decided to write.
+   * The prediction this ships on, and it is falsifiable from ordinary use:
+   * **the mean stays at ~72-75 and headlines stop arriving cut.** If instead
+   * the mean climbs toward 110, the model does anchor upward on the ceiling
+   * and this belongs beside the 70 attempt as a lever that moved the wrong
+   * thing.
+   *
+   * That prediction depends on the field description NOT moving with the cap.
+   * It still says "Aim for 65 characters, never exceed 85": the description is
+   * what the model aims at, the cap is only the backstop. Raising both would
+   * be the 70 experiment run in reverse.
+   *
+   * Two things this does not change. The lever that holds the layout is still
+   * `line-clamp-2` on the collapsed row, which is robust to any length and has
+   * to be — the component cannot depend on the response behaving. And the
+   * ceiling-is-the-lever reasoning that `ARRAY_CAPS.feedbackMin` records still
+   * holds only for a bound the model can satisfy by making a different choice,
+   * never for one it can satisfy only by writing a shorter sentence than it
+   * has decided to write.
    */
-  feedbackText: 90,
-  feedbackDetail: 300,
+  feedbackText: 120,
+  /**
+   * Four hundred, up from 300, for the reason above and one of its own.
+   *
+   * `detail` carries a verbatim quote AND the advice, and the prompt spends
+   * real effort telling the model to keep the quote short so the advice fits.
+   * At 300 a detail that obeyed that rule could still run out of room: the
+   * measured distribution was mean 190.5 / 212.9 with a max of 298, i.e. the
+   * tail was sitting on the cap and getting cut there.
+   *
+   * Same discipline as the headline: the description still says "Aim for 230
+   * characters, never exceed 285", and it stays there. This raises the
+   * backstop, not the target.
+   */
+  feedbackDetail: 400,
   rewriteOriginal: 300,
   rewriteImproved: 300,
   rewriteWhy: 200,
@@ -78,9 +109,20 @@ export const FIELD_CAPS = {
  * therefore set to a number nobody could derive rather than to one the schema
  * implies.
  *
- * With these the largest permitted response is arithmetic: about 12k
- * characters, roughly 3.2k tokens. `AI_MAX_TOKENS` in `lib/env.ts` is chosen
- * against that number and cites it.
+ * With these the largest permitted response is arithmetic. Built and
+ * serialized rather than estimated — every bound maxed, compact JSON — it is
+ * **13.6k characters, roughly 3.6k tokens** at the ~3.75 chars/token this
+ * endpoint runs at. (This read "about 12k characters, roughly 3.2k tokens"
+ * until the figure was actually computed. The estimate was low.)
+ * `AI_MAX_TOKENS` in `lib/env.ts` is chosen against that number and cites it.
+ *
+ * The margin is thinner than it looks, and it is what bounds the character
+ * caps above. `feedbackText` and `feedbackDetail` sit inside an 8-item array,
+ * so **each +1 character costs 8** against the ceiling. At the caps that ship
+ * the worst case is 14.8k characters, ~3.95k tokens: it fits, with about 50
+ * tokens to spare. There is no room for a third raise without moving
+ * `AI_MAX_TOKENS`, and that is pinned from the other side — 4000 x the slow
+ * per-token rate is already 107.6s against a 120s `AI_TIMEOUT_MS`.
  *
  * Note what this does NOT fix: the whitespace runaway documented in the README
  * happens BETWEEN structural tokens, where the JSON grammar always permits more

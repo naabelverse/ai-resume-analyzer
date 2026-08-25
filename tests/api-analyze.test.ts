@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { sampleResumePdf, scannedPdf } from "./fixtures/build-fixtures";
 import { validDimensions, validResult } from "./helpers";
+import { FIELD_CAPS } from "@/lib/schema/analysis";
 import type { AnalyzeResponse } from "@/types";
+
+/**
+ * A detail long enough to overrun any plausible `FIELD_CAPS.feedbackDetail`,
+ * so slicing it at the cap reproduces a real mid-word decoder cut.
+ */
+const LONG_DETAIL =
+  "Responsible for maintaining the booking service describes a duty rather than a result, and the same pattern repeats across the section. Say what changed and by how much, using the figures you already have to hand: the request volume the service carried, the incidents it avoided, or the size of the team that depended on it, so a reviewer can weigh the work instead of guessing at the scope of the migration.";
 
 /**
  * Route tests, run against BOTH providers.
@@ -292,11 +300,12 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
    * marker. What reached the UI was a sentence that simply stopped.
    */
   it("marks feedback the decoder cut mid-word", async () => {
-    const cutAtCap =
-      "Responsible for maintaining the booking service describes a duty rather than a result, and the same pattern repeats across the section. Say what changed and by how much, using the figures you already have to hand for the migra".padEnd(
-        300,
-        "x",
-      );
+    // Prose that runs past the cap and is sliced at it, which is what a
+    // decoder cut actually produces. It was once padded to the cap with a run
+    // of "x", and that made the last space fall below `BOUNDARY_FLOOR` — a
+    // 174-character "word" is exactly the case the floor exists to refuse, so
+    // the fixture was testing the fallback rather than the repair.
+    const cutAtCap = LONG_DETAIL.slice(0, FIELD_CAPS.feedbackDetail);
 
     const feedback = validResult().feedback.map((item, index) =>
       index === 0 ? { ...item, detail: cutAtCap } : item,
@@ -313,14 +322,18 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
 
     const detail = payload.data.feedback[0]!.detail;
     expect(detail.endsWith("…")).toBe(true);
-    expect(detail.length).toBeLessThanOrEqual(300);
-    // The ellipsis replaces the cut fragment rather than being bolted onto it.
-    expect(detail).not.toMatch(/x…$/);
+    expect(detail.length).toBeLessThanOrEqual(FIELD_CAPS.feedbackDetail);
+    // The ellipsis replaces the cut fragment rather than being bolted onto it:
+    // what survives is a prefix of the original ending on a word boundary.
+    // Stated structurally so it holds at whatever `feedbackDetail` becomes.
+    const kept = detail.slice(0, -1);
+    expect(LONG_DETAIL.startsWith(kept)).toBe(true);
+    expect(LONG_DETAIL[kept.length]).toBe(" ");
   });
 
   it("leaves a complete sentence at the cap untouched", async () => {
     const complete = "A finished sentence that happens to run right up to the cap.".padStart(
-      300,
+      FIELD_CAPS.feedbackDetail,
       "y ",
     );
     const feedback = validResult().feedback.map((item, index) =>

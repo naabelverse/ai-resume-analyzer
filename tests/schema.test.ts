@@ -4,6 +4,7 @@ import {
   AnalysisResultSchema,
   AnalysisWireSchema,
   ARRAY_CAPS,
+  FIELD_CAPS,
   RUBRIC_DIMENSIONS,
   RUBRIC_DIMENSION_LABELS,
   RUBRIC_WEIGHTS,
@@ -81,10 +82,10 @@ describe("AnalysisResultSchema", () => {
     expect(AnalysisResultSchema.safeParse(validResult({ feedback: long })).success).toBe(false);
   });
 
-  it("rejects feedback text over 90 characters", () => {
+  it("rejects feedback text over the headline cap", () => {
     const feedback = validResult().feedback.map((entry) => ({
       ...entry,
-      text: "x".repeat(91),
+      text: "x".repeat(FIELD_CAPS.feedbackText + 1),
     }));
     expect(AnalysisResultSchema.safeParse(validResult({ feedback })).success).toBe(false);
   });
