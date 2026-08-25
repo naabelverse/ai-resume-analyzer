@@ -39,7 +39,15 @@ export function ScanningCard({
 
   return (
     <div>
-      <div className="flex items-center gap-3">
+      {/* Centred as one group: `justify-center` on the row, not `text-center`
+          on the copy. Centring the text alone would leave the icon pinned left
+          and split the row across two axes. The two lines stay left-aligned
+          against each other inside the group, which is what keeps the icon
+          reading as a label for them rather than as a third column.
+
+          The bar below is a sibling, not part of this row, so it still spans
+          the card edge to edge. */}
+      <div className="flex items-center justify-center gap-3">
         <span
           aria-hidden="true"
           className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-brand-600"
