@@ -591,6 +591,63 @@ reports are thinner than they were: three findings where it used to write five
 or six. That is the rule working as written, and it is the trade the 5.1%
 bought. If it falls further, the floor is what to revisit — not the rule.
 
+**The detail now stops at the quote instead, and that ships UNMEASURED.** The
+restatement is gone and a third shape took its place. On a warn item in
+production:
+
+> **headline** Your summary could open with your most impressive metric to grab
+> attention faster.
+> **detail** Backend engineer with six years building payment and settlement
+> systems for high-volume marketplaces in Southeast Asia.
+
+The detail quotes the summary and ends. The candidate is told something should
+change and never told what to change it to — RULE 1 asks for the quote, then the
+evidence, then the cost, then the fix, and the model does the first part and
+stops.
+
+Nothing on the report could see it. **`restatementOverlap` scores that pair
+0.14**, because the detail is not the headline again, it is the *resume* again —
+two failures that look identical in the UI and are opposite in the data. The
+restatement metric would have gone on reporting this run clean, which is the
+same way the headline leak survived a metric that read `detail` alone.
+
+The shape is status-dependent and the fix has to be. On a `pass` item the quote
+IS the evidence and stopping there is correct: "Your experience section leads
+with a quantified result" followed by the bullet that proves it needs nothing
+more. Forcing advice onto those would turn praise into padding. So RULE 1 now
+says the quote is where `detail` BEGINS and not where it ends **on warn and fail
+specifically**, with the production item above as the BAD example against a GOOD
+one that quotes the same line and carries on into the cost and the change — and
+routes the failure to the existing drop path, because an obligation with no
+cheap way out is what doubled the empty-`detail` count last time.
+
+`endsAtQuote` in `tests/helpers.ts` is the check, unit-tested offline against the
+reported string like the other two. It walks the detail and credits any run of
+four or more consecutive words the resume contains verbatim, then counts what is
+left: at most three words of the model's own, with a quote actually found, is a
+detail that stopped. Contiguity is what makes it work — advice that reuses
+"settlement" or "latency" scatters those words rather than lining them up, so it
+is not credited away. Greedy across the whole field rather than one longest run,
+so two quotes with nothing between them is still caught. Probed against
+middling.txt, five realistic quote-then-advice details score 11 to 28 own words
+against the bare quote's 0.
+
+It **under-counts** and the number should be read as a floor: a bare quote behind
+a four-word lead-in escapes, and raising the allowance to catch it would start
+firing on "Name the volume instead". Pass items are counted on their own line and
+excluded from the rate, so the exception stays visible rather than putting a
+floor under the total that no prompt change could move.
+
+To measure it, run `QUALITY_RUNS=5` either side of this commit and compare four
+lines. **"warn/fail detail stopping at the quote" TOTAL** is the one the change
+is aimed at. The other three are the revert conditions: restatement TOTAL must
+not climb back over ~5%, successful calls must not fall below 11/15, and the new
+**detail length** block must not show details arriving decoder-cut at the 300
+cap — a rule that works by writing details truncated before they reach the advice
+has not worked. If any of those moves the wrong way, this belongs beside the
+frequency penalty, the count rule and the headline cap as a fifth lever that read
+well and moved nothing.
+
 ---
 
 ---

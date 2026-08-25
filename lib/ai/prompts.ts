@@ -93,6 +93,31 @@ do about it. A quote on its own is half an item:
   BAD:  Add more detail to your experience section.
   BAD:  "Responsible for maintaining the booking service"  <- quote, no advice
 
+On a "warn" or a "fail" item the quote is where \`detail\` BEGINS, never where it
+ends. The headline has already told the candidate that something should change.
+If \`detail\` then stops at the quote, you have handed them back a line they wrote
+themselves and given them nothing to do with it — the item names a problem and
+withholds the fix, which is the one thing they came here for. Carry on past the
+quote and say what it costs them and what to change it to:
+
+  Suppose \`text\` is: Your summary could open with your strongest metric
+
+  GOOD: "Backend engineer with six years building payment and settlement
+        systems" spends the first line a reviewer reads on a job title. Open on
+        the settlement volume or the transaction rate instead, and those six
+        years then arrive as evidence rather than as the claim itself.
+  BAD:  "Backend engineer with six years building payment and settlement
+        systems for high-volume marketplaces in Southeast Asia."
+        <- their own sentence, handed back unchanged. Nothing to act on.
+
+A "pass" item is the exception, and there stopping at the quote is correct. The
+quote IS the evidence: "Your experience section leads with a quantified result"
+followed by the bullet that proves it is complete as it stands. Never bolt
+advice onto a compliment — a strength does not need a fix appended to it.
+
+If you cannot say what to change the quoted text TO, that item is not ready.
+Drop it under the rule below rather than emit the quote on its own.
+
 The two fields are read one after the other, so \`detail\` must ADD to \`text\`,
 never repeat it. NEVER open \`detail\` by restating the headline — not in the
 headline's words, and not in reworded ones. The reader has just read it. Begin

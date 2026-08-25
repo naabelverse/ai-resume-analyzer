@@ -38,7 +38,7 @@ import {
 } from "@/lib/scoring";
 import type { AnalyzeOutcome } from "@/lib/ai/analyze";
 import { FIELD_CAPS } from "@/lib/schema/analysis";
-import { leakedHeadlines, restatementOverlap } from "./helpers";
+import { endsAtQuote, leakedHeadlines, restatementOverlap } from "./helpers";
 
 const OUT = "quality-report.txt";
 
@@ -124,8 +124,14 @@ interface RunRecord {
    * because the run that would have answered whether a detail restates its own
    * headline recorded statuses only, and twenty-eight paid calls turned out to
    * hold no evidence on the question actually being asked.
+   *
+   * The per-item status is here for the same reason, one lesson later. It
+   * duplicates `statuses` above, which counts but cannot attribute — and
+   * "detail stops at the quote" is a fault on a warn or a fail and correct
+   * behaviour on a pass, so a metric that cannot tell which item it is looking
+   * at would average the two together and report a number meaning nothing.
    */
-  feedbackItems: { text: string; detail: string }[];
+  feedbackItems: { status: string; text: string; detail: string }[];
   matchPercent: number | null;
 }
 
@@ -291,6 +297,7 @@ async function measure(): Promise<void> {
           {},
         ),
         feedbackItems: result.feedback.map((item) => ({
+          status: item.status,
           text: item.text,
           detail: item.detail,
         })),
@@ -481,6 +488,106 @@ async function measure(): Promise<void> {
       `${restatingItems ? ` (${((restatingTotal / restatingItems) * 100).toFixed(1)}%)` : ""}` +
       "   <- compare this line between runs",
   );
+
+  /*
+    And the third way an item can waste its two fields: the detail quotes the
+    resume and stops there.
+
+    Restatement and this are opposite failures that look identical in the UI —
+    an expanded row that adds nothing. One repeats the HEADLINE, the other
+    repeats the RESUME, and the block above cannot see this one: the production
+    pair that prompted it scores 0.14 there, because a detail made of the
+    candidate's own sentence shares almost no vocabulary with the headline
+    describing it.
+
+    Warn and fail only. On a pass the quote IS the evidence and stopping after
+    it is correct, so those are counted separately below and are not a fault —
+    folding them in would have put a floor under this number that no prompt
+    change could move, and made the fix look like it had stalled.
+
+    Reported, not asserted, exactly as restatement is. The baseline run needed
+    to establish a "before" number would fail an assertion outright, and a
+    suite that cannot be run on the code it is measuring measures nothing.
+  */
+  say();
+  say("warn/fail detail stopping at the quote (no advice past it):");
+  let stoppingTotal = 0;
+  let stoppingItems = 0;
+  for (const { name } of FIXTURES) {
+    const fixture = results.get(name)!;
+    const items = fixture.runs
+      .flatMap((run) => run.feedbackItems)
+      .filter((item) => item.status === "warn" || item.status === "fail");
+    const stopping = items.filter((item) =>
+      endsAtQuote(item.detail, fixture.text),
+    );
+    stoppingTotal += stopping.length;
+    stoppingItems += items.length;
+    const examples = stopping
+      .slice(0, 3)
+      .map((item) => JSON.stringify(item.detail.slice(0, 55)));
+    say(
+      `  ${pad(name, 9, true)} ${stopping.length}/${items.length}` +
+        `${items.length ? ` (${((stopping.length / items.length) * 100).toFixed(1)}%)` : ""}` +
+        (examples.length > 0
+          ? ` -> ${examples.join(", ")}${stopping.length > 3 ? ` +${stopping.length - 3} more` : ""}`
+          : ""),
+    );
+  }
+  say(
+    `  ${pad("TOTAL", 9, true)} ${stoppingTotal}/${stoppingItems}` +
+      `${stoppingItems ? ` (${((stoppingTotal / stoppingItems) * 100).toFixed(1)}%)` : ""}` +
+      "   <- compare this line between runs",
+  );
+
+  const passItems = FIXTURES.flatMap(({ name }) => {
+    const fixture = results.get(name)!;
+    return fixture.runs
+      .flatMap((run) => run.feedbackItems)
+      .filter((item) => item.status === "pass")
+      .map((item) => endsAtQuote(item.detail, fixture.text));
+  });
+  say(
+    `  ${pad("(pass)", 9, true)} ${passItems.filter(Boolean).length}/${passItems.length}` +
+      " — not a fault, shown so the exception stays visible",
+  );
+
+  /*
+    Detail length, against the cap and against the advice the rule now asks for.
+
+    Nothing measured this before, and it is the specific way the quote-then-
+    advice rule could backfire: a detail that must carry a quote AND the cost
+    AND the change is a longer detail, and `FIELD_CAPS.feedbackDetail` is a hard
+    ceiling the decoder enforces by cutting mid-word. If the rule works by
+    writing details that get truncated before they reach the advice, this block
+    is where that shows up and the change should be reverted.
+
+    Same shape as the headline block above, and the decoder-cut signal is valid
+    here for the same reason: `detail` goes through `repairTruncation` in
+    `lib/ai/analyze.ts`, so a field the decoder cut arrives marked with "…".
+  */
+  say();
+  say(`detail length (cap ${FIELD_CAPS.feedbackDetail}, schema asks for ~230):`);
+  for (const { name } of FIXTURES) {
+    const details = results
+      .get(name)!
+      .runs.flatMap((run) => run.feedbackItems.map((item) => item.detail));
+    if (details.length === 0) {
+      say(`  ${pad(name, 9, true)} -`);
+      continue;
+    }
+    const lengths = details.map((detail) => detail.length);
+    const atCap = lengths.filter(
+      (length) => length >= FIELD_CAPS.feedbackDetail - 5,
+    ).length;
+    const cut = details.filter((detail) => detail.endsWith("…")).length;
+    say(
+      `  ${pad(name, 9, true)} mean ${mean(lengths).toFixed(1)}` +
+        `, max ${Math.max(...lengths)}` +
+        ` | at/near cap ${atCap}/${details.length}` +
+        ` | decoder-cut ${cut}/${details.length}`,
+    );
+  }
   /* ------------------------------------------------------- the questions -- */
 
   const complete = FIXTURES.every(({ name }) => scoresFor(name).length > 0);

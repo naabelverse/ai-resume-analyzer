@@ -107,6 +107,143 @@ export function restatementOverlap(text: string, detail: string): number {
   for (const word of a) if (b.has(word)) shared += 1;
   return shared / Math.min(a.size, b.size);
 }
+/* ------------------------------------------------- detail ends at quote -- */
+
+/**
+ * A `detail` that quotes the resume and then stops.
+ *
+ * RULE 1 asks `detail` to begin at the quote and go on to the evidence, what it
+ * costs the candidate, and what to change. On a warn or a fail the model does
+ * the first half and stops, so the headline says something should change and
+ * the field underneath it does not say to what. From production, on a warn:
+ *
+ *   text:   "Your summary could open with your most impressive metric to grab
+ *            attention faster."
+ *   detail: "Backend engineer with six years building payment and settlement
+ *            systems for high-volume marketplaces in Southeast Asia."
+ *
+ * `restatementOverlap` cannot see this. That pair scores 0.14 — the detail and
+ * the headline share one content word, because the detail is not the headline
+ * again, it is the RESUME again. The two failures look alike in the UI and are
+ * opposite in the data, which is why this needs its own detector rather than a
+ * lower threshold on the old one.
+ *
+ * On a `pass` item the same shape is correct: there the quote IS the evidence,
+ * and a strength does not need a fix appended to it. Callers must filter to
+ * warn and fail BEFORE calling `endsAtQuote` — the predicate deliberately does
+ * not know the status, so that the one place the exception lives is the caller
+ * where it can be seen.
+ */
+
+/** Lowercase, alphanumeric, single-spaced. Applied identically to both sides. */
+function contentWords(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter((word) => word.length > 0);
+}
+
+/**
+ * How many consecutive words must match before a run counts as a quotation.
+ *
+ * Below four, ordinary English collides: "the team", "and the", "for the" all
+ * appear in any resume, and crediting them as quoted would eat the model's own
+ * advice and report a clean detail as a bare quote. A detail shorter than this
+ * is exempted (see `minRun` below) so that a two-word field lifted verbatim
+ * still scores zero rather than escaping through the floor.
+ */
+const MIN_QUOTE_RUN = 4;
+
+/**
+ * How many words of its own a `detail` may have and still count as stopping at
+ * the quote.
+ *
+ * Not zero. The production case is the whole field lifted verbatim, which
+ * scores zero — but `Your summary reads "..."` is the same failure with a
+ * three-word lead-in, and an equality test would wave it through. Three is also
+ * the most that normalisation slop can account for on its own: a curly
+ * apostrophe, the decoder's `…`, a word the model re-cased or pluralised.
+ *
+ * It is well short of a clause. "Say what changed and by how much" is seven
+ * words; "Lead with the settlement volume instead" is six. Nothing that carries
+ * an instruction fits in three.
+ *
+ * What this therefore UNDER-counts, stated so nobody reads a low number as a
+ * clean one: a bare quote behind a four-word lead-in — "Your summary currently
+ * reads ..." — escapes. Raising the allowance to catch it would start admitting
+ * real advice ("Name the volume instead" is four words), and a detector that
+ * fires on good output stops being run. Measured against middling.txt the
+ * three-word lead-in lands at exactly three, so this boundary is tight rather
+ * than comfortable, and the number it produces is a floor on the true rate.
+ */
+const MAX_OWN_WORDS = 3;
+
+/**
+ * Splits a `detail` into what the resume accounts for and what the model wrote.
+ *
+ * Walks the detail once, and at each position takes the LONGEST run of
+ * consecutive words the resume contains verbatim. Runs are contiguous by
+ * construction, which is the property that matters: advice reusing a word from
+ * the resume — "settlement", "latency" — is scattered rather than consecutive,
+ * so it stays counted as the model's own and does not deflate the number.
+ *
+ * Greedy across the whole field rather than one quote at a time, so a detail
+ * that quotes twice and says nothing between is still recognised. A single
+ * longest-run subtraction would have credited one quote, counted the other as
+ * original prose, and reported the item clean.
+ */
+export function quoteCoverage(
+  detail: string,
+  resumeText: string,
+): { fromResume: number; ownWords: number } {
+  const words = contentWords(detail);
+  if (words.length === 0) return { fromResume: 0, ownWords: 0 };
+
+  // Padded with spaces at both ends so `includes` matches whole words only:
+  // without them "six years" would match inside "sixty yearsend".
+  const haystack = ` ${contentWords(resumeText).join(" ")} `;
+  const minRun = Math.min(MIN_QUOTE_RUN, words.length);
+
+  let fromResume = 0;
+  let ownWords = 0;
+  let index = 0;
+
+  while (index < words.length) {
+    let end = index;
+    while (
+      end < words.length &&
+      haystack.includes(` ${words.slice(index, end + 1).join(" ")} `)
+    ) {
+      end += 1;
+    }
+
+    if (end - index >= minRun) {
+      fromResume += end - index;
+      index = end;
+    } else {
+      ownWords += 1;
+      index += 1;
+    }
+  }
+
+  return { fromResume, ownWords };
+}
+
+/**
+ * Whether this `detail` quotes the resume and then stops.
+ *
+ * Requires that a quote was actually FOUND, not merely that little original
+ * prose is present. Without that clause "Add more detail." scores three own
+ * words and would be counted here — but that is generic advice with no quote at
+ * all, a different failure that RULE 1's last paragraph governs and that this
+ * number would silently absorb.
+ */
+export function endsAtQuote(detail: string, resumeText: string): boolean {
+  const { fromResume, ownWords } = quoteCoverage(detail, resumeText);
+  return fromResume > 0 && ownWords <= MAX_OWN_WORDS;
+}
+/* -------------------------------------------------------------- fixtures -- */
 
 /**
  * The six rubric dimensions the model actually returns. Weighted by
