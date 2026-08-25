@@ -140,9 +140,15 @@ export const FIELD_CAPS = {
  * `feedbackDetail` sit inside an 8-item array, so **each +1 character costs
  * 8**; `sectionNote` sits in six sections, so **each +1 costs 6**.
  *
- * At the caps that ship the worst case is **14,829 characters, ~3,954 tokens:
- * it fits, with 46 tokens to spare.** The ceiling for `sectionNote` alone is
+ * At the caps that ship the worst case is **14,733 characters, ~3,929 tokens:
+ * it fits, with 71 tokens to spare.** The ceiling for `sectionNote` alone is
  * about 215 before the total goes over.
+ *
+ * 71 rather than 46 because deriving the section `status` took it out of the
+ * response: six sections x `"status":"pass",` is 96 characters, 26 tokens, and
+ * the model no longer spends them. Worth noting as a shape — the cheapest way
+ * to buy room here is to stop asking for a field that can be computed, not to
+ * shave a character cap.
  *
  * That figure was wrong here once and the correction is worth keeping. This
  * read "14.8k characters, ~3.95k tokens... about 50 tokens to spare" for the
@@ -155,9 +161,10 @@ export const FIELD_CAPS = {
  * anything else.** Every other capped field has been measured against captured
  * output; `redFlag` has **zero observations** — the runs on disk produced no
  * red flags at all — while carrying a 200 cap in a 6-item array, which is 6
- * characters per +1 of the 46 tokens that remain. Nothing says it is safe. It
+ * characters per +1 of the 71 tokens that remain. Nothing says it is safe. It
  * is simply unseen, and it is the most likely field to bite next without
- * warning.
+ * warning. The 26 tokens the derivation returned make that less tight than it
+ * was, which is the point of recording them rather than quietly spending them.
  *
  * There is no room for a further raise of consequence without moving
  * `AI_MAX_TOKENS`, and that is pinned from the other side — 4000 x the slow
@@ -342,11 +349,23 @@ export function deriveOverallScore(scores: DimensionScores): number {
    its label to disagree. `deriveVerdict` computes it after parsing.
 ------------------------------------------------------------------------- */
 
+/**
+ * `status` is absent here for the same reason `verdict` is, one comment up.
+ *
+ * It used to be asked for, with a description telling the model to follow the
+ * score it had just given. That description was advice, and nothing enforced
+ * it: a section came back scoring 85 labelled "warn" while another scored 80
+ * and passed — a lower number with a better label, in a list read at a glance.
+ * Two sources for one fact eventually disagree, and a rule the model is merely
+ * asked to obey is not a second source under control, it is the same second
+ * source with a politer description.
+ *
+ * `statusFor` derives it after parsing, from `STATUS_THRESHOLDS` — the same
+ * function and the same boundaries the degraded path in `lib/scoring.ts` has
+ * always used, so the two paths now agree rather than resembling each other.
+ */
 const SectionBodySchema = z.object({
   score: z.number().int().min(0).max(100).describe("Integer 0-100."),
-  status: StatusSchema.describe(
-    `${STATUS_MEANING} For a section this follows the score you just gave it: pass at ${STATUS_THRESHOLDS.pass} and above, warn from ${STATUS_THRESHOLDS.warn} to ${STATUS_THRESHOLDS.pass - 1}, fail below ${STATUS_THRESHOLDS.warn}.`,
-  ),
   note: z
     .string()
     .max(FIELD_CAPS.sectionNote)
@@ -488,6 +507,7 @@ export type AnalysisWire = z.infer<typeof AnalysisWireSchema>;
 export const SectionScoreSchema = z.object({
   name: SectionNameSchema,
   score: z.number().int().min(0).max(100),
+  /** Derived from `score` by `statusFor`, never model-supplied. See the wire schema. */
   status: StatusSchema,
   note: z.string().min(1).max(FIELD_CAPS.sectionNote),
 });

@@ -17,6 +17,7 @@ import {
 import { z } from "zod";
 
 import { SCORING_RUBRIC, SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { statusFor } from "@/lib/scoring";
 import { validDimensions, validResult } from "./helpers";
 
 /** The wire shape: no verdict, no overallScore, sections keyed by name. */
@@ -282,22 +283,35 @@ describe("the status definition reaches the decoder", () => {
     expect(description).toMatch(/fail =/);
   });
 
-  it("defines them on the sections too, tied to the section score", () => {
+  /**
+   * The inverse of the assertion this replaces.
+   *
+   * Sections used to be ASKED for a status, with a description telling the
+   * model to follow the score it had just given — advice that nothing
+   * enforced, and a section duly came back scoring 85 marked "warn" above one
+   * scoring 80 marked "pass". It is derived from the score now, so the field
+   * must not reach the decoder at all: a field the model fills and the code
+   * discards is worse than either, because it looks load-bearing.
+   */
+  it("does not ask the model for a section status at all", () => {
     const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
       properties: {
         sections: {
-          properties: Record<string, { properties: { status: { description?: string } } }>;
+          properties: Record<
+            string,
+            { properties: Record<string, unknown>; required?: string[] }
+          >;
         };
       };
     };
 
     for (const name of SECTION_NAMES) {
-      const description =
-        json.properties.sections.properties[name]!.properties.status.description;
-      expect(description, `${name} status has no definition`).toMatch(/warn =/);
-      expect(description, `${name} status is not tied to its score`).toMatch(
-        /50 to 74/,
-      );
+      const section = json.properties.sections.properties[name]!;
+      expect(
+        Object.keys(section.properties),
+        `${name} still offers the model a status field`,
+      ).not.toContain("status");
+      expect(section.required ?? []).not.toContain("status");
     }
   });
 
@@ -307,25 +321,23 @@ describe("the status definition reaches the decoder", () => {
   });
 
   /**
-   * The boundaries the section description states are the ones `statusFor` in
-   * `lib/scoring.ts` applies to the degraded path. They are not kept in step by
-   * hand: both read `STATUS_THRESHOLDS`, and this asserts the description is
-   * actually built from it rather than from a paraphrase that happens to match
-   * today.
+   * `STATUS_THRESHOLDS` used to be pinned by being interpolated into the
+   * section description sent to the model. Nothing sends it now — the model is
+   * not asked for a section status — so the constant would sit unasserted, and
+   * an unasserted constant is one somebody edits believing it is inert.
+   *
+   * It is load-bearing in exactly one place instead: `statusFor`, which both
+   * the degraded path in `lib/scoring.ts` and the AI path's derivation in
+   * `lib/ai/analyze.ts` route section scores through. Pinned at the boundaries
+   * rather than at a paraphrase of them.
    */
-  it("states the same boundaries the degraded path applies", () => {
-    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
-      properties: {
-        sections: {
-          properties: Record<string, { properties: { status: { description?: string } } }>;
-        };
-      };
-    };
-    const description =
-      json.properties.sections.properties.contact!.properties.status.description ?? "";
-
-    expect(description).toContain(`pass at ${STATUS_THRESHOLDS.pass} and above`);
-    expect(description).toContain(`fail below ${STATUS_THRESHOLDS.warn}`);
+  it("bands statusFor at the thresholds, on both sides of each boundary", () => {
+    expect(statusFor(STATUS_THRESHOLDS.pass)).toBe("pass");
+    expect(statusFor(STATUS_THRESHOLDS.pass - 1)).toBe("warn");
+    expect(statusFor(STATUS_THRESHOLDS.warn)).toBe("warn");
+    expect(statusFor(STATUS_THRESHOLDS.warn - 1)).toBe("fail");
+    expect(statusFor(100)).toBe("pass");
+    expect(statusFor(0)).toBe("fail");
   });
 });
 

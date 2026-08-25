@@ -16,6 +16,7 @@ import {
 } from "@/lib/schema/analysis";
 import { buildRetryTurn, buildUserTurn, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/providers";
+import { statusFor } from "@/lib/scoring";
 import { repairTruncation, stripLeadingMarker } from "@/lib/text";
 import type { AnalysisProvider, ProviderCompletion } from "@/lib/ai/types";
 
@@ -100,6 +101,19 @@ function stripMarker(value: unknown): unknown {
   return typeof value === "string" ? stripLeadingMarker(value) : value;
 }
 
+/**
+ * `statusFor`, guarded the same way — and deliberately yielding `undefined`
+ * rather than a default when the score is not a number.
+ *
+ * A section whose score is malformed has no status, and the validator should
+ * say so. Substituting "fail" here would invent a grade for a response that
+ * never gave one, which is the failure this derivation exists to prevent,
+ * arriving from the other direction.
+ */
+function deriveStatus(score: unknown): unknown {
+  return typeof score === "number" ? statusFor(score) : undefined;
+}
+
 async function attempt(
   provider: AnalysisProvider,
   system: string,
@@ -152,14 +166,20 @@ async function attempt(
     redFlags?: unknown;
   };
   const sections = wire.sections
-    ? SECTION_NAMES.map((name) => ({
-        name,
-        ...wire.sections![name],
-        note: repair(
-          (wire.sections![name] as { note?: unknown }).note,
-          FIELD_CAPS.sectionNote,
-        ),
-      }))
+    ? SECTION_NAMES.map((name) => {
+        const body = wire.sections![name] as { score?: unknown; note?: unknown };
+        return {
+          name,
+          ...body,
+          // Derived, never taken from the model — the rule `verdict` follows,
+          // for the reason `verdict` follows it. The spread comes first so a
+          // `status` an older prompt or a stray response still supplies is
+          // OVERWRITTEN rather than merged: a field the model fills and the
+          // code discards is the next person's confusion.
+          status: deriveStatus(body.score),
+          note: repair(body.note, FIELD_CAPS.sectionNote),
+        };
+      })
     : undefined;
 
   // The score is computed here, never read from the model — the same rule

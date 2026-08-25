@@ -332,6 +332,59 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
   });
 
   /**
+   * The reported bug: a section scoring 85 labelled "warn" sitting above one
+   * scoring 80 labelled "pass". `status` is no longer asked for, so this sends
+   * it anyway — an older prompt, a cached response, a model that volunteers it
+   * — and pins that the derivation wins rather than the two being merged.
+   */
+  it("derives the section status from the score, ignoring any the model sends", async () => {
+    const sections = Object.fromEntries(
+      validResult().sections.map(({ name, ...body }) => [
+        name,
+        // A status that contradicts its own score, on every section.
+        { ...body, score: 85, status: "fail" },
+      ]),
+    );
+    harness.reply(wire({ sections }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+
+    // 85 is above STATUS_THRESHOLDS.pass, so every one of the six passes.
+    for (const section of payload.data.sections) {
+      expect(section.score).toBe(85);
+      expect(section.status).toBe("pass");
+    }
+  });
+
+  /** The score is the single source now, so the boundaries have to hold on it. */
+  it("bands each section at the statusFor boundaries", async () => {
+    const scores = [100, 75, 74, 50, 49, 0];
+    const expected = ["pass", "pass", "warn", "warn", "fail", "fail"];
+    const sections = Object.fromEntries(
+      validResult().sections.map(({ name, ...body }, index) => [
+        name,
+        { ...body, score: scores[index], status: "pass" },
+      ]),
+    );
+    harness.reply(wire({ sections }));
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+    expect(payload.data.sections.map((s) => s.status)).toEqual(expected);
+  });
+
+  /**
    * The prompt tells the model not to carry the resume's list marker into the
    * quote; this is the net for when it does anyway. Asserted at the route
    * rather than on the function alone, because the value that matters is the
