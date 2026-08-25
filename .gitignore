@@ -57,4 +57,8 @@ quality-report.txt
 ruvector.db
 
 # Captured stdout from a live suite run - a measurement artefact, not source.
+# before/after pairs land here when a prompt change is being measured; the
+# numbers that matter get written into the README, the transcripts do not.
 run.log
+before.log
+after.log

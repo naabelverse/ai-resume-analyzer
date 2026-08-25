@@ -648,6 +648,53 @@ has not worked. If any of those moves the wrong way, this belongs beside the
 frequency penalty, the count rule and the headline cap as a fifth lever that read
 well and moved nothing.
 
+**That measurement procedure was wrong, and the run that followed it is
+inconclusive.** Thirty paid calls, five per fixture at `b7ed2d8~1` and five at
+`b7ed2d8`, and they cannot answer the question. Recorded here because the reason
+is reusable.
+
+**The primary metric has no before number and never could have.** `endsAtQuote`
+was added *in* `b7ed2d8`, so the parent commit's report has no "stopping at the
+quote" block at all — the paragraph above says to run "either side of this
+commit", which measures the detector's existence rather than the prompt's
+effect. To compare a prompt change against a detector introduced alongside it,
+hold `tests/` at the newer commit and swap only `lib/ai/prompts.ts`.
+
+**The endpoint then failed mid-run.** In the after log every call from round 3
+onward returned unreachable — eight consecutive transport failures — and
+weak.txt produced no usable run at all, leaving strong and middling only. The
+before log is not a usable reference either: it scored **5/15** on the same
+commit this file records at 11/15, so neither run is comparable to the other or
+to anything earlier.
+
+| | before (`b7ed2d8~1`) | after (`b7ed2d8`) |
+|---|---|---|
+| detail stopping at the quote | *block absent* | 2/10 (20.0%) |
+| restatement TOTAL | 0/19 (0.0%) | 2/15 (13.3%) |
+| successful calls | 5/15 | 4/15 |
+| — unreachable (transport) | 3 | 8 |
+| — format / validation | 7 | 3 |
+| validation retries | 10 | 5 |
+| empty `detail` | 13 | **0** |
+| `max_tokens` | 6 | 5 |
+| detail decoder-cut at 300 | *block absent* | 1/15 (max 298) |
+| fixtures with data | 1 / 1 / 3 | 2 / 2 / **0** |
+
+All three revert conditions fired literally and all three are confounded.
+Restatement compares different populations — 11 of the 19 before-items are
+weak.txt and the after run has no weak.txt at all; on middling, the only fixture
+with data on both sides, it is 0/5 against 2/9. The failure rate is eight
+transport errors that no prompt text can cause, and the failures a prompt CAN
+reach moved the other way: format and validation failures 7 to 3, retries 10 to
+5, and **empty `detail` 13 to 0** — the cost the drop path was still carrying in
+the 5.1% round, gone. One detail arrived cut, at 298 against a cap of 300.
+
+**Not reverted.** Reverting here would repeat `26c7f3b` exactly: a prompt
+hypothesis judged on noise. Nothing in these logs shows harm, the one clean
+signal points the right way, and the metric the change was written for was never
+measured. The 20.0% in the table is a first observation of the new detector on
+live output, not an after number — there is nothing to compare it to yet.
+
 ---
 
 ---
