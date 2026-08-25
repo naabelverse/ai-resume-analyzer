@@ -40,6 +40,17 @@ export function KeywordMatchPanel({
 
   const total = data.matched.length + data.missing.length;
 
+  /**
+   * Every term covered — and there were terms to cover.
+   *
+   * Derived from the arrays rather than from `matchPercent === 100`, because
+   * the percentage is the model's own rounding of the same two lengths and a
+   * 99.6 would round to 100 while `missing` still held an entry. The copy
+   * below says "every term", so it has to be true of the list, not of a
+   * rounded number describing it.
+   */
+  const everyTermMatched = total > 0 && data.missing.length === 0;
+
   return (
     <div>
       {/* Missing second, deliberately: it is the actionable half, so it reads
@@ -47,8 +58,31 @@ export function KeywordMatchPanel({
           were one undivided list before, which grouped by tone only because
           the data happened to arrive that way — nothing enforced it. */}
       <div className="flex flex-col gap-4">
-        <Group label="In your resume" tone="matched" items={data.matched} />
-        <Group label="Not found" tone="missing" items={data.missing} />
+        {/* The empty message for one group only makes sense when the OTHER has
+            something in it. A job description that yielded no keywords at all
+            leaves both empty, and then "none of the terms appear" and "covers
+            every term" would both render, contradicting each other about a set
+            with nothing in it. Both fall back to rendering nothing. */}
+        <Group
+          label="In your resume"
+          tone="matched"
+          items={data.matched}
+          empty={
+            data.missing.length > 0
+              ? "None of the role's terms appear in your resume yet."
+              : undefined
+          }
+        />
+        <Group
+          label="Not found"
+          tone="missing"
+          items={data.missing}
+          empty={
+            data.matched.length > 0
+              ? "Your resume covers every term in this job description."
+              : undefined
+          }
+        />
       </div>
 
       <div className="mt-5">
@@ -78,10 +112,28 @@ export function KeywordMatchPanel({
             construction instead, and the second names the cost of padding —
             the interview — rather than just forbidding it. */}
         <p className="mt-2 max-w-[66ch] text-caption text-ink-soft">
-          Few job descriptions list only things one person has done, so a full
-          match is rare and not the goal. Add the missing terms that genuinely
-          describe your experience — not ones you couldn&apos;t discuss in an
-          interview.
+          {everyTermMatched ? (
+            // Reworded rather than suppressed at 100%. The first clause becomes
+            // false the moment the rare thing has happened, and the second
+            // asks for terms that are not missing. What survives is the half
+            // that matters MOST here: a full match is the likeliest result of
+            // padding, so this is exactly where the interview test belongs.
+            <>
+              Make sure every term here is one you could discuss in an
+              interview.
+            </>
+          ) : (
+            // Kept in full at 0%. It reads as calibration rather than excuse —
+            // "not the goal" is still true of a zero — and the anti-stuffing
+            // half is at its most load-bearing when someone has matched nothing
+            // and is most tempted to paste the job description wholesale.
+            <>
+              Few job descriptions list only things one person has done, so a
+              full match is rare and not the goal. Add the missing terms that
+              genuinely describe your experience — not ones you couldn&apos;t
+              discuss in an interview.
+            </>
+          )}
         </p>
       </div>
     </div>
@@ -99,12 +151,20 @@ function Group({
   label,
   tone,
   items,
+  empty,
 }: {
   label: string;
   tone: "matched" | "missing";
   items: string[];
+  /** Shown INSTEAD of the label and pills. Omit to render nothing at all. */
+  empty?: string;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    // The label goes with the pills. A heading over one sentence of prose
+    // reads as a group that failed to load rather than as a group that is
+    // legitimately empty, which is what this sentence exists to say.
+    return empty ? <p className="text-note text-ink-soft">{empty}</p> : null;
+  }
 
   return (
     <div>

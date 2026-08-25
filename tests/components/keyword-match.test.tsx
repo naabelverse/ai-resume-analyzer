@@ -116,6 +116,88 @@ describe("KeywordMatchPanel — the two groups", () => {
     }
   });
 
+  it("keeps the count row and a benchmark line in all three states", () => {
+    for (const data of [
+      { matched: [], missing: ["Go", "Rust"], matchPercent: 0 },
+      { matched: ["Go"], missing: ["Rust"], matchPercent: 50 },
+      { matched: ["Go", "Rust"], missing: [], matchPercent: 100 },
+    ]) {
+      const { unmount } = render(<KeywordMatchPanel data={data} />);
+      const total = data.matched.length + data.missing.length;
+
+      expect(
+        screen.getByText(`Matched ${data.matched.length}/${total} keywords`),
+      ).toBeInTheDocument();
+      expect(screen.getByText(`${data.matchPercent}%`)).toBeInTheDocument();
+      expect(screen.getByText(/discuss in an interview/i)).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("replaces the matched group with a line when nothing matched", () => {
+    render(
+      <KeywordMatchPanel
+        data={{ matched: [], missing: ["Go", "Rust"], matchPercent: 0 }}
+      />,
+    );
+
+    expect(
+      screen.getByText("None of the role's terms appear in your resume yet."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("In your resume")).not.toBeInTheDocument();
+    // The actionable group still renders as normal below it.
+    expect(screen.getByRole("list", { name: "Not found" })).toHaveTextContent("Go");
+  });
+
+  it("replaces the missing group with a line when everything matched", () => {
+    render(
+      <KeywordMatchPanel
+        data={{ matched: ["Go", "Rust"], missing: [], matchPercent: 100 }}
+      />,
+    );
+
+    expect(
+      screen.getByText("Your resume covers every term in this job description."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Not found")).not.toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "In your resume" })).toHaveTextContent("Go");
+  });
+
+  /** At 100% the "full match is rare" framing is false the moment it renders. */
+  it("drops the rarity framing at 100% but keeps the interview test", () => {
+    render(
+      <KeywordMatchPanel
+        data={{ matched: ["Go"], missing: [], matchPercent: 100 }}
+      />,
+    );
+
+    expect(screen.queryByText(/full match is rare/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/every term here is one you could discuss in an interview/i),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the rarity framing at 0%", () => {
+    render(
+      <KeywordMatchPanel data={{ matched: [], missing: ["Go"], matchPercent: 0 }} />,
+    );
+
+    expect(screen.getByText(/full match is rare and not the goal/i)).toBeInTheDocument();
+  });
+
+  /**
+   * A job description that yielded no keywords leaves both groups empty. The
+   * two replacement lines contradict each other about a set with nothing in
+   * it, so neither should appear.
+   */
+  it("says neither thing when there are no keywords at all", () => {
+    render(<KeywordMatchPanel data={{ matched: [], missing: [], matchPercent: 0 }} />);
+
+    expect(screen.queryByText(/None of the role's terms/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/covers every term/)).not.toBeInTheDocument();
+    expect(screen.getByText("Matched 0/0 keywords")).toBeInTheDocument();
+  });
+
   it("gives the percentage context without claiming a measured figure", () => {
     render(<KeywordMatchPanel data={both} />);
 
