@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, Upload } from "lucide-react";
 
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
@@ -149,20 +149,71 @@ export function AnalysisView({ id }: { id: string }) {
       <div className="mt-5 grid grid-cols-1 items-start gap-5 min-[900px]:grid-cols-2">
         <div className="flex flex-col gap-5">
           <Reveal index={1}>
-            <Card>
-              <CardTitle>Your resume</CardTitle>
-              <p className="mt-2 truncate text-body font-medium text-ink" title={fileName}>
-                {fileName}
-              </p>
-              <p className="mt-1 text-note text-ink-soft">
-                {meta.wordCount.toLocaleString()} words
-                {meta.pageCount ? `, ${meta.pageCount} page${meta.pageCount === 1 ? "" : "s"}` : ""}
-                {meta.truncated ? " — the middle was omitted for length" : ""}
-              </p>
-              <div className="mt-5">
-                <Button asChild variant="secondary" className="w-full">
+            {/*
+              A CONTAINER query, not a breakpoint, and the numbers are why.
+
+              This card sits in a grid that goes two-column at 900px, so its
+              width does not track the viewport — it falls off a cliff there.
+              Measured: at a 899px viewport the card has 811px of content, and
+              at 900px it has 370px. A `md:` or `lg:` variant would put the
+              side-by-side row at its widest just before the breakpoint and rip
+              it away just after, which is the opposite of what those variants
+              are for. `@container` asks the only question that matters here —
+              is THIS CARD wide enough — and gets the same answer at every
+              viewport that produces the same card.
+
+              420px is the card's CONTENT width, which is what a container query
+              measures — not its border-box. Worth stating because the two are
+              50px apart here (24px padding a side, 1px border) and picking the
+              threshold off the outer width silently costs you a breakpoint:
+              at 460 the 1024px viewport stacked, because its 482px-wide card
+              is only 432px inside.
+
+              420 is where the button's 221px still leaves the filename ~190px,
+              about twenty-four characters, with the full name on hover via
+              `title`. Below it the button goes back to its own row at full
+              width. Content widths that decides: 520 at 1440 and 432 at 1024
+              go side by side; 370 at 900 and 300 at 390 stack.
+            */}
+            <Card className="@container">
+              <div className="flex flex-col gap-5 @min-[420px]:flex-row @min-[420px]:items-end @min-[420px]:justify-between">
+                {/*
+                  `min-w-0` is load-bearing, not defensive. A flex item will not
+                  shrink below its content by default, so without it the
+                  filename's `truncate` never engages: a long name pushes the
+                  row wider instead of ellipsing and shoves the button off the
+                  card's edge.
+                */}
+                <div className="min-w-0">
+                  <CardTitle>Your resume</CardTitle>
+                  <p className="mt-2 truncate text-body font-medium text-ink" title={fileName}>
+                    {fileName}
+                  </p>
+                  <p className="mt-1 text-note text-ink-soft">
+                    {meta.wordCount.toLocaleString()} words
+                    {meta.pageCount ? `, ${meta.pageCount} page${meta.pageCount === 1 ? "" : "s"}` : ""}
+                    {meta.truncated ? " — the middle was omitted for length" : ""}
+                  </p>
+                </div>
+                {/*
+                  `shrink-0` so the button keeps its natural width and the
+                  filename is what gives — the label is fixed, and truncating a
+                  button's own words would be nonsense.
+
+                  Upload, not ArrowLeft. The arrow read as "go back", which is
+                  this app's `ArrowRight` reversed, and this button does not go
+                  back: it starts a new analysis. It lands on the dropzone in
+                  `/`, which marks itself with `UploadCloud` — so this is that
+                  icon's plain sibling at inline size, pointing at the thing you
+                  arrive on.
+                */}
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="w-full shrink-0 @min-[420px]:w-auto"
+                >
                   <Link href="/">
-                    <ArrowLeft className="size-4" aria-hidden="true" />
+                    <Upload className="size-4" aria-hidden="true" />
                     Analyse another resume
                   </Link>
                 </Button>
