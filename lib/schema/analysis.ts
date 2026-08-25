@@ -39,7 +39,26 @@ export const SECTION_NAMES = [
 export const FIELD_CAPS = {
   scoreRationale: 220,
   summary: 500,
-  sectionNote: 160,
+  /**
+   * A hundred and ninety, up from 160, and the same lever as the headline cap
+   * below: the model was running into it and the decoder was cutting mid-word.
+   *
+   * Measured across the six sections of the one captured analysis that carries
+   * notes: 56, 86, 115, 116, 127, and **159 against a cap of 160**. Five of six
+   * sit at or under 127; one hits the ceiling and is cut. Note which one —
+   * `skills` bit on disk while the report from production was `formatting`,
+   * which is what says this is the cap biting generally rather than one section
+   * being verbose.
+   *
+   * 190 clears the observed clean maximum by 63 and the stated maximum by 40.
+   * Six sections, so **each +1 character costs 6** against the ceiling; what is
+   * left after this is in the arithmetic below.
+   *
+   * The description is untouched at "Aim for 120 characters, never exceed 150".
+   * Backstop up, target alone — raising both is the 70-cap experiment in
+   * reverse, and `feedbackText` below records how that went.
+   */
+  sectionNote: 190,
   /**
    * A hundred and twenty. It was 90, and before that 70 — see the README.
    *
@@ -117,10 +136,30 @@ export const FIELD_CAPS = {
  * `AI_MAX_TOKENS` in `lib/env.ts` is chosen against that number and cites it.
  *
  * The margin is thinner than it looks, and it is what bounds the character
- * caps above. `feedbackText` and `feedbackDetail` sit inside an 8-item array,
- * so **each +1 character costs 8** against the ceiling. At the caps that ship
- * the worst case is 14.8k characters, ~3.95k tokens: it fits, with about 50
- * tokens to spare. There is no room for a third raise without moving
+ * caps above. Multiplicity is the whole cost: `feedbackText` and
+ * `feedbackDetail` sit inside an 8-item array, so **each +1 character costs
+ * 8**; `sectionNote` sits in six sections, so **each +1 costs 6**.
+ *
+ * At the caps that ship the worst case is **14,829 characters, ~3,954 tokens:
+ * it fits, with 46 tokens to spare.** The ceiling for `sectionNote` alone is
+ * about 215 before the total goes over.
+ *
+ * That figure was wrong here once and the correction is worth keeping. This
+ * read "14.8k characters, ~3.95k tokens... about 50 tokens to spare" for the
+ * caps `bfdc0a1` shipped, which was a misreading of a row: the true worst case
+ * there was 14,649 characters and 3,906 tokens, leaving 94 rather than 50. The
+ * arithmetic is cheap to run and was not run — do that rather than reading a
+ * number off a nearby line.
+ *
+ * **`redFlag` is unmeasured, and that is the thing to know before raising
+ * anything else.** Every other capped field has been measured against captured
+ * output; `redFlag` has **zero observations** — the runs on disk produced no
+ * red flags at all — while carrying a 200 cap in a 6-item array, which is 6
+ * characters per +1 of the 46 tokens that remain. Nothing says it is safe. It
+ * is simply unseen, and it is the most likely field to bite next without
+ * warning.
+ *
+ * There is no room for a further raise of consequence without moving
  * `AI_MAX_TOKENS`, and that is pinned from the other side — 4000 x the slow
  * per-token rate is already 107.6s against a 120s `AI_TIMEOUT_MS`.
  *
