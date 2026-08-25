@@ -642,9 +642,11 @@ To measure it, run `QUALITY_RUNS=5` either side of this commit and compare four
 lines. **"warn/fail detail stopping at the quote" TOTAL** is the one the change
 is aimed at. The other three are the revert conditions: restatement TOTAL must
 not climb back over ~5%, successful calls must not fall below 11/15, and the new
-**detail length** block must not show details arriving decoder-cut at the 300
-cap — a rule that works by writing details truncated before they reach the advice
-has not worked. If any of those moves the wrong way, this belongs beside the
+**detail length** block must not show details arriving decoder-cut at whatever
+`FIELD_CAPS.feedbackDetail` is at the time — a rule that works by writing details
+truncated before they reach the advice has not worked. (It said "the 300 cap"
+when written; `bfdc0a1` raised it to 400, which is exactly the kind of drift a
+revert condition pinned to a literal invites.) If any of those moves the wrong way, this belongs beside the
 frequency penalty, the count rule and the headline cap as a fifth lever that read
 well and moved nothing.
 
@@ -694,6 +696,61 @@ hypothesis judged on noise. Nothing in these logs shows harm, the one clean
 signal points the right way, and the metric the change was written for was never
 measured. The 20.0% in the table is a first observation of the new detector on
 live output, not an after number — there is nothing to compare it to yet.
+
+**The resume's list marker rides into the quote, and the fixtures cannot show
+it.** `detail` is required to open with a verbatim quote, and the model was
+copying the bullet glyph across with the words — so some feedback bodies opened
+with a marker and others did not, inside a paragraph where it reads as a list
+item that has lost its list. Fixed in both places, because either alone is a
+half fix: RULE 1 now says the glyph belongs to the resume's LAYOUT and the quote
+starts at the first word, and `stripLeadingMarker` in `lib/text.ts` takes it off
+`detail` in the analyze parse path when it arrives anyway.
+
+The measurement is the interesting part. Of the report files on disk,
+`before.log`, `after.log` and `run.log` hold **no model detail text at all** —
+validation errors and summary statistics only — and `quality-report.txt` holds
+four detail prefixes, none of them marked. `live-report.txt` is the only capture
+of real output, and **6 of its 10 details open with U+002D**. Replaying all ten
+through the strip removes exactly those six and leaves the other four untouched.
+
+**The only glyph on disk is U+002D, and that is a property of the fixtures, not
+of the model.** All three quality fixtures use `- ` and nothing else — 31 line
+starts, one character — so no local run can produce the `•` that was reported
+from production. The strip's character set is therefore deliberately wider than
+the evidence, and the reason is worth writing down rather than rediscovering:
+
+**Word does not emit U+2022.** Bulleted lists in DOCX carry their glyph in the
+Symbol font, which extracts into the **private use area — U+F0B7**, with U+F0A7
+and U+F076 for the hollow and square variants. Anyone testing this against a
+plain-text fixture, or against a PDF, will never see those and will conclude the
+set is over-broad. It is not; it is sized for the format most resumes arrive in.
+
+Dedicated glyphs strip with or without a following space. Ambiguous markers
+(`-`, `*`, en/em dash) require the space, which is what keeps a quote opening on
+a negative figure — `"-15% margin"` — intact.
+
+**The strip runs after `repairTruncation`, not before.** That function decides
+"was this cut?" from how close the length sits to the cap, so it has to see what
+the decoder produced; stripping first could carry a cut detail out of the
+suspicion window and lose its ellipsis. Stripping only ever shortens, so this
+order is safe in the other direction.
+
+**It does not disturb the quote detectors, and that is now asserted rather than
+assumed.** `quoteCoverage` and `endsAtQuote` compare `detail` against the resume
+text, and nothing strips markers from the resume side — the exact shape of a
+check that quietly stops matching. It does not bite, because both sides go
+through `contentWords`, which replaces every non-alphanumeric run with a space,
+so a leading marker is gone before either side is compared. That is a property
+of `contentWords` rather than a coincidence, so `headline-leak.test.ts` pins it,
+including that the stripped detail is still FOUND in the resume — equality alone
+would be satisfied by 0 = 0. If anyone narrows that normalisation to preserve
+punctuation, those fail and say why, instead of the live suite reporting a clean
+run forever.
+
+**Ships UNMEASURED against live output**, like the two rules above it. The strip
+is deterministic and tested, so the visible symptom is gone either way; what is
+unknown is whether the prompt rule stops the model doing it at all. The way to
+tell is a run in which no `detail` needs stripping.
 
 ---
 
