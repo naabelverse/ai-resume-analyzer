@@ -88,7 +88,12 @@ function withPlaceholders(text: string) {
       IS_PLACEHOLDER.test(part) ? (
         <mark
           key={index}
-          className="rounded-[4px] bg-warning-tint px-1 py-px whitespace-nowrap text-warning-ink"
+          // No horizontal padding, deliberately. `[X]ms` and `[X]s` are one
+          // value, and `px-1` pushed the unit away from its number so the pair
+          // read as two things. The tint and the ink mark the placeholder on
+          // their own; it does not need room around it. Vertical padding stays
+          // — it grows the highlight away from the text, not along the line.
+          className="rounded-[4px] bg-warning-tint py-px whitespace-nowrap text-warning-ink"
         >
           {part}
         </mark>

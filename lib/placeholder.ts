@@ -99,7 +99,11 @@ export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
       original: "Responsible for maintaining the booking service.",
       improved:
         "Maintained a booking service handling [X] requests/day, cutting p95 latency from [X]ms to [X]ms.",
-      why: "Turns a duty into an outcome. Fill in the real numbers — do not ship the placeholders.",
+      // No placeholder reminder here. RULE 2 forbids the model putting one in
+      // `why`, and the section states the convention once above the list — a
+      // demo that still carried the old instruction was the reason it looked
+      // like the prompt change had not landed.
+      why: "Turns a duty into an outcome, and names the service it happened to.",
     },
     {
       original: "Worked on the team that built the new admin dashboard.",
@@ -114,7 +118,7 @@ export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
       original: "Helped improve database performance.",
       improved:
         "Added covering indexes to the three slowest queries, reducing average report load from [X]s to [X]s.",
-      why: "States what you actually changed. Replace the bracketed values with your real measurements.",
+      why: "States what you actually changed, and ties it to the queries it affected.",
     },
   ],
 
