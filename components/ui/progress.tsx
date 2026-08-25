@@ -11,9 +11,17 @@ import { cn } from "@/lib/utils";
  */
 function Progress({
   className,
+  indicatorClassName,
   value = 0,
   ...props
-}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+}: React.ComponentProps<typeof ProgressPrimitive.Root> & {
+  /**
+   * Overrides the fill. Opt-in, so the gradient stays the default and the
+   * scanning card is untouched — `className` reaches the track only, and the
+   * keyword bar needs to recolour the fill while leaving the track alone.
+   */
+  indicatorClassName?: string;
+}) {
   const clamped = Math.min(100, Math.max(0, value ?? 0));
 
   return (
@@ -28,7 +36,10 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="gradient-fill h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+        className={cn(
+          "h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none",
+          indicatorClassName ?? "gradient-fill",
+        )}
         style={{ width: `${clamped}%` }}
       />
     </ProgressPrimitive.Root>
