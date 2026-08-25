@@ -104,7 +104,10 @@ export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
     {
       original: "Worked on the team that built the new admin dashboard.",
       improved:
-        "Built [N] screens of the admin dashboard in React and TypeScript, used daily by [X] internal staff.",
+        // [X], not [N]: RULE 2 now standardises on one letter, and this is the
+        // page anyone can reach without an API key — a demo contradicting the
+        // convention it demonstrates teaches the wrong thing first.
+        "Built [X] screens of the admin dashboard in React and TypeScript, used daily by [X] internal staff.",
       why: "Names your specific contribution and the stack instead of the team's.",
     },
     {

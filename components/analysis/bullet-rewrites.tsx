@@ -32,12 +32,70 @@ export function BulletRewrites({
   }
 
   return (
-    <ul className="flex flex-col gap-5">
-      {rewrites.map((rewrite, index) => (
-        <RewriteRow key={index} rewrite={rewrite} />
-      ))}
-    </ul>
+    <>
+      {/* Stated once, above the list, rather than per card. RULE 2 used to tell
+          the model to explain the convention in every `why`, which produced
+          three different phrasings across three cards and silence on a fourth
+          that contained two placeholders. The explanation is the interface's
+          job: it is the same sentence every time, and it belongs where the
+          reader meets the first placeholder. */}
+      <p className="mb-4 text-caption text-ink-soft">
+        Square brackets mark numbers only you know — replace them with your real
+        figures before using these.
+      </p>
+
+      <ul className="flex flex-col gap-5">
+        {rewrites.map((rewrite, index) => (
+          <RewriteRow key={index} rewrite={rewrite} />
+        ))}
+      </ul>
+    </>
   );
+}
+
+/**
+ * Splits on a bracketed placeholder, keeping the delimiters.
+ *
+ * A capturing group makes `split` return the matches as well as the text
+ * between them, so the pieces reassemble without losing a character.
+ * `[^\]\n]*` refuses to cross a newline or a closing bracket, so an unmatched
+ * `[` cannot swallow the rest of the bullet.
+ */
+const PLACEHOLDER_SPLIT = /(\[[^\]\n]*\])/g;
+
+/** Anchored and NOT global — `test` on a `/g` regex is stateful and would alternate. */
+const IS_PLACEHOLDER = /^\[[^\]\n]*\]$/;
+
+/**
+ * Renders `text` with any bracketed placeholder highlighted.
+ *
+ * A deliberate no-op when nothing matches: `split` returns a single-element
+ * array, and this hands back the original string rather than an array holding
+ * one fragment. The common path is then identical to what shipped before —
+ * same node, same text — so the new failure path is entered only when there is
+ * actually something to highlight.
+ *
+ * `whitespace-nowrap` on the mark is load-bearing at narrow widths: without it
+ * `[X ms]` breaks across lines at its space and stops reading as one token.
+ */
+function withPlaceholders(text: string) {
+  const parts = text.split(PLACEHOLDER_SPLIT);
+  if (parts.length === 1) return text;
+
+  return parts
+    .filter((part) => part !== "")
+    .map((part, index) =>
+      IS_PLACEHOLDER.test(part) ? (
+        <mark
+          key={index}
+          className="rounded-[4px] bg-warning-tint px-1 py-px whitespace-nowrap text-warning-ink"
+        >
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
+    );
 }
 
 function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
@@ -118,9 +176,14 @@ function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
               )}
             </Button>
           </div>
+          {/* Highlighted here only. `copy()` above writes `rewrite.improved`
+              itself, never the rendered text — the candidate has to receive the
+              brackets to know what to replace, and reading them back off the
+              DOM would hand them whatever whitespace the fragments happened to
+              produce instead of the string the model actually wrote. */}
           <div className="flex flex-1 items-center">
             <p className="text-note leading-relaxed text-ink">
-              {rewrite.improved}
+              {withPlaceholders(rewrite.improved)}
             </p>
           </div>
         </div>
