@@ -157,14 +157,42 @@ export const FIELD_CAPS = {
  * arithmetic is cheap to run and was not run — do that rather than reading a
  * number off a nearby line.
  *
- * **`redFlag` is unmeasured, and that is the thing to know before raising
- * anything else.** Every other capped field has been measured against captured
- * output; `redFlag` has **zero observations** — the runs on disk produced no
- * red flags at all — while carrying a 200 cap in a 6-item array, which is 6
- * characters per +1 of the 71 tokens that remain. Nothing says it is safe. It
- * is simply unseen, and it is the most likely field to bite next without
- * warning. The 26 tokens the derivation returned make that less tight than it
- * was, which is the point of recording them rather than quietly spending them.
+ * **`redFlag` still has zero LIVE observations, and that is the thing to know
+ * before raising anything else.** Every other capped field has been measured
+ * against captured output. `redFlag` has not: the only capture on disk,
+ * `live-report.txt`, carries `"redFlags": []` twice, so the model has never
+ * been seen filling this field at all — while it carries a 200 cap in a 6-item
+ * array, which is 6 characters per +1 of the 71 tokens that remain. Nothing
+ * says it is safe. It is simply unseen, and it is the most likely field to
+ * bite next without warning. The 26 tokens the derivation returned make that
+ * less tight than it was, which is the point of recording them rather than
+ * quietly spending them.
+ *
+ * What IS now on record, from the round that renamed the section to "Things to
+ * fix" and added the next-step rule — the first time anyone had watched it
+ * render:
+ *
+ *   - The demo's two entries measured **66 and 71 characters** against a 150
+ *     target, 185 stated max and this 200 cap. Rewritten to carry a next step
+ *     they measure **125 and 117** — still under the target, 60 clear of the
+ *     hard cap.
+ *   - So "and the next step" did NOT need a cap raise, and did not get one.
+ *     The 150 target already had ~84 characters of slack over the longest
+ *     entry, which is where the new clause went.
+ *   - Read that as evidence about the SECTION, not about the MODEL. Those are
+ *     hand-written fixture strings; they show what the field looks like when
+ *     it renders, and they do not derisk what a live model does with a 150
+ *     target. This repo's own history says models anchor upward on a stated
+ *     ceiling — see `feedbackText` above, which arrived at exactly 90 against
+ *     a 90 cap. The first live capture that actually populates `redFlags` is
+ *     still the measurement that matters.
+ *   - The arithmetic above was re-run rather than read off this comment, as it
+ *     asks: 14,733 characters and 3,929 tokens at the shipped caps, 71 spare.
+ *     It reproduces exactly. If `redFlag` ever does need room, **244 is the
+ *     largest cap that still fits** — +44, all 71 remaining tokens spent.
+ *
+ * The `.describe()` text that carries the new rule is an INPUT cost, so it does
+ * not touch this budget, which bounds the response.
  *
  * There is no room for a further raise of consequence without moving
  * `AI_MAX_TOKENS`, and that is pinned from the other side — 4000 x the slow
@@ -494,7 +522,7 @@ export const AnalysisWireSchema = z.object({
     .array(z.string().max(FIELD_CAPS.redFlag))
     .max(ARRAY_CAPS.redFlags)
     .describe(
-      "Concrete problems a recruiter would notice: unexplained gaps, typos, inconsistencies. At most 6, most serious first, and empty array if none. Group problems of the same kind into ONE entry — nine misspellings are one red flag about proofreading, not nine red flags. Aim for 150 characters each, never exceed 185.",
+      "Concrete problems a recruiter would notice: unexplained gaps, typos, inconsistencies. At most 6, most serious first, and empty array if none. Group problems of the same kind into ONE entry — nine misspellings are one red flag about proofreading, not nine red flags. Each entry must name the problem AND the next step, in ONE sentence: \"Nine-month gap between the 2024 and 2025 roles — account for it in one line in your summary.\" An entry that only reports that the problem exists is worth nothing, because the candidate already knows; what they lack is what to do about it. Keep it to one sentence — this section is scanned, not read. Aim for 150 characters each, never exceed 185.",
     ),
 });
 

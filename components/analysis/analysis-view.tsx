@@ -223,7 +223,28 @@ export function AnalysisView({ id }: { id: string }) {
       {analysis.redFlags.length > 0 && (
         <Reveal index={6} className="mt-5">
           <Card>
-            <CardTitle>Red flags</CardTitle>
+            {/*
+              "Things to fix" over `analysis.redFlags` is a DELIBERATE mismatch
+              between the heading and the field, not an oversight.
+
+              The heading was "Red flags" while the icons were amber, and in
+              this report amber means "Needs work" and red means "Poor" — so
+              the section contradicted its own styling. What it actually lists
+              is an employment gap and two typos: things worth fixing, not
+              things that get a resume rejected. Alarming someone about a
+              five-minute problem is the more expensive error, so the name
+              moved rather than the colour.
+
+              Red is not free here either. `fail` already owns it in
+              `<FeedbackList>`, `<SectionBreakdown>` and `<Badge>`, where it
+              means "a concrete problem that costs interviews". Keeping this
+              section amber is what keeps those two tiers distinguishable.
+
+              The field stays `redFlags` because renaming a persisted field
+              touches stored records — a separate decision from what the
+              section is called on screen.
+            */}
+            <CardTitle>Things to fix</CardTitle>
             <ul className="mt-4 flex flex-col gap-2">
               {analysis.redFlags.map((flag) => (
                 <li

@@ -143,8 +143,18 @@ export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
     matchPercent: 60,
   },
 
+  /*
+    Both entries name a problem AND a next step, because that is what the wire
+    schema now asks the model for and the demo is the only place this section
+    has ever been seen rendering.
+
+    The first used to read "Nine-month gap between the 2024 and 2025 roles with
+    no explanation", which tells the candidate something they already know and
+    gives them nothing to do. 125 and 117 characters against a 150 target — see
+    the measurement in `FIELD_CAPS`.
+  */
   redFlags: [
-    "Nine-month gap between the 2024 and 2025 roles with no explanation",
-    "Two spelling errors in the experience section ('recieved', 'managment')",
+    "Nine-month gap between the 2024 and 2025 roles — account for it in one line in your summary so a reader is not left guessing.",
+    "Two spelling errors in the experience section ('recieved', 'managment') — proofread it end to end before you send it.",
   ],
 };
