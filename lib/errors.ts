@@ -2,10 +2,23 @@
  * Typed failure modes.
  *
  * Every user-facing failure in the app resolves to one `ErrorCode`, and all the
- * wording for those codes lives in `ERROR_COPY` below — nowhere else. The
- * server throws `AppError` subclasses, the route maps them to a code, and
- * `<ErrorState>` renders the copy. Changing what the user reads is a one-line
- * edit in one file.
+ * wording for those codes lives in `ERROR_COPY` below. The server throws
+ * `AppError` subclasses, the route maps them to a code, and `<ErrorState>`
+ * renders the copy. Changing what the user reads is a one-line edit in one
+ * file.
+ *
+ * That sentence used to end "— nowhere else", and it was false in a way that
+ * cost something. `<DegradedBanner>` hardcoded two sentences of its own, so
+ * the copy describing the degraded state was the one piece of user-facing
+ * wording no sweep of this file could reach — and it is exactly the copy that
+ * was still telling people their analysis was "unreadable" after two separate
+ * rounds of cleaning up everything in here.
+ *
+ * So the claim is now the accurate one: all wording lives in THIS FILE, in one
+ * of two exports. `ERROR_COPY` is per-code. `DEGRADED_COPY` is the state-level
+ * wording no single code owns — the same sentences whichever failure degraded
+ * the run, and keeping one copy of them is what stops four codes drifting
+ * apart on the same fact.
  *
  * Deliberately free of `server-only`: the client error component imports the
  * same map, so the message a user sees is never a second, drifting copy of the
@@ -41,6 +54,34 @@ export interface ErrorCopy {
   /** The single next action. Never a list of things to try. */
   action: string;
 }
+
+/**
+ * The degraded state's own wording — what the banner says regardless of which
+ * failure got us there. The per-code `action` in `ERROR_COPY` supplies the
+ * next step; everything here is true of all four.
+ *
+ * Three deliberate choices, each fixing something the old hardcoded copy did:
+ *
+ *   - "on our side" stays even when the failure is the provider's. From where
+ *     the reader sits, a provider we chose IS our side, and the alternative is
+ *     blaming a company they have no relationship with for a page we served.
+ *   - "your resume is fine" is not padding. The previous copy said the
+ *     analysis came back "unreadable", which reads as a verdict on their FILE.
+ *     That is the opposite of what happened, and it is the one misreading here
+ *     that would make someone go and edit a resume that was never the problem.
+ *   - "no feedback on how it's written" names the gap in terms of what they
+ *     wanted. "Automated structural checks only" names it in terms of our
+ *     implementation, which tells someone who does not know what we normally
+ *     run precisely nothing.
+ */
+export const DEGRADED_COPY = {
+  title: "We couldn't finish this analysis",
+  body:
+    "Something went wrong on our side — your resume is fine. What's below covers " +
+    "formatting and structure only, so there's no feedback on how it's written.",
+  /** The link out. Not a retry button — see `<DegradedBanner>` for why. */
+  linkLabel: "Upload it again",
+} as const;
 
 export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   UNSUPPORTED_FILE: {
@@ -98,34 +139,52 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
    * names one provider is wrong half the time by construction.
    */
   AI_UNAVAILABLE: {
-    title: "The AI analysis is unavailable",
-    message:
-      "The AI model couldn't be reached, so only the automated checks below could run.",
-    action: "Try again in a moment for the full AI review.",
-  },
-  AI_SCHEMA: {
-    title: "The analysis came back unreadable",
-    message:
-      "The model's response didn't match the expected format twice in a row.",
-    action: "Run the analysis again — this is almost always transient.",
+    title: "The written review didn't run",
+    message: "We couldn't reach the service that reviews how a resume is written.",
+    action: "Running it again usually works.",
   },
   /**
-   * These two DO name NVIDIA, and that is currently accurate rather than
-   * sloppy: only `lib/ai/providers/nvidia.ts` maps a status onto them, and the
-   * Anthropic provider has no 429/402 mapping at all, so neither code is
-   * reachable on that transport. Adding one there without splitting this copy
-   * would reintroduce exactly the bug fixed above, in mirror image.
+   * Every word of this was rewritten, and the old version is worth keeping in
+   * view because each part failed differently:
+   *
+   *   "The analysis came back unreadable" — reads as a verdict on the reader's
+   *   FILE. It was about our own response. Someone told their resume is
+   *   unreadable goes and rebuilds a document that was never at fault.
+   *
+   *   "didn't match the expected format twice in a row" — three internal
+   *   facts, none of which a reader can act on or check: that we expect a
+   *   format, that something failed to match it, and that we retry once.
+   *
+   *   "almost always transient" — a word from the incident channel.
+   */
+  AI_SCHEMA: {
+    title: "The written review didn't finish",
+    message: "The review came back in a state we couldn't use.",
+    action: "Running it again usually works.",
+  },
+  /**
+   * These two used to name NVIDIA, on the argument that it was accurate: only
+   * `lib/ai/providers/nvidia.ts` maps a status onto them, so neither code is
+   * reachable on the Anthropic transport.
+   *
+   * Accurate, and still the wrong thing to print. Both of these render in
+   * `<DegradedBanner>`, where the reader is someone whose resume review did
+   * not happen — they have no relationship with our provider, cannot act on
+   * which one it is, and naming it reads as passing the blame for a page we
+   * served. `DEGRADED_COPY` says "on our side" for the same reason. The
+   * accuracy that mattered is preserved where it belongs: the provider name is
+   * in the server log, and the two codes stay separate so the ADVICE can
+   * differ, which is the whole point of not folding them together.
    */
   AI_RATE_LIMITED: {
-    title: "The AI provider is rate limiting us",
-    message:
-      "NVIDIA's free tier allows 40 requests per minute per model, and that ceiling was just hit.",
-    action: "Wait about a minute, then run the analysis again.",
+    title: "The written review is busy",
+    message: "Too many analyses are running at once for us to add another.",
+    action: "Wait about a minute, then upload it again.",
   },
   AI_CREDITS_EXHAUSTED: {
-    title: "This app's NVIDIA credits have run out",
+    title: "The written review is unavailable for now",
     message:
-      "The provider rejected the request for lack of credit, not for load — waiting will not help.",
+      "This app has run out of the credit it needs to review writing, so waiting won't help.",
     /*
       Addressed to the reader, who is not the operator. The previous wording
       told them to top up an account they do not hold and to set an environment
@@ -137,7 +196,7 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
       waiting will not help, and this is the one AI failure where that is true.
     */
     action:
-      "Retrying won't help until that's restored — check back later, or let whoever runs this app know.",
+      "Running it again won't help until that's restored — check back later, or let whoever runs this app know.",
   },
   RATE_LIMITED: {
     title: "Too many analyses",

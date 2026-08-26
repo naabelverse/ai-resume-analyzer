@@ -107,7 +107,27 @@ export function AnalysisView({ id }: { id: string }) {
         neighbour. Full width also lets the summary and the rationale sit side
         by side, each at a readable measure, rather than stacking into a narrow
         strip beside the gauge.
+
+        ABSENT ENTIRELY WHEN DEGRADED, which is the whole card and not just the
+        ring. The deterministic scorer measures whether an email address is
+        present, how many bullets carry a number, and which of six headings it
+        found. The gauge renders that identically to a real one — same ring,
+        same 0-100, and since the header was unified, the same green/amber/red
+        — under a label reading "Strong" or "Poor". Those words judge how good
+        a resume IS. Nothing here judged that. A resume can be structurally
+        immaculate and badly written and this card would call it Strong.
+
+        Qualifying it was the alternative and it does not work: a 14px line of
+        caveat cannot beat a 180px ring with a number in it, and every attempt
+        to make it win means a louder warning, which makes the failure page
+        more alarming rather than more honest.
+
+        The rest of the card goes with the ring because the rest of the card is
+        about the ring — `summary` and `scoreRationale` from `buildDegradedResult`
+        both describe a score, and left standing alone they would explain a
+        number that is no longer on screen.
       */}
+      {!meta.degraded && (
       <Reveal index={0}>
         <Card>
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
@@ -138,6 +158,7 @@ export function AnalysisView({ id }: { id: string }) {
           </div>
         </Card>
       </Reveal>
+      )}
 
       {/*
         Two even columns, loaded so they end near together: section breakdown
@@ -223,9 +244,20 @@ export function AnalysisView({ id }: { id: string }) {
 
           <Reveal index={2}>
             <Card>
-              <CardTitle>Section breakdown</CardTitle>
+              {/*
+                Renamed when degraded for the same reason the score card is
+                gone: "Section breakdown" over six ungraded rows promises a
+                verdict that is not there, and what these rows actually report
+                is what was found in the file.
+              */}
+              <CardTitle>
+                {meta.degraded ? "What we found" : "Section breakdown"}
+              </CardTitle>
               <div className="mt-4">
-                <SectionBreakdown sections={analysis.sections} />
+                <SectionBreakdown
+                  sections={analysis.sections}
+                  degraded={meta.degraded}
+                />
               </div>
             </Card>
           </Reveal>

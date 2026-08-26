@@ -28,6 +28,37 @@ describe("SectionBreakdown", () => {
     expect(screen.getByText("Poor")).toBeInTheDocument();
   });
 
+  /*
+    Degraded: the note survives, every grade goes.
+
+    Suppressing the gauge alone would have moved the misleading grade 400px
+    down the page instead of removing it — these rows carry a 0-100 number, a
+    coloured bar and a "Pass"/"Poor" badge derived from the same structural
+    signals the gauge was. The note stays because `lib/scoring.ts` writes it as
+    a measurement, which is what this state can honestly report.
+  */
+  it("shows no score, badge or bar when degraded", () => {
+    const { container } = render(
+      <SectionBreakdown sections={[weak]} degraded />,
+    );
+
+    expect(screen.getByText(weak.note)).toBeInTheDocument();
+    expect(screen.getByText("Experience")).toBeInTheDocument();
+
+    expect(screen.queryByText("Poor")).not.toBeInTheDocument();
+    expect(screen.queryByText(String(weak.score))).not.toBeInTheDocument();
+    expect(container.querySelector(".bg-danger")).toBeNull();
+    expect(container.querySelector(".bg-gauge-track")).toBeNull();
+  });
+
+  it("still grades when not degraded, so the flag is what decides", () => {
+    const { container } = render(<SectionBreakdown sections={[weak]} />);
+
+    expect(screen.getByText("Poor")).toBeInTheDocument();
+    expect(screen.getByText(String(weak.score))).toBeInTheDocument();
+    expect(container.querySelector(".bg-danger")).not.toBeNull();
+  });
+
   it("uses the same label for a section that really is absent", () => {
     render(
       <SectionBreakdown
