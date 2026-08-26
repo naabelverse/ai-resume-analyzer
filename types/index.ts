@@ -178,6 +178,23 @@ export interface AnalysisSummary {
   fileName: string;
   createdAt: string;
   overallScore: number;
+  /**
+   * Whether the AI portion failed on this run, so `<HistoryList>` can stop the
+   * row asserting a grade nothing earned.
+   *
+   * `95ae0c9` suppressed every grade on the report page when degraded; the
+   * dashboard was still listing the same number one route over, in a
+   * brand-tinted badge, with no banner beside it to explain — strictly worse
+   * than the page it was fixed on, because there the number had context.
+   *
+   * Optional, and read defensively, because a summary is a CACHE of the record
+   * rather than a second source for it. The session index was written without
+   * this field until now, and an entry predating it must not read as a healthy
+   * run: `undefined` means "not known", never "false". Both stores resolve it
+   * from the record's own `meta`, which has carried `degraded` for as long as
+   * the field has existed — so nothing stored needed migrating for this.
+   */
+  degraded?: boolean;
 }
 
 /* -------------------------------------------------------------------------

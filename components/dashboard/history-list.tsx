@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Trash2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DEGRADED_COPY } from "@/lib/errors";
 import { persistenceMode, store } from "@/lib/store";
 import type { AnalysisSummary } from "@/types";
 
@@ -72,9 +73,36 @@ export function HistoryList() {
     <ul className="divide-y divide-line">
       {records.map((record) => (
         <li key={record.id} className="flex items-center gap-3 py-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">
-            {record.overallScore}
-          </span>
+          {/*
+            No score for a degraded run — the rule the report page has followed
+            since `95ae0c9`, applied to the one place still breaking it. The
+            number here was worse than the one removed there: it is the most
+            scannable thing in the row, it sits in a brand-tinted badge that
+            reads as a grade, and unlike the report page nothing beside it says
+            the AI never ran.
+
+            Marked as well as suppressed, because those are one change rather
+            than alternatives. A blank slot where every other row has a badge
+            reads as broken; a caption alone would leave the misleading number
+            winning on sight, which is the small version of a 14px caveat
+            losing to a 180px ring. So the badge stops claiming a grade and the
+            line below says why.
+
+            Dimensions are identical either way — same `size-10`, same radius,
+            same row. Only the fill and what is inside it change.
+          */}
+          {record.degraded ? (
+            <span
+              className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-warning-tint text-warning"
+              aria-hidden="true"
+            >
+              <AlertCircle className="size-4" strokeWidth={2.4} />
+            </span>
+          ) : (
+            <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">
+              {record.overallScore}
+            </span>
+          )}
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-body font-medium text-ink" title={record.fileName}>
@@ -87,6 +115,15 @@ export function HistoryList() {
                   timeStyle: "short",
                 })}
               </time>
+              {/* Carries the meaning the badge stopped carrying, and is the
+                  only thing on this row a screen reader gets about it — the
+                  glyph beside it is decorative. */}
+              {record.degraded && (
+                <span className="text-warning-ink">
+                  {" · "}
+                  {DEGRADED_COPY.rowNote}
+                </span>
+              )}
             </p>
           </div>
 

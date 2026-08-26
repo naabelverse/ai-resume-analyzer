@@ -81,6 +81,12 @@ export const DEGRADED_COPY = {
     "formatting and structure only, so there's no feedback on how it's written.",
   /** The link out. Not a retry button — see `<DegradedBanner>` for why. */
   linkLabel: "Upload it again",
+  /**
+   * The dashboard row, where there is no banner and no room for one. It has to
+   * do the banner's whole job in a caption: name the part that did not happen,
+   * so the missing score reads as withheld rather than as a rendering fault.
+   */
+  rowNote: "Formatting checks only — the written review didn't run",
 } as const;
 
 export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
@@ -89,6 +95,18 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     message: "Resumes must be a PDF or a .docx file.",
     action: "Export your resume as a PDF and upload it again.",
   },
+  /*
+    DO NOT "TIDY" `message`. It restates the title and then repeats the advice,
+    which reads as sloppy and is not — `PLAN.md` line 145 specifies this exact
+    sentence as the rejection wording for `.doc`, and
+    `tests/components/error-state.test.tsx` pins it character for character.
+
+    Rewritten during the copy audit on exactly that misreading, and caught by
+    that test. Recorded here so the next reader spends no time on it: the
+    duplication is the requirement, not an oversight. This entry also names no
+    model, format, parse step, retry count or provider, so it was never in that
+    audit's scope to begin with.
+  */
   LEGACY_DOC: {
     title: "Old .doc format isn't supported",
     message: "Old .doc format isn't supported. Save as PDF or .docx and try again.",
@@ -107,7 +125,10 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   },
   EXTRACTION_FAILED: {
     title: "That file couldn't be read",
-    message: "The file is either corrupted or password-protected, so its text can't be extracted.",
+    /* "Extracted" is our word for a pipeline stage. The title already says
+       "couldn't be read", and the reader does not need a second, more
+       technical verb for the same event. */
+    message: "The file is either damaged or password-protected, so its text can't be read.",
     action: "Open it to confirm it works, then export a fresh copy and try again.",
   },
   JD_TOO_LONG: {
@@ -236,9 +257,14 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
     action: "Correct it, or clear the field and send without it.",
   },
   FEEDBACK_INVALID: {
-    title: "That submission couldn't be read",
-    message: "The feedback form sent something the server didn't recognise.",
-    action: "Reload the page and try again.",
+    title: "That message couldn't be sent",
+    /* Was "The feedback form sent something the server didn't recognise" —
+       which describes a wire failure between two things the reader is not one
+       of, and leaves them holding a form with no idea what to do differently.
+       This one is unreachable from our own form anyway, so the honest content
+       is that nothing was sent and a reload is the fix. */
+    message: "Something went wrong on our side, so nothing was sent.",
+    action: "Reload the page and send it again.",
   },
   FEEDBACK_RATE_LIMITED: {
     title: "Too much feedback at once",
@@ -263,13 +289,20 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   },
   NETWORK: {
     title: "The connection dropped",
-    message: "The request didn't reach the server, so nothing was analysed.",
-    action: "Check your connection and run the analysis again.",
+    /* "The request didn't reach the server" is two of our nouns for one event
+       the reader experiences as their file not arriving. Said their way, it
+       also carries the reassurance the old wording buried: nothing was read. */
+    message: "Your resume didn't reach us, so nothing was analysed.",
+    action: "Check your connection and upload it again.",
   },
   UNKNOWN: {
     title: "Something went wrong",
-    message: "The analysis stopped for a reason the app doesn't recognise.",
-    action: "Run the analysis again. If it keeps happening, try a different file.",
+    /* Was "for a reason the app doesn't recognise", which reports our own
+       confusion as though it were information. The reader learns the same
+       amount either way; this version at least does not make them read about
+       our internals to learn it. */
+    message: "The analysis stopped unexpectedly, and we're not sure why.",
+    action: "Upload it again. If it keeps happening, try a different file.",
   },
 };
 

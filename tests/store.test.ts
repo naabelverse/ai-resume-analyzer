@@ -84,6 +84,51 @@ describe("sessionStore", () => {
       fileName: "one.pdf",
       createdAt: "2026-08-19T10:00:00.000Z",
       overallScore: 72,
+      degraded: false,
     });
+  });
+
+  /*
+    The index is a CACHE of the records beside it, not a second source, and the
+    dashboard now withholds the score for a degraded run. So an entry written
+    before `degraded` existed must not read as a healthy one — it resolves from
+    the record, which has carried the flag all along.
+
+    Set up by editing storage directly rather than through `save`, because
+    `save` is exactly what can no longer produce this shape. The only way to
+    hold a stale index entry is to have written it before the field existed,
+    which is the state real browsers are in right now.
+  */
+  it("backfills degraded from the record for an index entry that predates it", async () => {
+    const stored = record("two");
+    stored.meta.degraded = true;
+    await sessionStore.save(stored);
+
+    const index = JSON.parse(
+      window.sessionStorage.getItem("ara:index")!,
+    ) as Record<string, unknown>[];
+    delete index[0]!.degraded;
+    window.sessionStorage.setItem("ara:index", JSON.stringify(index));
+
+    expect((await sessionStore.list())[0]!.degraded).toBe(true);
+  });
+
+  /*
+    Unknown stays unknown. Defaulting a missing flag to `false` would put a
+    bare score back on the dashboard for the one kind of run that must not
+    carry one — the failure this whole field exists to prevent, arriving
+    through the back door.
+  */
+  it("reports degraded as unknown when the record is gone, never as healthy", async () => {
+    await sessionStore.save(record("three"));
+
+    const index = JSON.parse(
+      window.sessionStorage.getItem("ara:index")!,
+    ) as Record<string, unknown>[];
+    delete index[0]!.degraded;
+    window.sessionStorage.setItem("ara:index", JSON.stringify(index));
+    window.sessionStorage.removeItem("ara:analysis:three");
+
+    expect((await sessionStore.list())[0]!.degraded).toBeUndefined();
   });
 });

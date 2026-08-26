@@ -42,6 +42,7 @@ export const sessionStore: AnalysisStore = {
       fileName: record.fileName,
       createdAt: record.createdAt,
       overallScore: record.data.overallScore,
+      degraded: record.meta.degraded,
     };
     const index = [
       summary,
@@ -75,8 +76,36 @@ export const sessionStore: AnalysisStore = {
     );
   },
 
+  /*
+    Backfills `degraded` from the record itself for any index entry written
+    before that field existed.
+
+    The index is a cache of the records beside it, not a second source, and an
+    entry missing the flag must not read as a healthy run — that would put a
+    bare score on the dashboard for exactly the analyses the report page now
+    refuses to grade. The full record is already in this store under
+    `PREFIX + id` with its `meta` intact, so the answer is there to be had
+    rather than migrated.
+
+    N synchronous reads, where N is one browsing session's history. That is a
+    handful of entries and a few hundred bytes each.
+  */
   async list() {
     const store = storage();
-    return store ? readIndex(store) : [];
+    if (!store) return [];
+
+    return readIndex(store).map((entry) => {
+      if (entry.degraded !== undefined) return entry;
+
+      try {
+        const raw = store.getItem(PREFIX + entry.id);
+        const record = raw ? (JSON.parse(raw) as AnalysisRecord) : null;
+        return record ? { ...entry, degraded: record.meta.degraded } : entry;
+      } catch {
+        // Same reasoning as `load`: a corrupt entry tells us nothing, and
+        // guessing "not degraded" here is the assumption this exists to avoid.
+        return entry;
+      }
+    });
   },
 };

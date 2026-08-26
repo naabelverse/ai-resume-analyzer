@@ -277,7 +277,8 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     expect(payload.data.overallScore).toBeGreaterThan(0);
     expect(payload.data.sections).toHaveLength(6);
     expect(payload.data.feedback.length).toBeGreaterThanOrEqual(5);
-    expect(payload.data.summary).toContain("AI review is unavailable");
+    // The claim, not the phrasing — see the note in `tests/scoring.test.ts`.
+    expect(payload.data.summary).toMatch(/formatting and structure only/i);
   });
 
   it("spends only one request on a timeout, so the clock cannot multiply", async () => {

@@ -17,14 +17,51 @@ const RecordSchema = z.object({
   meta: z.looseObject({}),
 });
 
+/**
+ * Reads `degraded` out of a stored `meta` blob.
+ *
+ * Yields `undefined` rather than `false` when the column will not parse or
+ * carries no boolean there. "We could not tell" and "the AI ran fine" are
+ * different claims, and only one of them is safe to make by accident — this
+ * whole field exists to stop a failed run reading as a healthy one.
+ */
+function degradedFrom(meta: string): boolean | undefined {
+  try {
+    const parsed: unknown = JSON.parse(meta);
+    const value =
+      parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>).degraded
+        : undefined;
+    return typeof value === "boolean" ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function GET(): Promise<Response> {
   const records = await withDb<AnalysisSummary[]>(
     "list",
     async (prisma) => {
+      /*
+        `meta` is selected for exactly one field — `degraded` — so the
+        dashboard can stop showing a bare score for a run whose AI portion
+        failed.
+
+        No migration and no new column, which is what made this cheap. `meta`
+        has held the serialised `AnalysisMeta` since the table existed and
+        `degraded` has been in it the whole time; the list query simply never
+        asked. Every row already written answers correctly.
+      */
       const rows = await prisma.analysis.findMany({
         orderBy: { createdAt: "desc" },
         take: 50,
-        select: { id: true, fileName: true, score: true, createdAt: true },
+        select: {
+          id: true,
+          fileName: true,
+          score: true,
+          createdAt: true,
+          meta: true,
+        },
       });
 
       return rows.map((row) => ({
@@ -32,6 +69,7 @@ export async function GET(): Promise<Response> {
         fileName: row.fileName,
         createdAt: row.createdAt.toISOString(),
         overallScore: row.score,
+        degraded: degradedFrom(row.meta),
       }));
     },
     [],

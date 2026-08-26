@@ -305,14 +305,26 @@ export function buildDegradedResult(
     // Honest about what this number is and is not. The structural checks cannot
     // read writing quality, so the rationale says so rather than implying a
     // judgement nothing actually made.
+    /*
+      Neither this nor `summary` is rendered any more — `95ae0c9` drops the
+      whole score card when degraded, because every part of it describes a
+      score this state has no standing to give.
+
+      Rewritten anyway, and that is the point. This copy escaped two audits by
+      being invisible: one made the degraded messages provider-neutral, one
+      rewrote AI_CREDITS_EXHAUSTED in user terms, and neither came here because
+      nothing on screen pointed at it. Invisible is not gone — both strings are
+      still in the stored record, still in any export of it, and one route
+      change from being on a page again.
+    */
     scoreRationale: cap(
-      `Structural checks only — no band was judged. Averaged the six section scores from measured signals: ${checks.bulletCount} bullet lines, ${checks.wordCount} words, contact details ${checks.hasEmail ? "found" : "missing"}.`,
+      `Measured from the file itself: ${checks.bulletCount} bullet lines, ${checks.wordCount} words, contact details ${checks.hasEmail ? "found" : "missing"}. Nothing here judges how the resume is written.`,
       FIELD_CAPS.scoreRationale,
     ),
     overallScore,
     verdict: deriveVerdict(overallScore),
     summary: cap(
-      "The AI review is unavailable right now, so this score reflects only the automated structural checks — not the quality of your writing. Run it again shortly for the full analysis.",
+      "We couldn't finish this analysis. What's here covers formatting and structure only, so there's no feedback on how your resume is written.",
       // Deliberately tighter than FIELD_CAPS.summary. That 500 is a ceiling for
       // the model's prose; this copy sits in a banner and should stay short.
       240,

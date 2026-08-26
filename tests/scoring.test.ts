@@ -109,8 +109,18 @@ describe("buildDegradedResult", () => {
     expect(buildDegradedResult(cases[0]![1]).bulletRewrites).toEqual([]);
   });
 
-  it("says in the summary that the score is structural only", () => {
-    expect(buildDegradedResult(cases[0]![1]).summary).toContain("automated structural checks");
+  /*
+    Asserts the CLAIM, not the phrasing. This used to match the literal
+    "automated structural checks" — our words for our own pipeline, and exactly
+    what the copy audit removed. Pinning a phrase like that means the test
+    fails just as readily for the copy getting better as for the claim going
+    missing, which is the wrong thing to defend.
+  */
+  it("says in the summary that no writing feedback was produced", () => {
+    const { summary } = buildDegradedResult(cases[0]![1]);
+
+    expect(summary).toMatch(/formatting and structure only/i);
+    expect(summary).toMatch(/no feedback on how your resume is written/i);
   });
 
   it("scores a complete resume above an empty one", () => {
