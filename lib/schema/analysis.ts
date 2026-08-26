@@ -168,6 +168,27 @@ export const FIELD_CAPS = {
  * it fits, with 71 tokens to spare.** The ceiling for `sectionNote` alone is
  * about 215 before the total goes over.
  *
+ * **STOP HERE IF YOU ARE RAISING A CAP.** The two figures either side of this
+ * paragraph do not agree, and neither has been reconciled:
+ *
+ *   - "about 215" for `sectionNote` is what this comment has said for several
+ *     commits.
+ *   - Re-deriving it from the live `FIELD_CAPS` gives **44-62 characters** of
+ *     headroom — a `sectionNote` ceiling of roughly **234-252** — depending on
+ *     whether the worst case is measured compact at 3.75 chars/token (the
+ *     method this comment uses) or as-emitted at the 4.067 chars/token the one
+ *     live capture actually shows. The model emits PRETTY-printed JSON, so the
+ *     compact count and the prose rate are two different bases and this comment
+ *     mixes them. The errors partly cancel, which is why the total still fits.
+ *
+ * That is a ~20-character disagreement about how much room is left, sitting in
+ * a comment written to be trusted. Do not spend against either number. Re-run
+ * the arithmetic — build the maxed wire object, serialize it, divide — and fix
+ * whichever of these is wrong in the same commit that spends the room.
+ *
+ * Recorded rather than resolved deliberately: resolving it needs a second live
+ * capture to calibrate chars/token against, and one capture is not a rate.
+ *
  * 71 rather than 46 because deriving the section `status` took it out of the
  * response: six sections x `"status":"pass",` is 96 characters, 26 tokens, and
  * the model no longer spends them. Worth noting as a shape — the cheapest way
@@ -436,7 +457,7 @@ const SectionBodySchema = z.object({
     .min(1)
     .max(FIELD_CAPS.sectionNote)
     .describe(
-      "One sentence about THIS resume's version of this section, quoting it where possible. Aim for 120 characters, never exceed 150.",
+      "One OBSERVATION about THIS resume's version of this section, quoting it where possible. Describe what is there; do NOT say what to change and do NOT append a next step — the fix belongs in feedback[].detail, which has room for it. One sentence. Aim for 120 characters, never exceed 150.",
     ),
 });
 

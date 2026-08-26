@@ -646,3 +646,56 @@ describe("the prompt does not ask for a derived field", () => {
     },
   );
 });
+
+describe("the section note is not the detail contract", () => {
+  /**
+   * A live analysis returned section notes cut mid-word at the 190 cap while
+   * the description still asked for 120 and forbade 150. The target was not
+   * holding, and the reason was not verbosity.
+   *
+   * RULE 1 ended with "The same applies to sections[].note and to redFlags."
+   * That sentence is unchanged since `d7d36f6`, when RULE 1 was 736 characters
+   * and said one thing: quote real text or drop the item. Applied to a note
+   * that is a CONSTRAINT — it makes the output shorter and more specific.
+   *
+   * RULE 1 is now 8,694 characters. What the note had come to inherit was the
+   * whole `detail` contract: open with a verbatim quote, carry on past it, say
+   * what it costs and what to change, in a new sentence with its own subject.
+   * That is a three-clause structure asked of a field with a 120-character
+   * target, against a rule titled "the most important rule here". The louder
+   * instruction won, which is why both live examples read as observation ->
+   * problem -> next step.
+   *
+   * The failure mode is general and worth naming: a blanket "the same applies
+   * to X" inherits whatever the referenced rule LATER becomes. These two tests
+   * pin the scoping, because the sentence that caused this was correct on the
+   * day it was written.
+   */
+  it("scopes the RULE 1 inheritance to the quote-or-drop paragraph", () => {
+    expect(SYSTEM_PROMPT).toMatch(
+      /ONLY part of RULE 1\s*\n?that applies to sections\[\]\.note/,
+    );
+    expect(SYSTEM_PROMPT).toMatch(/a note does NOT carry the/);
+  });
+
+  it("tells the decoder a note observes rather than prescribes", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        sections: {
+          properties: Record<string, { properties: { note: { description?: string } } }>;
+        };
+      };
+    };
+
+    for (const name of SECTION_NAMES) {
+      const description =
+        json.properties.sections.properties[name].properties.note.description ??
+        "";
+      expect(description).toMatch(/do NOT say what to change/);
+      expect(description).toMatch(/feedback\[\]\.detail/);
+      // The target itself is unchanged. This fix removes a competing
+      // instruction; it does not move the number the model aims at.
+      expect(description).toMatch(/Aim for 120 characters, never exceed 150/);
+    }
+  });
+});

@@ -132,6 +132,17 @@ interface RunRecord {
    * at would average the two together and report a number meaning nothing.
    */
   feedbackItems: { status: string; text: string; detail: string }[];
+  /**
+   * The note TEXT, not just its length.
+   *
+   * `sections` above records the six scores and has since the first run. The
+   * notes were never recorded at all, and that is how a note growing from a
+   * 160-cap distribution (56/86/115/116/127/159) to two live examples cut at
+   * 190 went eleven commits without anyone seeing it. Every other free-text
+   * field the model writes has a distribution in this report; this one had
+   * nothing, so there was no row to look wrong.
+   */
+  sectionNotes: { name: string; note: string }[];
   matchPercent: number | null;
 }
 
@@ -300,6 +311,10 @@ async function measure(): Promise<void> {
           status: item.status,
           text: item.text,
           detail: item.detail,
+        })),
+        sectionNotes: result.sections.map((section) => ({
+          name: section.name,
+          note: section.note,
         })),
         matchPercent: result.keywordMatch?.matchPercent ?? null,
       });
@@ -586,6 +601,74 @@ async function measure(): Promise<void> {
         `, max ${Math.max(...lengths)}` +
         ` | at/near cap ${atCap}/${details.length}` +
         ` | decoder-cut ${cut}/${details.length}`,
+    );
+  }
+
+  /*
+    Section note length — the field that had no row here at all.
+
+    Added after a live analysis came back with notes cut mid-word at 190 and
+    the only evidence available was two examples pasted by hand, because the
+    single capture on disk carrying notes predated the cap raise. The audit it
+    had to be compared against was six numbers from ONE analysis.
+
+    Two signals, and the second is the one that matters. `at/near cap` says the
+    backstop is biting. `over stated max` says the TARGET is not holding, which
+    is a different fault with a different fix: the description asks for 120 and
+    forbids 150, so a mean comfortably under 120 with a tail at the cap is a
+    few verbose sections, while a mean ABOVE 150 is the instruction losing to
+    something louder. In the case this was built for, the something louder was
+    RULE 1 — a seven-word sentence extended the whole of it to the note, and
+    RULE 1 had grown 736 -> 8,694 characters since that sentence was written.
+
+    Per-section, not just per-fixture: the earlier audit's one capture had
+    `skills` at the cap while the production report had `formatting`, and a
+    single mean would have hidden that they were different sections.
+  */
+  say();
+  say(
+    `section note length (cap ${FIELD_CAPS.sectionNote}, schema asks for ~120, forbids >150):`,
+  );
+  for (const { name } of FIXTURES) {
+    const notes = results
+      .get(name)!
+      .runs.flatMap((run) => run.sectionNotes);
+    if (notes.length === 0) {
+      say(`  ${pad(name, 9, true)} -`);
+      continue;
+    }
+    const lengths = notes.map(({ note }) => note.length);
+    const atCap = lengths.filter(
+      (length) => length >= FIELD_CAPS.sectionNote - 5,
+    ).length;
+    const cut = notes.filter(({ note }) => note.endsWith("…")).length;
+    const overStated = lengths.filter((length) => length > 150).length;
+    say(
+      `  ${pad(name, 9, true)} mean ${mean(lengths).toFixed(1)}` +
+        `, max ${Math.max(...lengths)}` +
+        ` | over stated max 150: ${overStated}/${notes.length}` +
+        ` | at/near cap ${atCap}/${notes.length}` +
+        ` | decoder-cut ${cut}/${notes.length}`,
+    );
+  }
+
+  /*
+    Which section runs long, pooled across fixtures. Names the offender so a
+    fix can be aimed rather than applied to the cap.
+  */
+  say();
+  say("  longest note by section, pooled:");
+  const pooled = new Map<string, number[]>();
+  for (const { name } of FIXTURES) {
+    for (const { name: section, note } of results
+      .get(name)!
+      .runs.flatMap((run) => run.sectionNotes)) {
+      pooled.set(section, [...(pooled.get(section) ?? []), note.length]);
+    }
+  }
+  for (const [section, lengths] of [...pooled.entries()].sort((a, b) => Math.max(...b[1]) - Math.max(...a[1]))) {
+    say(
+      `    ${pad(section, 11, true)} mean ${mean(lengths).toFixed(1)}, max ${Math.max(...lengths)}`,
     );
   }
   /* ------------------------------------------------------- the questions -- */

@@ -212,7 +212,14 @@ If the finding IS worth keeping and the headline already said all of it, make
 If you cannot point at a specific line and quote it, DO NOT EMIT THAT ITEM.
 Fewer items that each quote real text beat eight items of generic advice.
 Generic advice is worthless to the candidate and they will discard the whole
-review because of it. The same applies to sections[].note and to redFlags.
+review because of it.
+
+This paragraph — quote real text or drop the item — is the ONLY part of RULE 1
+that applies to sections[].note and to redFlags. Everything above it governs
+\`text\` and \`detail\` and nothing else. In particular a note does NOT carry the
+quote-then-advise structure: it does not have to say what to change, and it
+must not try. That is what \`detail\` is for, and \`detail\` has three times the
+room to do it in.
 
 === RULE 2: INVENT NOTHING ===
 

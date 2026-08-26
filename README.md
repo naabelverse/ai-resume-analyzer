@@ -375,6 +375,50 @@ payload reproducing it. Across every run since, the largest legitimate gap was
 subtler scale error, or one that moves the overall score along with the
 sections, would still get through.
 
+**A blanket "the same applies to X" inherits whatever the rule later becomes.**
+This is the most general lever found in this project, and it is worth stating
+on its own because it is invisible by construction: nothing about it changes,
+which is exactly why nobody re-reads it.
+
+RULE 1 ended with a seven-word clause — "The same applies to sections[].note
+and to redFlags." On the day it was written RULE 1 was **736 characters** and
+said one thing: quote real text or drop the item. Extended to a section note
+that is a CONSTRAINT. It makes the note shorter and more specific, which is
+what a 120-character target wants.
+
+Eleven commits later RULE 1 was **8,694 characters — 11.8x** — because six
+separate fixes had each correctly expanded it: the text/detail split, the
+restatement rule and its escape hatch, the quote-is-a-beginning rule, the
+advice-is-a-sentence rule, quote-the-fragment, and the list-marker rule. Every
+one of those was right for `detail`. The clause silently handed all of them to
+a field with a fifth of the room, so the note was being asked for a verbatim
+quote, what it costs, and what to change, in one sentence of 120 characters.
+
+It resolved the way the emphasis pointed. RULE 1 is titled "the most important
+rule here" and carries worked GOOD/BAD examples; the competing instruction was
+seven words at the end of a schema description. Live notes came back at
+**189 and 180 against a 190 cap**, cut mid-word, both reading
+observation -> problem -> next step: the `detail` contract, exactly.
+
+The tell is the pair of numbers. A tail at the cap with a mean under the target
+is a few verbose sections. A tail at the cap while the **target** is being
+missed wholesale is an instruction losing to a louder one somewhere else, and
+raising the cap treats the symptom — it also pulls the tail up again, which
+`FIELD_CAPS.feedbackText` already recorded at 90.
+
+The fix was to scope the clause to the paragraph it was written against and to
+say in the note's own description what it is NOT. The cap did not move.
+
+**What actually let it run for eleven commits was the absence of a row.**
+`sections[].note` was the one free-text field the quality report never
+measured — headline length, detail length, restatement rate and quote-stopping
+all had distributions; the note had nothing, so there was no number to look
+wrong. The only capture on disk carrying notes predated the cap raise, so the
+comparison had to be made against six values from a single analysis. The suite
+now reports note length per fixture and per section, with "over stated max" as
+a separate column from "at/near cap" precisely because they mean different
+things. **Instrument the field before tuning the field.**
+
 **Guided JSON decoding can run away on whitespace, and it still does.** This is
 the failure mode that cost the most to find, because it never once looked like
 itself.
