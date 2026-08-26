@@ -147,6 +147,110 @@ describe("AnalysisWireSchema", () => {
   });
 });
 
+describe("the non-empty contract reaches the decoder", () => {
+  /**
+   * This is the production failure of 2026-08-26, and it is the whole reason
+   * the two schemas have to be kept in step by a test rather than by care.
+   *
+   * `AnalysisResultSchema` requires `.min(1)` on every free-text field. The
+   * wire schema carried only `.max()`, so `z.toJSONSchema` emitted a
+   * `maxLength` and no `minLength` — and an empty string was a LEGAL DECODE
+   * that the validator then rejected. Both attempts produced
+   * `feedback[].detail: ""`, and the run degraded with `AI_SCHEMA` in 24s,
+   * which is far too fast to be the whitespace runaway that looks like it in
+   * the log.
+   *
+   * The prompt already forbade an empty `detail` in prose ("NEVER leave
+   * `detail` empty ... it fails validation"). Prose is not a grammar. What
+   * makes it unrepresentable is `minLength`, for the same reason `sections` is
+   * a keyed object rather than an array.
+   *
+   * So: every field the RESULT schema requires a character of, the WIRE schema
+   * must forbid the decoder from leaving empty. Adding a `.min(1)` to one side
+   * only is exactly the drift this pins.
+   */
+  interface StringNode {
+    minLength?: number;
+    maxLength?: number;
+  }
+  interface WireProperties {
+    scoreRationale: StringNode;
+    summary: StringNode;
+    sections: {
+      properties: Record<string, { properties: { note: StringNode } }>;
+    };
+    feedback: {
+      items: { properties: { text: StringNode; detail: StringNode } };
+    };
+    bulletRewrites: {
+      items: {
+        properties: {
+          original: StringNode;
+          improved: StringNode;
+          why: StringNode;
+        };
+      };
+    };
+  }
+
+  const properties = () =>
+    (z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: WireProperties;
+    }).properties;
+
+  type Pick = (p: WireProperties) => StringNode;
+
+  const NON_EMPTY_PATHS: ReadonlyArray<readonly [string, Pick]> = [
+    ["scoreRationale", (p) => p.scoreRationale],
+    ["summary", (p) => p.summary],
+    ...SECTION_NAMES.map(
+      (name) =>
+        [
+          `sections.${name}.note`,
+          (p: WireProperties) => p.sections.properties[name].properties.note,
+        ] as const,
+    ),
+    ["feedback[].text", (p) => p.feedback.items.properties.text],
+    ["feedback[].detail", (p) => p.feedback.items.properties.detail],
+    ["bulletRewrites[].original", (p) => p.bulletRewrites.items.properties.original],
+    ["bulletRewrites[].improved", (p) => p.bulletRewrites.items.properties.improved],
+    ["bulletRewrites[].why", (p) => p.bulletRewrites.items.properties.why],
+  ];
+
+  it.each(NON_EMPTY_PATHS)(
+    "emits minLength on %s, so the decoder cannot produce an empty string",
+    (_label, pick) => {
+      expect(pick(properties()).minLength).toBe(1);
+    },
+  );
+
+  it("rejects an empty detail — the exact response that reached production", () => {
+    const wire = wireFrom();
+    (wire.feedback as Array<{ detail: string }>)[0].detail = "";
+
+    expect(AnalysisWireSchema.safeParse(wire).success).toBe(false);
+  });
+
+  it.each(["scoreRationale", "summary"] as const)(
+    "rejects an empty %s",
+    (field) => {
+      const wire = { ...wireFrom(), [field]: "" };
+      expect(AnalysisWireSchema.safeParse(wire).success).toBe(false);
+    },
+  );
+
+  /**
+   * The bound the wire schema must NOT gain. `redFlags` is legitimately empty
+   * — "no red flags" is an answer, and the description says so — and the
+   * result schema puts no `.min(1)` on its items either. Pinned because the
+   * obvious over-application of the fix above is to add `.min(1)` everywhere.
+   */
+  it("still accepts an empty redFlags array", () => {
+    const wire = { ...wireFrom(), redFlags: [] };
+    expect(AnalysisWireSchema.safeParse(wire).success).toBe(true);
+  });
+});
+
 describe("the pass-item rule reaches the decoder", () => {
   /**
    * A run came back with all five feedback items marked "fail". The rule that
@@ -507,4 +611,38 @@ describe("deriveVerdict", () => {
       );
     }
   });
+});
+
+describe("the prompt does not ask for a derived field", () => {
+  /**
+   * `status` was removed from the wire section object in `2b44aaf` so it could
+   * be derived from the section score, but RULE 4 went on telling the model
+   * that "every section carries a status" for four commits afterwards. The
+   * grammar made that harmless — `additionalProperties: false` meant the field
+   * could not be emitted — so nothing failed and nothing said so.
+   *
+   * Harmless is not the same as correct: it is an instruction to produce a
+   * field the schema forbids, and the next person to read the prompt has to
+   * work out which of the two is lying. `verdict` and `overallScore` are the
+   * same shape of rule and RULE 3 already states them correctly.
+   */
+  it("asks for a status on feedback items only", () => {
+    expect(SYSTEM_PROMPT).toMatch(/Every feedback item carries a status/);
+    expect(SYSTEM_PROMPT).not.toMatch(/every section carries a status/i);
+  });
+
+  it.each(["status", "verdict", "overallScore"])(
+    "keeps %s out of the wire section object, where it is derived",
+    (field) => {
+      const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+        properties: { sections: { properties: Record<string, { required: string[] }> } };
+      };
+
+      for (const name of SECTION_NAMES) {
+        expect(json.properties.sections.properties[name].required).not.toContain(
+          field,
+        );
+      }
+    },
+  );
 });

@@ -478,6 +478,70 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     expect(payload.ok && payload.data.feedback.length).toBeGreaterThanOrEqual(5);
   });
 
+  /**
+   * The gap that made the 2026-08-26 outage cost a whole session to diagnose.
+   *
+   * Attempt 1's complaint is logged (sliced to 400 characters); attempt 2's was
+   * never written down anywhere. So a run that actually degraded left only
+   * `AI_SCHEMA` behind — enough to say validation failed twice, not enough to
+   * say which field, and not enough to tell a schema mismatch apart from the
+   * whitespace runaway that produces the same code.
+   */
+  it("logs the second attempt's reason and raw body when it degrades", async () => {
+    const sentinel = "SENTINEL_RAW_BODY_MARKER";
+    harness.reply(wire({ summary: sentinel + "x".repeat(501) }));
+    harness.reply(wire({ summary: sentinel + "x".repeat(501) }));
+    const POST = await loadRoute(harness.name);
+
+    await POST(request(sampleResumePdf()));
+
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("failed validation twice");
+    // The field the validator named. Without it the line says a failure
+    // happened and nothing about what to change.
+    expect(logged).toContain("summary");
+    // The body itself, not a description of it — the whole point is that the
+    // next occurrence can be read rather than reproduced.
+    expect(logged).toContain(sentinel);
+  });
+
+  it("logs the token counts that separate a runaway from a schema mismatch", async () => {
+    harness.reply(wire({ summary: "x".repeat(501) }));
+    harness.reply(wire({ summary: "x".repeat(501) }));
+    const POST = await loadRoute(harness.name);
+
+    await POST(request(sampleResumePdf()));
+
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toMatch(/attempt 1:/);
+    expect(logged).toMatch(/attempt 2:/);
+    expect(logged).toMatch(/chars=\d+/);
+  });
+
+  /**
+   * The other half of the rule: the body is logged on the failing path ONLY.
+   * A successful analysis prints counts and timings, as everything else in
+   * this pipeline does.
+   */
+  it("never logs a model response when the analysis succeeds", async () => {
+    const sentinel = "SENTINEL_SUMMARY_TEXT";
+    harness.reply(wire({ summary: sentinel }));
+    const POST = await loadRoute(harness.name);
+
+    const response = await POST(request(sampleResumePdf()));
+    const payload = (await response.json()) as AnalyzeResponse;
+    expect(payload.ok && payload.meta.degraded).toBe(false);
+
+    const logged = [
+      ...vi.mocked(console.log).mock.calls,
+      ...vi.mocked(console.warn).mock.calls,
+      ...vi.mocked(console.error).mock.calls,
+    ]
+      .flat()
+      .join(" ");
+    expect(logged).not.toContain(sentinel);
+  });
+
   it("retries a truncated response, then degrades", async () => {
     harness.reply(wire(), "truncated");
     harness.reply(wire(), "truncated");

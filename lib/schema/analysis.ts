@@ -3,19 +3,43 @@ import { z } from "zod";
 /**
  * Two schemas, deliberately.
  *
- * Structured outputs constrain decoding against a JSON Schema, which
- * guarantees *shape* — keys, types, enums, nullability — but does not enforce
- * string `.max()` bounds or array length ranges. So:
+ * Structured outputs constrain decoding against a JSON Schema. What that
+ * guarantees varies by provider and is worth stating precisely, because a
+ * wrong belief here is what caused the 2026-08-26 outage:
  *
- *   AnalysisWireSchema   — shape only. This is what goes to `zodOutputFormat`.
+ *   - Shape — keys, types, enums, nullability — everywhere.
+ *   - `maxLength` and `minItems` on NVIDIA's `strict: true` json_schema, which
+ *     enforces them WHILE DECODING. Both are measured, not assumed: `FIELD_CAPS`
+ *     records headlines arriving cut mid-word at exactly the cap, and
+ *     `ARRAY_CAPS.feedbackMin` records a floor of five compelling the model to
+ *     pad to five. Anthropic does not enforce `maxLength` at all.
+ *   - `minLength` is the same mechanism and the same decoder, so it should hold
+ *     — but it is INFERRED from those two, never yet watched live. If empty
+ *     `detail` survives this change, that inference is what was wrong, and the
+ *     next place to look is the retry loop rather than the schema.
+ *
+ * So:
+ *
+ *   AnalysisWireSchema   — shape, plus the bounds a decoder can enforce.
  *   AnalysisResultSchema — the full contract, every bound. Validates what came
  *                          back before a single character reaches the UI.
  *
- * The bounds the wire schema can't enforce are carried in `.describe()` calls
- * instead: descriptions become part of the JSON Schema the model decodes
- * against, so it sees "at most 90 characters" while generating rather than
- * only hearing about it in a retry. That turns most would-be violations into
- * non-events and keeps the retry for the genuinely surprising cases.
+ * `.min(1)` is on both, and that is the correction. It used to be on the
+ * result schema alone, which made an empty string a LEGAL DECODE that the
+ * validator then rejected — the model emitted `feedback[].detail: ""` twice in
+ * a row and the run degraded. The prompt had forbidden it in prose for two
+ * commits by then. Prose is not a grammar: what makes a state unrepresentable
+ * is a bound the decoder can see, which is the same reasoning that makes
+ * `sections` a keyed object rather than an array.
+ *
+ * Bounds a decoder may still miss are ALSO carried in `.describe()` calls:
+ * descriptions become part of the JSON Schema the model decodes against, so it
+ * sees "at most 90 characters" while generating rather than only hearing about
+ * it in a retry. Belt and braces, on the two providers that behave differently.
+ *
+ * `tests/schema.test.ts` asserts every field the result schema requires a
+ * character of emits `minLength` on the wire, so the two cannot drift apart
+ * again silently.
  */
 
 export const SECTION_NAMES = [
@@ -252,10 +276,23 @@ export const StatusSchema = z.enum(["pass", "warn", "fail"]);
  * degraded path. Only the model was never told.
  */
 /**
- * Where a score becomes a status. `lib/scoring.ts` routes the degraded path's
- * section scores through these, and the section `status` description below is
- * built from them, so the model is told the same boundaries the code applies
- * rather than a hand-copied paraphrase of them.
+ * Where a score becomes a status, applied in three places and stated to the
+ * model in none of them.
+ *
+ * `statusFor` in `lib/scoring.ts` derives every section's status from its
+ * score — on the live path after parsing, and on the degraded path — and
+ * `deriveVerdict` below bands the overall score on the same two boundaries.
+ *
+ * This comment used to claim "the section `status` description below is built
+ * from them, so the model is told the same boundaries the code applies". That
+ * stopped being true when `status` was removed from the wire section object:
+ * the description it referred to no longer exists, so nothing interpolates
+ * these into anything the model reads. That is correct as it stands — the
+ * model supplies scores, the code supplies statuses, and a boundary the model
+ * cannot apply is a boundary it does not need. Recorded rather than deleted
+ * because the claim read as a live guarantee for two commits after it stopped
+ * being one, and `tests/schema.test.ts` still notes these "used to be pinned
+ * by being interpolated into" that description.
  */
 export const STATUS_THRESHOLDS = { pass: 75, warn: 50 } as const;
 
@@ -396,6 +433,7 @@ const SectionBodySchema = z.object({
   score: z.number().int().min(0).max(100).describe("Integer 0-100."),
   note: z
     .string()
+    .min(1)
     .max(FIELD_CAPS.sectionNote)
     .describe(
       "One sentence about THIS resume's version of this section, quoting it where possible. Aim for 120 characters, never exceed 150.",
@@ -409,6 +447,7 @@ export const AnalysisWireSchema = z.object({
   // fact.
   scoreRationale: z
     .string()
+    .min(1)
     .max(FIELD_CAPS.scoreRationale)
     .describe(
       "In ONE sentence, name the single biggest thing lifting or holding back this resume, citing something specific in it. Do not state an overall score: it is computed from your dimension scores. Never name a band or a score range either — no \"Band 60-74\", no \"in the 60-74 range\". Those anchors are your working scale, not the reader's. Aim for 170 characters, never exceed 210.",
@@ -424,6 +463,7 @@ export const AnalysisWireSchema = z.object({
   ),
   summary: z
     .string()
+    .min(1)
     .max(FIELD_CAPS.summary)
     .describe(
       "YOUR VERDICT on the resume, written TO the candidate as 'you' — e.g. 'Your experience section is strong, but...'. This is NOT the resume's own summary or profile section: never copy that text here. Two or three sentences. Aim for 260 characters.",
@@ -453,12 +493,14 @@ export const AnalysisWireSchema = z.object({
         status: StatusSchema.describe(STATUS_MEANING),
         text: z
           .string()
+          .min(1)
           .max(FIELD_CAPS.feedbackText)
           .describe(
             "ONE short sentence in your own words stating what you FOUND in this resume — a finding, not a topic. Never a rubric heading, a dimension name, or a schema field name ('impact', 'Skills and technologies', 'ATS-friendliness'): those name the subject without saying anything about this document. Never a bare quote either; the quote belongs in detail. Aim for 65 characters, never exceed 85.",
           ),
         detail: z
           .string()
+          .min(1)
           .max(FIELD_CAPS.feedbackDetail)
           .describe(
             'MUST open with the exact text you are criticising, copied verbatim from the resume, then explain why it matters and what to do. If you cannot quote a specific line, do not emit this item at all. Aim for 230 characters, never exceed 285.',
@@ -475,16 +517,19 @@ export const AnalysisWireSchema = z.object({
       z.object({
         original: z
           .string()
+          .min(1)
           .max(FIELD_CAPS.rewriteOriginal)
           .describe(
             "The bullet copied verbatim from the resume. Never exceed 280 characters; if a bullet is longer than that, rewrite a different one.",
           ),
         improved: z
           .string()
+          .min(1)
           .max(FIELD_CAPS.rewriteImproved)
           .describe("The rewrite. Aim for 200 characters, never exceed 280."),
         why: z
           .string()
+          .min(1)
           .max(FIELD_CAPS.rewriteWhy)
           .describe(
             "One sentence on what the rewrite changed and why. Aim for 140 characters, never exceed 185.",

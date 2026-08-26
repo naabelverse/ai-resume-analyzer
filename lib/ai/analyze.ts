@@ -259,6 +259,59 @@ function rethrow(cause: unknown): never {
   throw new AiUnavailableError(cause);
 }
 
+/**
+ * The terminal failure, logged in full — and the one place in this pipeline
+ * that prints a model response verbatim.
+ *
+ * Everything else logs counts and timings only. This path is the exception
+ * because it is the end of the line: `AiSchemaError` degrades the report, and
+ * the reason for the SECOND failure was previously never written down
+ * anywhere. A production run degraded with `AI_SCHEMA` and left behind only
+ * the code itself — enough to say validation failed twice, not enough to say
+ * which field or why, and not enough to tell a schema mismatch apart from the
+ * whitespace runaway that produces the same code. It cost a full session to
+ * reproduce something one line of output would have answered.
+ *
+ * What it prints, and why each part earns its place:
+ *
+ *   - Both validator complaints, in FULL. Attempt 1's is already logged for
+ *     the ordinary retry but sliced to 400 characters, which cuts exactly the
+ *     field list you need when the retry then fails too.
+ *   - Token counts and body lengths. These separate the two causes without
+ *     reading the body at all: a runaway is thousands of tokens at roughly one
+ *     character each, a schema mismatch is an ordinary-sized body with the
+ *     wrong content in it.
+ *   - The raw body of the attempt that failed last, unsliced. A truncated
+ *     diagnostic is how this became invisible in the first place.
+ *
+ * The body is the MODEL'S output. The extracted resume is still never logged,
+ * here or anywhere else. Note what the body can nonetheless carry: `detail` is
+ * required to open with a verbatim quote, so a handful of the candidate's own
+ * words can appear on this line. That is the deliberate trade for a failure
+ * that is otherwise undiagnosable, and it is confined to the path where the
+ * analysis has already been lost.
+ */
+function logTerminalFailure(
+  provider: AnalysisProvider,
+  first: Attempt,
+  second: Attempt,
+): void {
+  const shape = ({ completion }: Attempt) =>
+    `outcome=${completion.outcome} chars=${completion.text.length} ` +
+    `tokens=${JSON.stringify(completion.usage)}`;
+
+  console.error(
+    `[analyze] ${provider.name} failed validation twice — degrading.\n` +
+      `  model    : ${provider.model}\n` +
+      `  attempt 1: ${shape(first)}\n` +
+      `             ${first.reason ?? "(no reason recorded)"}\n` +
+      `  attempt 2: ${shape(second)}\n` +
+      `             ${second.reason ?? "(no reason recorded)"}\n` +
+      `  raw body of attempt 2 follows, unsliced:\n` +
+      second.completion.text,
+  );
+}
+
 export async function analyzeResumeWithDiagnostics(
   input: AnalyzeInput,
 ): Promise<AnalyzeOutcome> {
@@ -309,6 +362,7 @@ export async function analyzeResumeWithDiagnostics(
   }
 
   if (!second.ok || !second.result) {
+    logTerminalFailure(provider, first, second);
     throw new AiSchemaError(new Error(second.reason ?? "Validation failed twice."));
   }
 

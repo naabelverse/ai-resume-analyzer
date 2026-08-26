@@ -262,8 +262,7 @@ breakdown that was not really made.
 
 === RULE 4: THREE STATUSES, NOT TWO ===
 
-Every feedback item and every section carries a status, and there are three of
-them:
+Every feedback item carries a status, and there are three of them:
 
 - pass — this specific thing is done well. Nothing to change.
 - warn — this specific thing works, but has a real weakness worth fixing.
