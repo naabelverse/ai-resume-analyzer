@@ -473,6 +473,53 @@ penalises well-formed output as readily as it penalises a loop. Reverted.
 So: nothing currently reduces how often the runaway happens. `max_tokens` bounds
 what one costs, and that is the whole of the mitigation.
 
+**Three attempts across two runs have now stopped in the same place, and that
+is all it is so far.** The first captured runaway "stopped mid-object, after
+`sections.skills`". The 2026-08-26 capture stopped after `sections` on both
+attempts — 1,648 and 1,632 characters of JSON, `feedback`, `bulletRewrites`,
+`keywordMatch` and `redFlags` never emitted at all. Three data points from two
+runs is a coincidence worth writing down and nothing more; it is recorded here
+so the next capture has something to compare against rather than being read
+fresh. If it holds across more captures, the `sections` boundary is where to
+look — and the thing that would make it interesting is that `sections` is the
+one keyed object in the schema, so its closing brace is the point where the
+grammar's next legal token set changes shape most.
+
+What that capture DID settle is that the runaway emits **structurally correct
+JSON**, not corrupt JSON. Read by eye the body looked malformed: `formatting`
+printed at two spaces where the other five sections sat at four, with the
+separating comma alone on its own line, which reads as a closed object followed
+by a stray key. It is not. Repair the newlines the console wrapped into string
+literals, close the one open brace, and it parses — with all six sections
+present and correctly nested inside `sections`. Indentation carries no meaning
+in JSON, and the deranged indentation IS the runaway beginning: whitespace
+appearing at the one place the grammar always permits more of it. The claim in
+this section stands as written.
+
+**The diagnostic added to expose the runaway was stripping the evidence.** This
+is worth naming as a class, because it is the same fault as a test that pins
+internal phrasing: an instrument that runs, reports, and quietly measures the
+wrong thing.
+
+`logTerminalFailure` printed `chars=` from `completion.text` — which is what
+survived `stripToJson`, and `stripToJson` slices from the first `{` to the LAST
+`}` and discards everything after it. A runaway is ~90% trailing whitespace, so
+the one thing that identifies it was deleted before the number was taken. The
+printed line read `chars=1632 tokens={...,"outputTokens":4000}`, which invites
+the division: 0.41 characters per token, denser than the 1.06 on record, and
+therefore a new and worse failure. It is not a ratio at all — numerator and
+denominator describe different bodies. Reconstructed properly, 1,632 characters
+at the healthy ~3.9 chars/token is ~418 tokens of content and **~89.5%
+whitespace**, which is the 91.9% already documented above, to within noise.
+
+The completion now carries `rawChars` — the pre-strip length — through the
+provider seam, and the diagnostic prints `chars=`, `raw=` and `stripped=`
+together so the subtraction is on the line rather than left to be reasoned
+about afterwards. **An instrument that reports a number nobody can act on is
+better than none; an instrument that reports a plausible wrong number is
+worse.**
+
+
 **`maxDuration` has never met a real platform.** The 245s worst case
 (2 attempts x 120s + 5s) is arithmetic checked by a test, not an observation.
 Nothing here has been deployed. The app targets Railway, which does not cap

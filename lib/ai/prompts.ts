@@ -221,6 +221,17 @@ quote-then-advise structure: it does not have to say what to change, and it
 must not try. That is what \`detail\` is for, and \`detail\` has three times the
 room to do it in.
 
+A note names ONE thing. Count, not length: one observation, at most one
+quotation. A strong section usually has three or four things worth saying, and
+naming all of them is what makes a note overrun — the extras belong in feedback.
+
+  GOOD: Every experience bullet leads with a metric, such as "reduced CAC from
+        RM 42 to RM 26".
+  BAD:  Experience is rich with quantified achievements: reducing CAC from
+        RM 42 to RM 26, growing installs from 68K to 145K, redirecting RM 1.8M
+        via incrementality testing, and improving…
+        <- four findings in a field sized for one. The list is why it was cut.
+
 === RULE 2: INVENT NOTHING ===
 
 Never state an employer, a job title, a date, a technology, or a metric that

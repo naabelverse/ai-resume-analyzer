@@ -699,3 +699,71 @@ describe("the section note is not the detail contract", () => {
     }
   });
 });
+
+describe("the note names one thing, counted rather than measured", () => {
+  /**
+   * The first note contract held on middling (mean 112.2, 1/30 over the stated
+   * max) and weak (120.6, 5/24) and failed on strong: mean 138.8, 9 of 24 over
+   * 150, 4 at the cap. Pooled by section, `summary` and `skills` ran at 139
+   * while `contact` sat at 96 — and contact is the section with exactly one
+   * thing to say about it.
+   *
+   * So the fault is not verbosity. A richer resume gives the model more to
+   * observe per section and it observes all of it: the measured failure is an
+   * ENUMERATION comma-spliced into a field sized for one finding.
+   *
+   * Hence a count, not a length. This repo has twice established that the model
+   * writes to a length it has already decided on and the cap only chooses where
+   * the cut lands — `FIELD_CAPS.feedbackText` records both attempts. "One
+   * observation, at most one quotation" is checkable while writing in a way
+   * "aim for 120 characters" demonstrably is not.
+   *
+   * Pinned in both places for the reason the headline contract is: `f485f05`
+   * found that eight words of schema description with no worked example
+   * anywhere lost to whatever taxonomy was nearest.
+   */
+  it("states the count in the description the decoder reads", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        sections: {
+          properties: Record<string, { properties: { note: { description?: string } } }>;
+        };
+      };
+    };
+
+    for (const name of SECTION_NAMES) {
+      const description =
+        json.properties.sections.properties[name].properties.note.description ??
+        "";
+      expect(description).toMatch(/one thing, not a list/);
+      expect(description).toMatch(/at most one quotation/);
+      expect(description).toMatch(/name the most important and stop/);
+    }
+  });
+
+  it("gives the note worked examples, as the headline and detail have", () => {
+    expect(SYSTEM_PROMPT).toMatch(/A note names ONE thing\. Count, not length/);
+    expect(SYSTEM_PROMPT).toMatch(/four findings in a field sized for one/);
+  });
+
+  /**
+   * The lever that is NOT being pulled, pinned so a later reader does not
+   * assume it was. Neither number moved: this removes a competing instruction
+   * and adds a count, and if the mean still sits near 139 afterwards then the
+   * length is intrinsic to what those sections have to say and the TARGET is
+   * what deserves revisiting — with the arithmetic re-run first.
+   */
+  it("moves neither the target nor the cap", () => {
+    expect(FIELD_CAPS.sectionNote).toBe(190);
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        sections: {
+          properties: Record<string, { properties: { note: { description?: string } } }>;
+        };
+      };
+    };
+    expect(
+      json.properties.sections.properties.contact.properties.note.description,
+    ).toMatch(/Aim for 120 characters, never exceed 150/);
+  });
+});

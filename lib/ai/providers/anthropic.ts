@@ -118,6 +118,10 @@ export function createAnthropicProvider(
           detail: `Model declined the request (${response.stop_details?.category ?? "unspecified"}).`,
           elapsedMs,
           usage,
+          // This transport does not strip, so raw and post-strip agree. Still
+          // populated rather than made optional: a diagnostic present on one
+          // provider and absent on the other is one nobody trusts on either.
+          rawChars: text.length,
         };
       }
 
@@ -130,6 +134,10 @@ export function createAnthropicProvider(
           detail: "Response hit the token ceiling before the JSON was complete.",
           elapsedMs,
           usage,
+          // This transport does not strip, so raw and post-strip agree. Still
+          // populated rather than made optional: a diagnostic present on one
+          // provider and absent on the other is one nobody trusts on either.
+          rawChars: text.length,
         };
       }
 
@@ -141,6 +149,10 @@ export function createAnthropicProvider(
         detail: null,
         elapsedMs,
         usage,
+        // This transport does not strip, so raw and post-strip agree. Still
+        // populated rather than made optional: a diagnostic present on one
+        // provider and absent on the other is one nobody trusts on either.
+        rawChars: text.length,
       };
     },
   };

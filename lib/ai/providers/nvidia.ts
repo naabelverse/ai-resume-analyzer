@@ -222,6 +222,10 @@ export function createNvidiaProvider(
         outputTokens: response.usage?.completion_tokens ?? null,
       };
       const reasoning = message.reasoning_content?.trim() || null;
+      // Before stripToJson, which slices to the last `}` and discards the
+      // trailing whitespace a runaway is made of. This is the only place
+      // the size of the actual generation is still visible.
+      const rawChars = (message.content ?? "").length;
 
       if (choice?.finish_reason === "length") {
         return {
@@ -233,6 +237,7 @@ export function createNvidiaProvider(
             "Response hit max_tokens before the JSON was complete. Raise AI_MAX_TOKENS or lower the reasoning budget.",
           elapsedMs,
           usage,
+          rawChars,
         };
       }
 
@@ -249,6 +254,7 @@ export function createNvidiaProvider(
             : "Model returned an empty response.",
           elapsedMs,
           usage,
+          rawChars,
         };
       }
 
@@ -260,6 +266,7 @@ export function createNvidiaProvider(
         detail: null,
         elapsedMs,
         usage,
+        rawChars,
       };
     },
   };

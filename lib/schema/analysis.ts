@@ -457,7 +457,7 @@ const SectionBodySchema = z.object({
     .min(1)
     .max(FIELD_CAPS.sectionNote)
     .describe(
-      "One OBSERVATION about THIS resume's version of this section, quoting it where possible. Describe what is there; do NOT say what to change and do NOT append a next step — the fix belongs in feedback[].detail, which has room for it. One sentence. Aim for 120 characters, never exceed 150.",
+      "ONE observation about THIS resume's version of this section — one thing, not a list, with at most one quotation. If several things are true of this section, name the most important and stop; the rest belong in feedback. Describe what is there: do NOT say what to change and do NOT append a next step, which is what feedback[].detail is for. One sentence. Aim for 120 characters, never exceed 150.",
     ),
 });
 

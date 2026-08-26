@@ -54,6 +54,22 @@ export interface ProviderCompletion {
   detail: string | null;
   elapsedMs: number;
   usage: { inputTokens: number | null; outputTokens: number | null } | null;
+  /**
+   * Length of the assistant text BEFORE the provider trimmed it, in characters.
+   *
+   * `text` above is what survived `stripToJson`, which slices from the first
+   * `{` to the LAST `}` and discards everything after — including the trailing
+   * whitespace a runaway generation is made of. So `text.length` measured
+   * against `usage.outputTokens` is a ratio between two different bodies, and
+   * it reads as though the runaway were far denser than it is: one capture
+   * logged 1,632 characters against 4,000 tokens, which invites the conclusion
+   * "0.41 chars/token, worse than the 1.06 on record" when the true figure is
+   * ~89.5% whitespace at the same rate the README already documents.
+   *
+   * Carrying the raw length makes the subtraction available at the point of
+   * diagnosis rather than requiring it to be reasoned about afterwards.
+   */
+  rawChars: number;
 }
 
 export interface AnalysisProvider {

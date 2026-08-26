@@ -296,9 +296,20 @@ function logTerminalFailure(
   first: Attempt,
   second: Attempt,
 ): void {
-  const shape = ({ completion }: Attempt) =>
-    `outcome=${completion.outcome} chars=${completion.text.length} ` +
-    `tokens=${JSON.stringify(completion.usage)}`;
+  const shape = ({ completion }: Attempt) => {
+    // Both lengths, always. `chars` is post-strip; `raw` is what the model
+    // actually generated. Dividing `chars` by output tokens is the mistake
+    // this line exists to prevent, and it was made the first time this
+    // diagnostic printed anything: 1,632 chars against 4,000 tokens reads as
+    // 0.41 chars/token — denser than any runaway on record — when the body
+    // being counted had already had ~89.5% of itself stripped away.
+    const stripped = completion.rawChars - completion.text.length;
+    return (
+      `outcome=${completion.outcome} chars=${completion.text.length} ` +
+      `raw=${completion.rawChars} stripped=${stripped} ` +
+      `tokens=${JSON.stringify(completion.usage)}`
+    );
+  };
 
   console.error(
     `[analyze] ${provider.name} failed validation twice — degrading.\n` +
