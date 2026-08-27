@@ -470,6 +470,85 @@ can say in advance what the change would prove. Two caveats on the table:
 strong lost 2 of its 5 runs to unusable responses, so its 123.6 is three runs
 and not five, and every run in it needed a second attempt.
 
+**Round eight changed it anyway, and the reason is worth separating from the
+evidence.** The stop above was the right call on the evidence, and the evidence
+has not changed. What changed is a judgement about which defect matters: 11 of
+weak's 30 notes cut mid-word is visible to anyone who opens the app, and a
+truncation reads as the product being broken rather than as a tuning question.
+That is a product decision overriding a measurement discipline, not a new
+measurement, and it is recorded that way on purpose.
+
+**The note format changed. This round is a policy change, not a bigger cap.**
+Round eight is easy to file under "they raised the number again", and read that
+way the interesting part is invisible. For seven rounds a note was defined as
+an observation and prescription was forbidden outright — "do NOT say what to
+change and do NOT append a next step". That prohibition is now **gone**, from
+the schema description and from the system prompt both. A note may close with
+one clause saying what to do about the thing it named.
+
+So `sections[].note` is a different field than it was, and the cap is
+downstream of that. Anyone comparing notes captured before and after this
+commit is comparing two formats, not one format at two lengths — and any
+future round that measures note length without knowing this will mis-read what
+it is looking at.
+
+Why the prohibition went rather than got restated louder: the nine longest
+notes above show **four still prescribing** against a description that forbade
+it in as many words, and three rounds of forbidding did not stop it. The rule
+was not being followed and was not going to be, so the honest move was to write
+down what the field actually does. That is also the whole reason the cap had to
+move — a note that names a thing AND says what to do about it needs the room
+for both, and the old 190 was sized for one of them.
+
+The second thing round eight does that the previous two raises did not: **it
+moves the target with the cap.** 120/150/190 becomes 150/190/230 — aim, stated
+max, hard cap. The last two raises moved only the backstop and left the target
+at 120/150, so the model went on writing past a target it was never going to
+hit and hit the new cap instead. Same lever, pulled the way
+`FIELD_CAPS.feedbackText` says it has to be. The sizing follows the same
+measurements: aim 150 is weak's measured mean, stated max 190 puts the
+189-character clean example under the **target** rather than merely under the
+cap, and the cap sits 40 above the stated max because 40 is the overshoot this
+round actually observed.
+
+The arithmetic was re-run before spending, as `ARRAY_CAPS` demands, and it
+settled the "215 vs 234-252" disagreement that comment had carried for several
+commits: the true ceiling is **234**, compact at 3.75 chars/token, so the old
+215 was too conservative by 19 characters. The worst case at the shipped caps
+is 14,973 characters / ~3,993 tokens — **7 tokens of margin**. 250 was asked
+for and does not fit; it is 25 tokens over. 234 was available and was declined:
+230 ships because the extra margin is worth more than one token of headroom on
+a field that already has room. `tests/schema.test.ts` now builds the maxed wire
+object, parses it, and asserts it fits, so the next person to raise a cap fails
+a test instead of reading a stale number off a comment.
+
+**Where the room came from, recorded so it is traceable: `redFlags`.** The 40
+characters this raise spent were the reserve the previous round explicitly held
+against `redFlag`, and the consequence is exact — **`redFlag`'s own ceiling
+falls from 244 to 204**, against a cap of 200. There is no longer room to raise
+it.
+
+`redFlag` still has **zero live observations**. Every other capped field has
+been measured against captured output; this one has never been seen populated
+at all, because the only capture on disk carries `"redFlags": []` twice. So the
+trade was made knowingly and in one direction: a defect readers can see today —
+notes cut mid-word in front of anyone testing the app — was preferred over
+headroom reserved against a field nobody has yet watched fail.
+
+**If `redFlags` starts arriving truncated, this commit is the cause.** Not a
+model change, not a prompt regression — this trade. The fix will not be a cap
+raise, because there is no room for one; it will be removing a derivable field
+from the response, and `matchPercent` is the next candidate, being
+`round(matched / (matched + missing) * 100)` and computable exactly the way
+`status` and `verdict` already are.
+
+The prediction, stated in advance as the paragraph above asks: **notes stop
+arriving cut, and the mean lands near 150-190 rather than climbing to sit on
+230.** If it climbs to the new cap the way it sat on the old one, the length is
+being set by the prescription now permitted rather than by the target — and
+there is no room for a ninth raise. The next lever would be removing a field
+from the response, the way deriving `status` bought back 26 tokens.
+
 **Guided JSON decoding can run away on whitespace, and it still does.** This is
 the failure mode that cost the most to find, because it never once looked like
 itself.

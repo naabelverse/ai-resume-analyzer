@@ -220,16 +220,20 @@ nothing else. It does not reach \`sections[].note\` and it does not reach
 \`redFlags\`, with a single exception named here: quote real text or drop the
 item applies to them as well.
 
-A note in particular does NOT carry the quote-then-advise structure: it does
-not have to say what to change, and it must not try. That is what \`detail\` is
-for, and \`detail\` has three times the room to do it in. What a note DOES have
-to do is in SECTION NOTES, immediately below.
+A note in particular does NOT carry the full quote-then-advise structure. It
+MAY close with one short clause saying what to do — but the evidence-and-
+argument version of that belongs in \`detail\`, which has nearly twice the room
+to make it. What a note DOES have to do is in SECTION NOTES, immediately below.
 
 === SECTION NOTES ===
 
 A note names ONE thing. Count, not length: one observation, at most one
 quotation. A strong section usually has three or four things worth saying, and
 naming all of them is what makes a note overrun — the extras belong in feedback.
+
+You MAY close the note with one short clause saying what to do about the thing
+you named. One clause, not a second finding: if the fix needs its own evidence
+or its own argument, it is a feedback item, not the tail of a note.
 
   GOOD: Every experience bullet leads with a metric, such as "reduced CAC from
         RM 42 to RM 26".

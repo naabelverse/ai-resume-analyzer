@@ -625,9 +625,16 @@ async function measure(): Promise<void> {
     `skills` at the cap while the production report had `formatting`, and a
     single mean would have hidden that they were different sections.
   */
+  /*
+    A constant rather than a literal, because the stated max has now moved
+    twice while the row reporting against it did not — which is how a report
+    goes on printing "over stated max 150" after the schema stopped saying 150.
+  */
+  const NOTE_STATED_MAX = 190;
+
   say();
   say(
-    `section note length (cap ${FIELD_CAPS.sectionNote}, schema asks for ~120, forbids >150):`,
+    `section note length (cap ${FIELD_CAPS.sectionNote}, schema asks for ~150, forbids >${NOTE_STATED_MAX}):`,
   );
   for (const { name } of FIXTURES) {
     const notes = results
@@ -642,11 +649,13 @@ async function measure(): Promise<void> {
       (length) => length >= FIELD_CAPS.sectionNote - 5,
     ).length;
     const cut = notes.filter(({ note }) => note.endsWith("…")).length;
-    const overStated = lengths.filter((length) => length > 150).length;
+    const overStated = lengths.filter(
+      (length) => length > NOTE_STATED_MAX,
+    ).length;
     say(
       `  ${pad(name, 9, true)} mean ${mean(lengths).toFixed(1)}` +
         `, max ${Math.max(...lengths)}` +
-        ` | over stated max 150: ${overStated}/${notes.length}` +
+        ` | over stated max ${NOTE_STATED_MAX}: ${overStated}/${notes.length}` +
         ` | at/near cap ${atCap}/${notes.length}` +
         ` | decoder-cut ${cut}/${notes.length}`,
     );

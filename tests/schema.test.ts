@@ -691,13 +691,19 @@ describe("the section note is not the detail contract", () => {
    *
    * So the boundary names the two fields it governs instead. `text` and
    * `detail` do not move when a paragraph is added; "above" does.
+   *
+   * The adjective in the last assertion is load-bearing and it is new. A note
+   * may now close with one clause of prescription, so the boundary is no
+   * longer "a note never advises" — it is that a note does not inherit the
+   * FULL three-clause structure. Quote, cost, and fix with its own subject is
+   * still `detail`'s job. What this pins is that the boundary is drawn at all.
    */
   it("scopes RULE 1 by naming its fields, not by position", () => {
     const rule = ruleText("=== RULE 1:");
     expect(rule).toMatch(/RULE 1 governs two fields/);
     expect(rule).toContain("a feedback item's `text`");
     expect(rule).toContain("`detail`");
-    expect(rule).toContain("does NOT carry the quote-then-advise structure");
+    expect(rule).toContain("does NOT carry the full quote-then-advise structure");
     // Both positional forms, pinned dead. Either one re-opens the same hole.
     expect(SYSTEM_PROMPT).not.toMatch(/Everything above it/);
     expect(SYSTEM_PROMPT).not.toMatch(/The same applies to sections\[\]\.note/);
@@ -723,7 +729,20 @@ describe("the section note is not the detail contract", () => {
     );
   });
 
-  it("tells the decoder a note observes rather than prescribes", () => {
+  /**
+   * This used to assert the opposite — "do NOT say what to change" — and it
+   * was right to, for as long as the note's contract forbade prescription.
+   * The prohibition lost three rounds: the round that read the nine longest
+   * notes rather than only counting them found four of them prescribing
+   * anyway, which is what `FIELD_CAPS.sectionNote` now records at length.
+   *
+   * So the boundary pinned here is no longer "a note never prescribes". It is
+   * the one that survived: a note may close with ONE clause of prescription,
+   * and the quote-then-explain treatment stays in `feedback[].detail`. That is
+   * the line whose erasure caused the inheritance bug, and it still earns a
+   * test.
+   */
+  it("lets a note prescribe in one clause, and no further", () => {
     const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
       properties: {
         sections: {
@@ -736,11 +755,11 @@ describe("the section note is not the detail contract", () => {
       const description =
         json.properties.sections.properties[name].properties.note.description ??
         "";
-      expect(description).toMatch(/do NOT say what to change/);
+      expect(description).toMatch(/ONE clause naming what to do about it/);
       expect(description).toMatch(/feedback\[\]\.detail/);
-      // The target itself is unchanged. This fix removes a competing
-      // instruction; it does not move the number the model aims at.
-      expect(description).toMatch(/Aim for 120 characters, never exceed 150/);
+      // The prohibition is gone on purpose, not by accident.
+      expect(description).not.toMatch(/do NOT say what to change/);
+      expect(description).toMatch(/Aim for 150 characters, never exceed 190/);
     }
   });
 });
@@ -792,14 +811,21 @@ describe("the note names one thing, counted rather than measured", () => {
   });
 
   /**
-   * The lever that is NOT being pulled, pinned so a later reader does not
-   * assume it was. Neither number moved: this removes a competing instruction
-   * and adds a count, and if the mean still sits near 139 afterwards then the
-   * length is intrinsic to what those sections have to say and the TARGET is
-   * what deserves revisiting — with the arithmetic re-run first.
+   * The lever that WAS eventually pulled. This test used to be called "moves
+   * neither the target nor the cap" and pinned 190/120/150 so a later reader
+   * would not assume the numbers had moved when only a competing instruction
+   * had been removed. Its own comment named the condition for revisiting them:
+   * "if the mean still sits near 139 afterwards then the length is intrinsic
+   * to what those sections have to say and the TARGET is what deserves
+   * revisiting — with the arithmetic re-run first."
+   *
+   * That is what happened. `weak` came back at 153.9 with 11/30 cut mid-word,
+   * the arithmetic was re-run against the maxed wire object (see the budget
+   * test below), and target and cap moved together — 120/150/190 becomes
+   * 150/190/230. Pinned again at the new numbers, for the same reason.
    */
-  it("moves neither the target nor the cap", () => {
-    expect(FIELD_CAPS.sectionNote).toBe(190);
+  it("moves the target and the cap together", () => {
+    expect(FIELD_CAPS.sectionNote).toBe(230);
     const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
       properties: {
         sections: {
@@ -809,6 +835,96 @@ describe("the note names one thing, counted rather than measured", () => {
     };
     expect(
       json.properties.sections.properties.contact.properties.note.description,
-    ).toMatch(/Aim for 120 characters, never exceed 150/);
+    ).toMatch(/Aim for 150 characters, never exceed 190/);
+  });
+});
+
+/**
+ * The response budget, as a test rather than as a comment.
+ *
+ * `ARRAY_CAPS` carries a long derivation of the largest response the schema
+ * permits, and the number in it has now been wrong twice: once read off a
+ * neighbouring row ("about 50 tokens to spare" for a case that had 94), and
+ * once as a `sectionNote` ceiling of "about 215" that re-derivation put at
+ * 234. Both times the comment said the arithmetic was cheap to run, and both
+ * times nobody ran it.
+ *
+ * So it runs here, every time. Build the maxed wire object, PARSE it — a legal
+ * response, not merely a large object, which is the step an estimate always
+ * skips — serialize, divide.
+ *
+ * The rate is the conservative pairing of the two the comment records: compact
+ * characters at 3.75 chars/token. The other pairing (as-emitted pretty at
+ * 4.067) is more generous by ~40 characters of `sectionNote`, and is not used,
+ * because it rests on a single live capture and one capture is not a rate.
+ */
+describe("the largest permitted response fits in AI_MAX_TOKENS", () => {
+  const AI_MAX_TOKENS = 4_000;
+  const CHARS_PER_TOKEN = 3.75;
+  const fill = (n: number) => "x".repeat(n);
+
+  /** Every bound maxed. `keywordMatch` present, since its null case is smaller. */
+  // Annotated `number` rather than inferred: `FIELD_CAPS` is `as const`, so an
+  // inferred default narrows this to the literal 230 and every call with a
+  // different cap — which is the entire point of the helper — is a type error.
+  function maxedWire(noteCap: number = FIELD_CAPS.sectionNote) {
+    return {
+      scoreRationale: fill(FIELD_CAPS.scoreRationale),
+      dimensions: Object.fromEntries(RUBRIC_DIMENSIONS.map((d) => [d, 100])),
+      summary: fill(FIELD_CAPS.summary),
+      sections: Object.fromEntries(
+        SECTION_NAMES.map((s) => [s, { score: 100, note: fill(noteCap) }]),
+      ),
+      feedback: Array.from({ length: ARRAY_CAPS.feedbackMax }, () => ({
+        status: "fail",
+        text: fill(FIELD_CAPS.feedbackText),
+        detail: fill(FIELD_CAPS.feedbackDetail),
+      })),
+      bulletRewrites: Array.from({ length: ARRAY_CAPS.bulletRewrites }, () => ({
+        original: fill(FIELD_CAPS.rewriteOriginal),
+        improved: fill(FIELD_CAPS.rewriteImproved),
+        why: fill(FIELD_CAPS.rewriteWhy),
+      })),
+      keywordMatch: {
+        matched: Array.from({ length: ARRAY_CAPS.keywords }, () =>
+          fill(FIELD_CAPS.keyword),
+        ),
+        missing: Array.from({ length: ARRAY_CAPS.keywords }, () =>
+          fill(FIELD_CAPS.keyword),
+        ),
+        matchPercent: 100,
+      },
+      redFlags: Array.from({ length: ARRAY_CAPS.redFlags }, () =>
+        fill(FIELD_CAPS.redFlag),
+      ),
+    };
+  }
+
+  const tokensFor = (obj: unknown) =>
+    JSON.stringify(obj).length / CHARS_PER_TOKEN;
+
+  it("is a legal response, so the bound is real and not a shape nobody accepts", () => {
+    expect(AnalysisWireSchema.safeParse(maxedWire()).success).toBe(true);
+  });
+
+  it("fits, at the caps that ship", () => {
+    expect(tokensFor(maxedWire())).toBeLessThanOrEqual(AI_MAX_TOKENS);
+  });
+
+  /**
+   * The margin is 7 tokens. That is deliberate and it is documented in
+   * `ARRAY_CAPS` — `sectionNote` spent the room that was being held against
+   * `redFlag`, a field with zero live observations.
+   *
+   * This asserts the ceiling rather than the margin, so that raising any cap
+   * fails HERE, with the arithmetic in front of you, rather than in production
+   * as a response truncated at `max_tokens`.
+   */
+  it("puts the sectionNote ceiling at 234, with 230 shipping", () => {
+    expect(FIELD_CAPS.sectionNote).toBe(230);
+    expect(tokensFor(maxedWire(234))).toBeLessThanOrEqual(AI_MAX_TOKENS);
+    expect(tokensFor(maxedWire(235))).toBeGreaterThan(AI_MAX_TOKENS);
+    // 250 was asked for in the round that raised this to 230. It does not fit.
+    expect(tokensFor(maxedWire(250))).toBeGreaterThan(AI_MAX_TOKENS);
   });
 });

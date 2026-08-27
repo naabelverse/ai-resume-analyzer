@@ -64,25 +64,60 @@ export const FIELD_CAPS = {
   scoreRationale: 220,
   summary: 500,
   /**
-   * A hundred and ninety, up from 160, and the same lever as the headline cap
-   * below: the model was running into it and the decoder was cutting mid-word.
+   * Two hundred and thirty, up from 190 — and this time the DESCRIPTION moved
+   * with it. That is the substance of the change; the number is the smaller
+   * half.
    *
-   * Measured across the six sections of the one captured analysis that carries
-   * notes: 56, 86, 115, 116, 127, and **159 against a cap of 160**. Five of six
-   * sit at or under 127; one hits the ceiling and is cut. Note which one —
-   * `skills` bit on disk while the report from production was `formatting`,
-   * which is what says this is the cap biting generally rather than one section
-   * being verbose.
+   * The README recorded a decision to STOP at 190, with the target left at
+   * "Aim for 120 characters, never exceed 150" and the mismatch "recorded
+   * rather than tuned, so that whoever changes this field next does it having
+   * read this and can say in advance what the change would prove". This is
+   * that change. What it proves is below.
    *
-   * 190 clears the observed clean maximum by 63 and the stated maximum by 40.
-   * Six sections, so **each +1 character costs 6** against the ceiling; what is
-   * left after this is in the arithmetic below.
+   * The 190 round measured, on `weak`: mean 153.9 against a stated max of 150,
+   * 19/30 notes over that stated max, and **11/30 cut mid-word at the cap**.
+   * It also read the nine longest notes rather than only counting them, which
+   * is what makes this raise arguable rather than another turn of the same
+   * screw:
    *
-   * The description is untouched at "Aim for 120 characters, never exceed 150".
-   * Backstop up, target alone — raising both is the 70-cap experiment in
-   * reverse, and `feedbackText` below records how that went.
+   *   - One was cleanly long — 189 characters, one observation, one quotation,
+   *     no prescription, and 82 of those characters were the candidate's own
+   *     sentence. The contract obeyed, by a resume that needs that many words
+   *     to locate the line.
+   *   - **Four of the nine still prescribed** — "consider grouping or adding
+   *     proficiency levels", "replace it with a concise professional summary…"
+   *     — which the description forbade in as many words.
+   *
+   * Three rounds of forbidding prescription did not stop the model
+   * prescribing. So the prohibition is dropped rather than restated louder: a
+   * note MAY now close with one short prescriptive clause, and the description
+   * says so. Raising the backstop while the target still said "do NOT say what
+   * to change" is what made the last two raises fail — the model wrote past a
+   * target it was never going to hit, and the fresh cap got hit instead.
+   *
+   * Sizing, from those same measurements rather than from taste:
+   *
+   *   - Aim 150, because that is `weak`'s measured mean. Honest about what
+   *     these notes cost instead of aspirational about it.
+   *   - Stated max 190, so the observed clean maximum fits UNDER the target
+   *     rather than only under the backstop.
+   *   - Cap 230 — 40 above the stated max, which is the overshoot the 190
+   *     round actually observed between stated max and cap.
+   *
+   * Six sections, so **each +1 character costs 6** against the ceiling. The
+   * arithmetic below was re-run rather than inherited, as it demands: **234 is
+   * the hard ceiling** and 230 leaves 7 tokens. 250 was asked for and does not
+   * fit — it is 25 tokens over.
+   *
+   * The falsifiable part, stated in advance because the README asks for it:
+   * **notes stop arriving cut, and the mean lands near 150-190 rather than
+   * climbing to 230.** If the mean instead sits on this cap the way it sat on
+   * 190, the length is being set by the prescription now permitted and not by
+   * the target — and the next lever is NOT another raise, because there is no
+   * room for one. It would be removing a field from the response, the way
+   * deriving `status` bought back 26 tokens.
    */
-  sectionNote: 190,
+  sectionNote: 230,
   /**
    * A hundred and twenty. It was 90, and before that 70 — see the README.
    *
@@ -164,36 +199,47 @@ export const FIELD_CAPS = {
  * `feedbackDetail` sit inside an 8-item array, so **each +1 character costs
  * 8**; `sectionNote` sits in six sections, so **each +1 costs 6**.
  *
- * At the caps that ship the worst case is **14,733 characters, ~3,929 tokens:
- * it fits, with 71 tokens to spare.** The ceiling for `sectionNote` alone is
- * about 215 before the total goes over.
+ * At the caps that ship the worst case is **14,973 characters, ~3,993 tokens:
+ * it fits, with 7 tokens to spare.** The ceiling for `sectionNote` alone is
+ * **234**, and 230 is what ships.
  *
- * **STOP HERE IF YOU ARE RAISING A CAP.** The two figures either side of this
- * paragraph do not agree, and neither has been reconciled:
+ * **THE 215 IS RESOLVED. READ THIS BEFORE RAISING ANYTHING ELSE.** The
+ * disagreement recorded here for several commits — "about 215" against a
+ * re-derived "234-252" — was settled the way it asked to be, by building the
+ * maxed wire object, parsing it against `AnalysisWireSchema` to prove it is a
+ * legal response rather than merely a large object, serializing it, and
+ * dividing. `tests/schema.test.ts` now does exactly that on every run, so this
+ * paragraph cannot rot again:
  *
- *   - "about 215" for `sectionNote` is what this comment has said for several
- *     commits.
- *   - Re-deriving it from the live `FIELD_CAPS` gives **44-62 characters** of
- *     headroom — a `sectionNote` ceiling of roughly **234-252** — depending on
- *     whether the worst case is measured compact at 3.75 chars/token (the
- *     method this comment uses) or as-emitted at the 4.067 chars/token the one
- *     live capture actually shows. The model emits PRETTY-printed JSON, so the
- *     compact count and the prose rate are two different bases and this comment
- *     mixes them. The errors partly cancel, which is why the total still fits.
+ *   - **"about 215" was wrong** — too conservative by 19 characters. It has
+ *     been deleted rather than corrected in place, because a number nobody can
+ *     reproduce is worse than no number.
+ *   - The true ceiling, measured compact at 3.75 chars/token, is **234**. The
+ *     shipped 190 cap reproduced the recorded 14,733 characters / 3,929 tokens
+ *     / 71 spare exactly, which is what says the method is right and only the
+ *     ceiling derived from it was wrong.
  *
- * That is a ~20-character disagreement about how much room is left, sitting in
- * a comment written to be trusted. Do not spend against either number. Re-run
- * the arithmetic — build the maxed wire object, serialize it, divide — and fix
- * whichever of these is wrong in the same commit that spends the room.
+ * The two bases still differ and that part is NOT resolved: compact at 3.75
+ * gives a ceiling of 234, as-emitted pretty at 4.067 gives 274. Both agree the
+ * shipped caps fit; they disagree by 40 characters about what is left. **The
+ * lower is used, always.** Note the pairing that is never valid — pretty
+ * characters at the 3.75 prose rate declares even the OLD 190 cap over budget,
+ * which is how you can tell those two numbers are different bases and not a
+ * range to pick from.
  *
- * Recorded rather than resolved deliberately: resolving it needs a second live
- * capture to calibrate chars/token against, and one capture is not a rate.
+ * Resolving the rate properly still needs a live capture carrying token usage
+ * to calibrate against, and there is not one: no file in this repo records
+ * `completion_tokens`, so 4.067 remains one observation and one observation is
+ * not a rate.
  *
- * 71 rather than 46 because deriving the section `status` took it out of the
- * response: six sections x `"status":"pass",` is 96 characters, 26 tokens, and
- * the model no longer spends them. Worth noting as a shape — the cheapest way
- * to buy room here is to stop asking for a field that can be computed, not to
- * shave a character cap.
+ * Deriving the section `status` is what paid for this raise, one round early
+ * and without anyone planning it that way: six sections x `"status":"pass",`
+ * is 96 characters, 26 tokens, and the model no longer spends them. Worth
+ * noting as a shape — the cheapest way to buy room here is to stop asking for
+ * a field that can be computed, not to shave a character cap. **That is now
+ * the only lever left**, and the next candidate is `matchPercent`, which is
+ * `round(matched / (matched + missing) * 100)` and could be derived exactly
+ * the way `status` and `verdict` already are.
  *
  * That figure was wrong here once and the correction is worth keeping. This
  * read "14.8k characters, ~3.95k tokens... about 50 tokens to spare" for the
@@ -207,11 +253,16 @@ export const FIELD_CAPS = {
  * against captured output. `redFlag` has not: the only capture on disk,
  * `live-report.txt`, carries `"redFlags": []` twice, so the model has never
  * been seen filling this field at all — while it carries a 200 cap in a 6-item
- * array, which is 6 characters per +1 of the 71 tokens that remain. Nothing
- * says it is safe. It is simply unseen, and it is the most likely field to
- * bite next without warning. The 26 tokens the derivation returned make that
- * less tight than it was, which is the point of recording them rather than
- * quietly spending them.
+ * array, which is 6 characters per +1 of the **7 tokens that now remain**.
+ * Nothing says it is safe. It is simply unseen, and it is the most likely
+ * field to bite next without warning.
+ *
+ * **The `sectionNote` raise spent the room that was being held for it.** That
+ * was a deliberate trade and it should be named as one: a defect readers can
+ * see today — notes cut mid-word in front of anyone testing the app — was
+ * preferred over headroom reserved against a field no one has yet watched
+ * fail. If `redFlags` does start arriving cut, this is the paragraph that
+ * predicted it, and the fix will not be a cap raise.
  *
  * What IS now on record, from the round that renamed the section to "Things to
  * fix" and added the next-step rule — the first time anyone had watched it
@@ -232,9 +283,12 @@ export const FIELD_CAPS = {
  *     a 90 cap. The first live capture that actually populates `redFlags` is
  *     still the measurement that matters.
  *   - The arithmetic above was re-run rather than read off this comment, as it
- *     asks: 14,733 characters and 3,929 tokens at the shipped caps, 71 spare.
- *     It reproduces exactly. If `redFlag` ever does need room, **244 is the
- *     largest cap that still fits** — +44, all 71 remaining tokens spent.
+ *     asks: at the PREVIOUS caps, 14,733 characters and 3,929 tokens with 71
+ *     spare — reproduced exactly, which is what validated the method before
+ *     spending against it. At the caps that ship now: 14,973 and 3,993, 7
+ *     spare. If `redFlag` ever does need room, the largest cap that still fits
+ *     is **204** — +4 characters, which is not a raise in any useful sense. It
+ *     was 244 before `sectionNote` took the room.
  *
  * The `.describe()` text that carries the new rule is an INPUT cost, so it does
  * not touch this budget, which bounds the response.
@@ -457,7 +511,7 @@ const SectionBodySchema = z.object({
     .min(1)
     .max(FIELD_CAPS.sectionNote)
     .describe(
-      "ONE observation about THIS resume's version of this section — one thing, not a list, with at most one quotation. If several things are true of this section, name the most important and stop; the rest belong in feedback. Describe what is there: do NOT say what to change and do NOT append a next step, which is what feedback[].detail is for. One sentence. Aim for 120 characters, never exceed 150.",
+      "ONE observation about THIS resume's version of this section — one thing, not a list, with at most one quotation. If several things are true of this section, name the most important and stop; the rest belong in feedback. Say what is there, and you MAY close with a short prescription — ONE clause naming what to do about it, not a second finding. The full quote-then-explain treatment still belongs in feedback[].detail rather than here. One sentence. Aim for 150 characters, never exceed 190.",
     ),
 });
 
