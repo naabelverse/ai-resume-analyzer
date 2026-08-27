@@ -419,6 +419,57 @@ now reports note length per fixture and per section, with "over stated max" as
 a separate column from "at/near cap" precisely because they mean different
 things. **Instrument the field before tuning the field.**
 
+**A count can tell you a field is wrong. Only the contents can tell you which
+instruction is wrong.** The row added above measured note length for two
+rounds and reported the same thing both times — the note is too long — while
+the cause underneath it changed.
+
+The run of 2026-08-27, five per fixture on `nemotron-3-super-120b-a12b` at
+temp 0.2, with the note's contract restated as a count and moved out of RULE 1
+into its own section:
+
+| fixture | mean | over stated 150 | at/near cap 190 | cut mid-word |
+| --- | --- | --- | --- | --- |
+| strong | 123.6 (was 138.8) | 2/18 | 1/18 | 0/18 |
+| middling | 112.3 (was 112.2) | 1/30 | 0/30 | 0/30 |
+| weak | 153.9 (was 120.6) | 19/30 | 8/30 | 11/30 |
+
+Strong is fixed and middling never moved. Weak went the other way, and the
+lengths alone read as the same failure coming back — which is what the two
+previous rounds each concluded, and each time the fix aimed at the count.
+
+The notes themselves say otherwise. Weak's longest is "Experience bullets
+contain no metrics or outcomes — for example, 'Worked on the backend of the
+companys main web aplication using python and databases' describes a duty, not
+an achievement." That is ONE observation with ONE quotation and no
+prescription: the contract, obeyed. It is 189 characters because 82 of them
+are the candidate's own sentence, and a resume written this way offers no
+shorter fragment that still locates the line. The 120 target predates the note
+row in this report by many commits and was set from six values in a single
+captured analysis; nothing about it was ever measured against a resume that
+takes more words to name precisely. **On this fixture the target is what is
+wrong, not the instruction, and the cap doing its job at 190 is the field
+behaving correctly for input that legitimately needs the room.**
+
+**The same nine notes also show something the decision below does not act on.**
+Weak's other two notes at the cap are not clean. One enumerates three missing
+items and then prescribes — "Consider adding: 'Associate of Science in
+Information Technology, Riverside Community…'" — and one carries two
+quotations and prescribes: "replace it with a concise professional summary…".
+Strong's longest does the same: "consider grouping or adding proficiency
+levels". Of the nine longest notes printed, one is cleanly long; four still
+say what to change, which the note's own description forbids in as many words.
+And 11 of weak's 30 notes are cut mid-word at 190, which is a defect a reader
+sees rather than a tuning question.
+
+**The decision is to stop.** Seven rounds have gone into one 190-character
+field. `FIELD_CAPS.sectionNote` stays at 190 and the description keeps "Aim
+for 120 characters, never exceed 150" — the mismatch recorded rather than
+tuned, so that whoever changes this field next does it having read this and
+can say in advance what the change would prove. Two caveats on the table:
+strong lost 2 of its 5 runs to unusable responses, so its 123.6 is three runs
+and not five, and every run in it needed a second attempt.
+
 **Guided JSON decoding can run away on whitespace, and it still does.** This is
 the failure mode that cost the most to find, because it never once looked like
 itself.
