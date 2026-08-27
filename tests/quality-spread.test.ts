@@ -671,6 +671,49 @@ async function measure(): Promise<void> {
       `    ${pad(section, 11, true)} mean ${mean(lengths).toFixed(1)}, max ${Math.max(...lengths)}`,
     );
   }
+
+  /*
+    And the notes themselves, verbatim.
+
+    Every block above this one counts something about a note without ever
+    showing one, and the question the count contract asks cannot be answered by
+    a number. "One observation, at most one quotation" is a claim about what a
+    sentence CONTAINS; a mean of 138.8 is equally consistent with one careful
+    observation that runs long and with four of them comma-spliced together.
+    Those two readings take opposite fixes — the first says the TARGET is wrong,
+    the second says the count is not landing — and no length in this report
+    separates them. The last run measured the length and was asked for the
+    contents.
+
+    Printed whole, not trimmed to an excerpt the way the restatement and
+    stop-at-quote examples are. Those can be trimmed because the fault is
+    visible at the START of the string. An enumeration is only visible in the
+    tail, so a slice would cut off exactly the evidence being read for — and a
+    note cut at 55 characters reads like a note that names one thing.
+
+    Three per fixture rather than one, because the fault being read for was 9
+    notes in 24 on a single fixture, and one example is a sample of one.
+  */
+  say();
+  say("  longest notes verbatim (read for enumeration, not for length):");
+  for (const { name } of FIXTURES) {
+    const longest = [
+      ...results.get(name)!.runs.flatMap((run) => run.sectionNotes),
+    ]
+      .sort((a, b) => b.note.length - a.note.length)
+      .slice(0, 3);
+    if (longest.length === 0) {
+      say(`    ${pad(name, 9, true)} -`);
+      continue;
+    }
+    for (const [index, { name: section, note }] of longest.entries()) {
+      say(
+        `    ${pad(index === 0 ? name : "", 9, true)} ` +
+          `${pad(section, 11, true)} ${pad(note.length, 3)}  ${JSON.stringify(note)}`,
+      );
+    }
+  }
+
   /* ------------------------------------------------------- the questions -- */
 
   const complete = FIXTURES.every(({ name }) => scoresFor(name).length > 0);
