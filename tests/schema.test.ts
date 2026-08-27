@@ -647,6 +647,22 @@ describe("the prompt does not ask for a derived field", () => {
   );
 });
 
+/**
+ * One `=== HEADER ===` section of the system prompt, from its header to the
+ * next one.
+ *
+ * The two scoping tests below are about where a paragraph SITS, not about how
+ * it is worded, and matching against the whole of `SYSTEM_PROMPT` cannot tell
+ * "inside RULE 1" from "anywhere in the prompt". That distinction is the
+ * entire fix, so the assertion has to be able to see it.
+ */
+function ruleText(header: string): string {
+  const start = SYSTEM_PROMPT.indexOf(header);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const next = SYSTEM_PROMPT.indexOf("\n=== ", start + 1);
+  return SYSTEM_PROMPT.slice(start, next === -1 ? undefined : next);
+}
+
 describe("the section note is not the detail contract", () => {
   /**
    * A live analysis returned section notes cut mid-word at the 190 cap while
@@ -667,15 +683,44 @@ describe("the section note is not the detail contract", () => {
    * problem -> next step.
    *
    * The failure mode is general and worth naming: a blanket "the same applies
-   * to X" inherits whatever the referenced rule LATER becomes. These two tests
-   * pin the scoping, because the sentence that caused this was correct on the
-   * day it was written.
+   * to X" inherits whatever the referenced rule LATER becomes. The first fix
+   * replaced that sentence with "Everything above it", which is the same
+   * defect in a narrower word: a boundary drawn at a POSITION still inherits
+   * whatever is later written on the near side of it. One commit later,
+   * something was.
+   *
+   * So the boundary names the two fields it governs instead. `text` and
+   * `detail` do not move when a paragraph is added; "above" does.
    */
-  it("scopes the RULE 1 inheritance to the quote-or-drop paragraph", () => {
-    expect(SYSTEM_PROMPT).toMatch(
-      /ONLY part of RULE 1\s*\n?that applies to sections\[\]\.note/,
+  it("scopes RULE 1 by naming its fields, not by position", () => {
+    const rule = ruleText("=== RULE 1:");
+    expect(rule).toMatch(/RULE 1 governs two fields/);
+    expect(rule).toContain("a feedback item's `text`");
+    expect(rule).toContain("`detail`");
+    expect(rule).toContain("does NOT carry the quote-then-advise structure");
+    // Both positional forms, pinned dead. Either one re-opens the same hole.
+    expect(SYSTEM_PROMPT).not.toMatch(/Everything above it/);
+    expect(SYSTEM_PROMPT).not.toMatch(/The same applies to sections\[\]\.note/);
+  });
+
+  /**
+   * The other half of the same fix: the note's own contract no longer sits
+   * INSIDE the rule it must not inherit from.
+   *
+   * The count block was added at the tail of RULE 1 one commit after the
+   * boundary was drawn — on the near side of it, and past the sentence saying
+   * everything on that side governed `text` and `detail`. Nothing was wrong
+   * with the four lines themselves. What was wrong is that a note's contract
+   * sat inside a 9,624-character rule addressed to two other fields, which is
+   * the arrangement that has now produced two inheritance bugs. It has its own
+   * section, and this fails if it is ever moved back.
+   */
+  it("keeps the note's own contract outside RULE 1", () => {
+    expect(SYSTEM_PROMPT).toContain("=== SECTION NOTES ===");
+    expect(ruleText("=== RULE 1:")).not.toContain("A note names ONE thing");
+    expect(ruleText("=== SECTION NOTES ===")).toContain(
+      "A note names ONE thing",
     );
-    expect(SYSTEM_PROMPT).toMatch(/a note does NOT carry the/);
   });
 
   it("tells the decoder a note observes rather than prescribes", () => {

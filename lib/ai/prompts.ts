@@ -214,12 +214,18 @@ Fewer items that each quote real text beat eight items of generic advice.
 Generic advice is worthless to the candidate and they will discard the whole
 review because of it.
 
-This paragraph — quote real text or drop the item — is the ONLY part of RULE 1
-that applies to sections[].note and to redFlags. Everything above it governs
-\`text\` and \`detail\` and nothing else. In particular a note does NOT carry the
-quote-then-advise structure: it does not have to say what to change, and it
-must not try. That is what \`detail\` is for, and \`detail\` has three times the
-room to do it in.
+RULE 1 governs two fields: a feedback item's \`text\` and a feedback item's
+\`detail\`. Every requirement in it is a requirement on one of those two and on
+nothing else. It does not reach \`sections[].note\` and it does not reach
+\`redFlags\`, with a single exception named here: quote real text or drop the
+item applies to them as well.
+
+A note in particular does NOT carry the quote-then-advise structure: it does
+not have to say what to change, and it must not try. That is what \`detail\` is
+for, and \`detail\` has three times the room to do it in. What a note DOES have
+to do is in SECTION NOTES, immediately below.
+
+=== SECTION NOTES ===
 
 A note names ONE thing. Count, not length: one observation, at most one
 quotation. A strong section usually has three or four things worth saying, and
