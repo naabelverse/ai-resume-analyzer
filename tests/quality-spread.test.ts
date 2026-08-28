@@ -147,6 +147,22 @@ const wordsIn = (term: string): number => term.trim().split(/\s+/).length;
 const isCopiedRequirement = (term: string): boolean =>
   wordsIn(term) > KEYWORD_WORD_LIMIT || term.endsWith("…");
 
+/**
+ * The two requirement shapes this suite asserts on in the nursing JD.
+ *
+ * Both were copied whole on 4 of 4 baseline runs and came back as terms on 4 of
+ * 4 once the prompt gave each one a single sanctioned output. Matched on the
+ * words only these two JD bullets carry, so a term classifies the same whether
+ * it arrived copied ("Minimum 3 years post-registration experience in an
+ * acute…") or extracted ("3+ years acute inpatient experience") — the point is
+ * to find the term that came from that bullet, then ask what shape it is.
+ */
+const isDurationShape = (term: string): boolean =>
+  /post-registration|minimum\s+\d|\byears?\b|\d\s*\+/i.test(term);
+
+const isRosterShape = (term: string): boolean =>
+  /roster|rotating|shift/i.test(term);
+
 interface KeywordRun {
   label: string;
   terms: string[];
@@ -1074,53 +1090,78 @@ describe("score spread across resume quality", () => {
   });
 
   /**
-   * Nursing is measured and NOT asserted, and that is a decision rather than an
-   * oversight.
+   * Two shapes are asserted; a third is measured and printed.
    *
-   * The GOOD/BAD round fixed tech — 11 of 11 terms under the limit, which the
-   * test above now guards — and did not generalise: nursing came back 5 of 7
-   * still full requirement sentences, with worked examples in two domains
-   * already in the prompt. The README records that as a known limitation and
-   * closes the field.
+   * The GOOD/BAD round fixed tech — 11 of 11 under the limit, which the test
+   * above guards — and did not generalise: nursing came back 5 of 7 still full
+   * requirement sentences. A later round stated the transformation as six
+   * explicit qualifier-to-term mappings and reported NO CHANGE AT ALL, which
+   * the README recorded as "this field does not respond to prompt wording".
    *
-   * It was reopened once more, on a sharper diagnosis than "still fails": all
-   * five wrong terms led with a QUALIFIER — "Minimum N years ... experience
-   * in", "Current registration with", "Demonstrated competence in",
-   * "Proficiency in", "Willingness to" — so the prompt got the transformation
-   * stated as a mechanical rule with six pattern-to-result mappings, rather
-   * than a third domain of examples. **All seven terms came back byte
-   * identical.** Not moved slightly; unchanged. That run is why the prompt no
-   * longer carries those lines, and it is the strongest evidence on record
-   * that this field does not respond to prompt wording at all.
+   * That was diagnosing the wrong cause. The round had added a rule giving
+   * "Minimum 3 years post-registration experience in an acute inpatient ward"
+   * the term "3+ years acute inpatient experience", while leaving in place, in
+   * the same prompt, a BAD example stating the term inside that same sentence
+   * was "acute inpatient care". Two correct answers for one input. Nothing
+   * moved because there was nothing coherent to move to.
    *
-   * Asserting it anyway would leave `pnpm test:quality` red on every run for a
-   * defect nobody intends to fix next, which is how a suite stops being read at
-   * all — and it would take the other assertions in this file down with it. So
-   * the shape is measured, printed in full above, and pinned here only in the
-   * direction that can still tell us something: extraction must keep WORKING at
-   * all, and if nursing ever comes back clean this test fails and says so,
-   * which is the signal worth having.
+   * Removing the contradiction and giving each shape ONE sanctioned output was
+   * measured paired, nursing only, six runs against six:
+   *
+   *   duration bullet returned WITH its duration   0/6 -> 6/6
+   *   duration bullet copied whole                 5/6 -> 0/6
+   *   scheduling bullet copied whole               5/6 -> 0/6
+   *
+   * The pre-change side is not uniform. Five of its six runs were the same
+   * 6/7, close enough to identical that an early draft called this field
+   * deterministic; a sixth, run as a control afterwards, came back clean with
+   * "acute inpatient ward" — the duration DROPPED, which is what the old BAD
+   * example prescribed. So the old prompt alternated between the two outputs
+   * its two contradicting rules called for and never produced the duration.
+   * The 0/6 -> 6/6 on the duration is the signal; the over-limit count is the
+   * noisy half, and this test does not assert on it.
+   *
+   * What is NOT asserted is the whole nursing list. One qualifier pattern,
+   * "Current registration with", still copies its sentence on roughly 1 run in
+   * 4. Asserting a clean list would put a 25% flake into a suite that spends
+   * real credits on every run, and a suite that is red a quarter of the time
+   * stops being read at all. That residual is printed instead, and the README
+   * records it as the remaining limitation.
    */
-  it("records nursing extraction as a known limitation, and notices if it changes", () => {
+  it("extracts the duration and roster shapes as terms, on a nursing job description", () => {
     const nursing = keywordRuns.find((run) => run.label === "nursing")!;
     expect(nursing.failure, `nursing: ${nursing.failure}`).toBeNull();
     expect(nursing.terms.length, "nursing extracted nothing").toBeGreaterThan(0);
 
-    const over = nursing.terms.filter(isCopiedRequirement);
-    if (over.length === 0) {
-      throw new Error(
-        "nursing extraction came back clean. That is good news and this test " +
-          "is now wrong: the README records it as a known limitation. Re-open " +
-          "the field, move this fixture into the assertion above, and update " +
-          "the README entry.",
-      );
+    for (const { label, terms } of [
+      { label: "duration", terms: nursing.terms.filter(isDurationShape) },
+      { label: "roster", terms: nursing.terms.filter(isRosterShape) },
+    ]) {
+      // A dropped bullet would pass a "nothing copied" check vacuously.
+      expect(
+        terms.length,
+        `nursing returned no term at all for the ${label} requirement`,
+      ).toBeGreaterThan(0);
+
+      const copied = terms.filter(isCopiedRequirement);
+      expect(
+        copied,
+        `nursing copied the ${label} requirement rather than naming it: ${copied
+          .map((term) => JSON.stringify(term))
+          .join(", ")}`,
+      ).toEqual([]);
     }
+
     // `console.log`, not `say`: the report buffer was flushed in `measure()`
     // before any assertion ran, so a `say` here would append to a string
     // nobody writes out again.
+    const over = nursing.terms.filter(isCopiedRequirement);
     console.log(
-      `  nursing still returns ${over.length}/${nursing.terms.length} ` +
-        `requirement sentences — known limitation, see README`,
+      over.length === 0
+        ? `  nursing came back fully clean (${nursing.terms.length} terms)`
+        : `  nursing residual ${over.length}/${nursing.terms.length}: ` +
+            `${over.map((term) => JSON.stringify(term)).join(", ")} ` +
+            `— known, see README`,
     );
   });
 

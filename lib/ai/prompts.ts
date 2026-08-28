@@ -341,10 +341,11 @@ this rule exists to prevent.
 
   GOOD: "acute inpatient care", "ACLS", "Malaysian Nursing Board registration",
         "telemetry monitoring", "IV cannulation"
-  BAD:  "Minimum 3 years post-registration experience in an acute inpatient
-        ward", "Advanced Cardiac Life Support certification preferred"
-        <- requirements copied whole. The terms inside them were "acute
-           inpatient care" and "ACLS". These render as pills beside a match
+  BAD:  "Advanced Cardiac Life Support certification preferred",
+        "Demonstrated competence in telemetry monitoring and interpretation
+        of cardiac rhythms"
+        <- requirements copied whole. The terms inside them were "ACLS" and
+           "telemetry monitoring". These render as pills beside a match
            count; a sentence in a pill cannot be scanned.
 
   GOOD: "SQL", "AppsFlyer", "structured creative testing"
@@ -354,6 +355,27 @@ this rule exists to prevent.
 
 If a term runs past about six words, you have copied a requirement. Name the
 skill instead.
+
+Two shapes need naming, because the word limit alone does not catch them.
+
+A requirement that pairs a NUMBER OF YEARS with a setting keeps BOTH, in the
+short form. Do not drop the duration, and do not copy the sentence around it:
+
+  "Minimum 3 years post-registration experience in an acute inpatient setting"
+      -> "3+ years acute inpatient experience"
+
+The digit, "+ years", the setting, "experience". That is the only correct
+output for this shape.
+
+A scheduling or availability requirement names the PATTERN worked, not the
+willingness to work it:
+
+  "Willingness to work a rotating three-shift roster"
+      -> "rotating three-shift roster"
+  "Available for on-call weekend cover"
+      -> "weekend on-call"
+
+"Willingness to", "Ability to" and "Available for" are never part of a term.
 
 - Extract the required and preferred skills from the job description itself.
 - Judge presence SEMANTICALLY, not by substring. "Built REST endpoints in

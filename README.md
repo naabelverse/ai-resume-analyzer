@@ -331,10 +331,10 @@ stored analysis contains bullet fragments Claude quoted back from the resume.
 The extracted text itself is never persisted, but that distinction is real and
 worth stating rather than rounding off.
 
-**Keyword extraction returns requirement sentences on non-technical job
+**Keyword extraction returned requirement sentences on non-technical job
 descriptions.** Two defects were found in the Keyword match section at the same
-time. They were unrelated, one is fixed and verified, and the other is not —
-which is the whole reason they are written up together.
+time. They were unrelated. Both are now fixed and verified, but the second took
+three rounds, and the two failed attempts are the useful part of the entry.
 
 *Fixed and verified: the match percentage.* `matchPercent` was the last number
 in the response that the model supplied and nothing checked. The formula was
@@ -352,7 +352,7 @@ working on a live run. Removing it also handed back 19 characters of every
 response, which raised the `sectionNote` ceiling from 234 to 237 — the one lever
 the response budget had left, and the second time it has been pulled.
 
-*Not fixed: the shape of the keywords themselves.* On a nursing job description
+*Fixed on the third attempt: the shape of the keywords themselves.* On a nursing job description
 the model returns the requirement sentences as pills — "3+ years
 post-registration experience in an acute inpatient", "Advanced Cardiac Life
 Support preferred" — rather than the terms inside them. A bulleted requirements
@@ -379,9 +379,9 @@ specifically, and the behaviour moved in tech while barely moving in nursing.
 So the lesson has a boundary: worked examples teach a FORM, and they generalise
 across instances of a domain far better than across domains themselves.
 
-*Reopened once, on a diagnosis rather than a complaint, and closed harder.*
-The five wrong nursing terms were not five unrelated failures: every one of
-them **led with a qualifier** and left the skill buried behind it.
+*Reopened once, on a diagnosis rather than a complaint.* The five wrong nursing
+terms were not five unrelated failures: every one of them **led with a
+qualifier** and left the skill buried behind it.
 
 | returned | qualifier kept | term inside |
 | --- | --- | --- |
@@ -399,21 +399,68 @@ outputs ("3+ years acute inpatient experience", or split into two terms).
 Predicted in advance: the qualifier-led terms reduce.
 
 **All seven terms came back byte identical.** Not reduced, not partially
-reduced — the same seven strings, confirmed by running the previous round's
-raw output through `repairTruncation` and reproducing this round's output
-exactly, all seven. A mechanical rule naming the exact pattern, in the exact
-failing domain, changed nothing. Those prompt lines were reverted rather than
-shipped, because prompt text that has never been shown to move anything still
-costs input tokens on every call.
+reduced — the same seven strings. Those lines were reverted, and this file
+recorded the conclusion that **the field does not respond to prompt wording at
+all**, with a note that the next idea which was only a better way of saying it
+should not be attempted.
 
-So the boundary is narrower and harder than "examples don't cross domains":
-**this field does not respond to prompt wording at all.** Three rounds of
-examples and one of explicit rules have now been tried. Whatever selects a
-requirement sentence over the term inside it is not reachable from the system
-prompt, and the next idea that is only a better way of saying it should not be
-attempted.
+*That conclusion was wrong, and it was diagnosing the wrong cause.* The round
+had added a rule giving "Minimum 3 years post-registration experience in an
+acute inpatient ward" the term "3+ years acute inpatient experience" — while
+leaving in place, in the same prompt, a BAD example stating that the term
+inside that same sentence was "acute inpatient care". The prompt held two
+different correct answers for one input. Nothing moved because there was
+nothing coherent to move to. The wording was never the variable, so the null
+result said nothing about wording.
 
-*The measurement was flattering itself, and that is fixed.* The same round
+*Third attempt: remove the contradiction, one sanctioned output per shape.* The
+duration sentence came out of the BAD block entirely and got its own worked
+example, so exactly one place in the prompt says what it becomes; the scheduling
+bullet got the same treatment. Measured **paired**, nursing JD only — every run
+on record for each prompt, six against six:
+
+| | pre-change | changed |
+| --- | --- | --- |
+| duration bullet returned WITH its duration | 0/6 | **6/6** |
+| duration bullet copied whole | 5/6 | **0/6** |
+| scheduling bullet copied whole | 5/6 | **0/6** |
+| fully clean runs (0 over limit) | 1/6 | 5/6 |
+
+The duration bullet returned "3+ years acute inpatient experience" on six of
+six, and the scheduling bullet "rotating three-shift roster" on six of six.
+
+**The pre-change column is not uniform, and that matters.** Four consecutive
+probe runs and the previous round's report all produced 6/7 over — the same
+five copied sentences, only two distinct term-sets between them, which looked
+deterministic enough that an early draft of this entry claimed the field was
+deterministic at `AI_TEMPERATURE=0.2`. A sixth run on that same unchanged
+prompt, executed as a control after the change had already been measured, came
+back **0/7 clean**: "acute inpatient ward" for the duration bullet — the
+duration dropped rather than kept, which is what the old BAD example
+prescribed — and "rotating three-shift roster" for the scheduling one. So the
+old prompt has a clean mode. It is uncommon, 1 run in 6, and it never produces
+the duration, but it exists, and four identical runs in a row were not enough
+to find it.
+
+What survives that correction is the comparison rather than any claim about
+determinism: 0/6 versus 6/6 on the duration is the sharpest signal here, because
+the pre-change prompt never once returned it. That prompt either copied the
+sentence whole or dropped the number entirely — which are precisely the two
+outputs its two contradicting rules called for.
+
+So the finding is narrower than either earlier claim, and it is a debugging
+lesson rather than a prompt-writing one. Worked examples do generalise across
+domains. Two shapes needed something more than an example — they needed the
+example **not to be contradicted forty lines earlier in the same prompt**, and
+the two outputs the old prompt alternated between were exactly the two that
+contradiction offered. A
+prompt that states two correct outputs for one input does not average them and
+does not pick one; it produces neither, and the resulting null looks exactly
+like an unreachable field. The earlier measurement was real; the inference drawn
+from it was not. "Does not respond to prompt wording at all" was a conclusion
+about the prompt drawn from an experiment that had never varied it coherently.
+
+*The measurement was also flattering itself, and that is fixed.* The same round
 added truncation markers to keyword pills (below), which replaces a cut
 fragment with an ellipsis — **one fewer word**. "Demonstrated competence in
 telemetry monitoring and interpre" is seven words and over the limit; repaired
@@ -421,27 +468,25 @@ it is six and under. The over-limit count fell 5/7 → 4/7 on byte-identical
 output and looked like progress. `isCopiedRequirement` in the quality suite now
 counts a truncation marker as evidence of a copied requirement in its own
 right, since a term only carries one if it reached a 60-character cap and no
-legitimate term runs that long. On the same seven terms it reports **6/7**,
-and that is the more accurate number, not merely the more conservative one:
-"Experience with electronic medical records documentation" is the JD's bullet
-copied verbatim, and at exactly six words the old limit had been letting it
-through.
+legitimate term runs that long.
 
-The metric still under-reports, and it is worth saying by how much. All seven
-nursing terms are JD requirement bullets — "Advanced Cardiac Life Support
-certification" is one too, minus the trailing "preferred" — so the true count
-is 7/7. Word count cannot separate a short requirement from a term, because
-for a short enough bullet there is nothing to separate. What the number tracks
-is how many are long enough to be obviously wrong.
+The metric still under-reports, and it is worth saying how. Word count cannot
+separate a short requirement from a term, because for a short enough bullet
+there is nothing to separate. What the number tracks is how many are long enough
+to be obviously wrong.
 
-Tech was not re-measured. The run that would have covered it lost that call to
-the endpoint, and the prompt it would have been measured against is the same
-prompt as before the round — the qualifier rules were reverted — so the earlier
-11/11 stands unchanged. The keyword repair cannot reach tech terms either: the
-longest is 19 characters against a window that starts at 55.
+*The residual, and it stays.* One qualifier pattern is still intermittent:
+"Current registration with the Malaysian Nursing Board" came back copied on 1 of
+the 4 changed runs, and correctly as "Malaysian Nursing Board registration" on
+the other three. It is deliberately not chased. `pnpm test:quality` asserts the
+two shapes that moved 4/4 — the duration and scheduling bullets, each checked
+for presence as well as shape, so a dropped bullet cannot pass vacuously — and
+prints this one. Asserting a fully clean nursing list would put a ~25% flake
+into a suite that spends real credits on every run, and a suite that is red a
+quarter of the time stops being read at all.
 
-Three mechanisms were considered for enforcing shape and all three were
-rejected, which is why this is closed rather than open:
+Two mechanisms for enforcing shape in code were considered and rejected, and
+that has not changed:
 
 - **`FIELD_CAPS.keyword`** is 60 and stays there. It is a truncation backstop,
   not a shape guard — every wrong pill was *under* it and therefore a legal
@@ -451,24 +496,12 @@ rejected, which is why this is closed rather than open:
   single retry, and then degrade the whole analysis to the deterministic
   report. Turning a cosmetic defect in one section into no AI review at all is
   the worse outcome.
-- **Another prompt round** is what this entry exists to rule out. Two domains of
-  worked examples moved tech to 11/11 and nursing to 2/7; a third domain is the
-  same lever again. This has since been tested directly and at the strongest
-  setting available — not a third domain but the transformation itself, stated
-  as explicit rules — and the output did not change by a single character. The
-  lever is spent.
 
-**So this is a known limitation, not an open problem, and there are no further
-rounds on this field.** What ships: on a technical job description the pills are
-short terms and the section works as designed. On a nursing-style job
-description some pills are full sentences, and the progress bar and "X/Y
-matched" count beside them are reading a list of requirements rather than a list
-of skills. The nursing JD stays in the quality suite as a permanent fixture so
-the gap stays visible and measured; `pnpm test:quality` asserts the tech case,
-prints the nursing distribution, and deliberately does not fail on it — a suite
-left permanently red over a defect nobody intends to fix next stops being read
-at all. If nursing ever comes back clean, that test fails on purpose and says
-to re-open this.
+What ships: on a technical job description the pills are short terms and the
+section works as designed. On a nursing-style job description they are now also
+short terms, with one bullet in roughly one run in four still arriving as a
+sentence. The nursing JD stays in the quality suite as a permanent fixture, and
+the two shapes it was added to catch are assertions now rather than a printout.
 
 *Fixed, and found while looking at the above: keyword pills were the one field
 the decoder could cut without saying so.* `FIELD_CAPS.keyword` is on the wire
