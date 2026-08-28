@@ -317,7 +317,7 @@ Each has a designed state, reachable and tested. None is a toast.
 
 ---
 
-## Two honest limitations
+## Three honest limitations
 
 **The rate limiter is in-process.** On serverless that means 5 requests per
 *instance*, not 5 globally, and it trusts `x-forwarded-for` — safe behind Vercel
@@ -330,6 +330,81 @@ is that it runs on a fresh clone with no infrastructure.
 stored analysis contains bullet fragments Claude quoted back from the resume.
 The extracted text itself is never persisted, but that distinction is real and
 worth stating rather than rounding off.
+
+**Keyword extraction returns requirement sentences on non-technical job
+descriptions.** Two defects were found in the Keyword match section at the same
+time. They were unrelated, one is fixed and verified, and the other is not —
+which is the whole reason they are written up together.
+
+*Fixed and verified: the match percentage.* `matchPercent` was the last number
+in the response that the model supplied and nothing checked. The formula was
+stated twice — in the system prompt and in the wire schema's `.describe()` — and
+enforced in neither, so the gauge rendered whatever integer arrived beside two
+arrays the model had also written. Production returned **40% for a 5-of-11
+match**, which is 4/10: the counts were rounded before the division rather than
+after. It hid for months because every captured case was exact — both
+`keywordMatch` blocks in `live-report.txt` are 4 matched and 4 missing, and 4/8
+is 50 however carelessly you compute it, while `quality-report.txt` logged only
+`keywords=NN%` with no arrays beside it to check against. The field is now gone
+from the wire schema entirely and `deriveMatchPercent` computes it after
+parsing, joining `verdict`, `overallScore` and section `status`. Confirmed
+working on a live run. Removing it also handed back 19 characters of every
+response, which raised the `sectionNote` ceiling from 234 to 237 — the one lever
+the response budget had left, and the second time it has been pulled.
+
+*Not fixed: the shape of the keywords themselves.* On a nursing job description
+the model returns the requirement sentences as pills — "3+ years
+post-registration experience in an acute inpatient", "Advanced Cardiac Life
+Support preferred" — rather than the terms inside them. A bulleted requirements
+list is structurally identical to a bulleted skills list, and the section's only
+worked examples were technical, so the extractor had never been shown what a
+non-technical keyword looks like.
+
+The fix was the treatment that worked for the headline field and the section
+note: GOOD/BAD pairs in the prompt, this time in **two** domains — nursing and
+marketing — plus an explicit "a term past about six words is a copied
+requirement" rule carried in both `.describe()` calls. Measured live it fixed
+tech and did not generalise:
+
+| job description | terms under the limit |
+| --- | --- |
+| tech | 11/11 |
+| nursing | 2/7 — **5 still full requirement sentences** |
+
+**Worked examples in two domains were not enough**, and that is the finding
+worth keeping. This repo's standing lesson — from `f485f05` and the section
+note rounds — is that a field misbehaves because it lacks a worked example, and
+that adding one fixes it. Here the example was added, in the failing domain
+specifically, and the behaviour moved in tech while barely moving in nursing.
+So the lesson has a boundary: worked examples teach a FORM, and they generalise
+across instances of a domain far better than across domains themselves.
+
+Three mechanisms were considered for enforcing shape and all three were
+rejected, which is why this is closed rather than open:
+
+- **`FIELD_CAPS.keyword`** is 60 and stays there. It is a truncation backstop,
+  not a shape guard — every wrong pill was *under* it and therefore a legal
+  decode. Lowering it would cut legitimate terms; "Malaysian Nursing Board
+  registration" is 36 characters. A character count cannot express shape.
+- **A word-count reject in the result schema** would fail validation, spend the
+  single retry, and then degrade the whole analysis to the deterministic
+  report. Turning a cosmetic defect in one section into no AI review at all is
+  the worse outcome.
+- **Another prompt round** is what this entry exists to rule out. Two domains of
+  worked examples moved tech to 11/11 and nursing to 2/7; a third domain is the
+  same lever again.
+
+**So this is a known limitation, not an open problem, and there are no further
+rounds on this field.** What ships: on a technical job description the pills are
+short terms and the section works as designed. On a nursing-style job
+description some pills are full sentences, and the progress bar and "X/Y
+matched" count beside them are reading a list of requirements rather than a list
+of skills. The nursing JD stays in the quality suite as a permanent fixture so
+the gap stays visible and measured; `pnpm test:quality` asserts the tech case,
+prints the nursing distribution, and deliberately does not fail on it — a suite
+left permanently red over a defect nobody intends to fix next stops being read
+at all. If nursing ever comes back clean, that test fails on purpose and says
+to re-open this.
 
 ## Limitations of the score measurement
 
