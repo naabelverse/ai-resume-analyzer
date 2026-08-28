@@ -549,6 +549,55 @@ being set by the prescription now permitted rather than by the target — and
 there is no room for a ninth raise. The next lever would be removing a field
 from the response, the way deriving `status` bought back 26 tokens.
 
+**The prediction failed. This is the live note that failed it:**
+
+> Your education is relevant and well-presented, though adding your CGPA or
+> class standing (which you already have) is good; consider including relevant
+> coursework if space allows and it strengthens your marketing analytics or…
+
+225 characters after repair, and the trailing `…` is not decoration — it is
+`repairTruncation` firing, which by construction only fires within five
+characters of the cap. So the raw note arrived at **225-230 against a 230 cap**
+and a stated max of 190. It sat on the new ceiling exactly the way notes used
+to sit on 190, which is the branch the prediction named as its failure case.
+
+It also failed for the reason that branch named. This is not one observation
+closed by one clause. It is three ideas chained — the education section is
+good, the CGPA is good, consider adding coursework — with the third still
+running when the decoder cut it. **The prescription allowance is being used as
+permission to keep going rather than as a way to close.** The tell sits inside
+the sentence: "adding your CGPA or class standing (which you already have) is
+good" prescribes something the same clause says the candidate has already done.
+That is what chaining produces and what closing does not.
+
+One example is not a rate, and this page has said so about other fields twice.
+It establishes that the failure mode occurs, not how often. Here that
+distinction changes nothing, because no measurement unlocks an action: the cap
+cannot rise — the `redFlags` trade above left a 204 ceiling — and wording has
+now lost every round it has been tried in, the prohibition and the allowance
+that replaced it alike.
+
+**`sections[].note` is closed. No further rounds.** Not fixed — closed. The cap
+stays at 230, the target stays 150/190, and the prescription allowance stays.
+Reverting the allowance is not the answer either: the prohibition it replaced
+also lost, with four of nine notes prescribing straight through it, so going
+back would trade a note that chains for a note that chains while claiming not
+to.
+
+What the field costs a reader, stated plainly so nobody has to rediscover it:
+**some section notes chain several ideas instead of naming one, and some arrive
+cut.** That is a documented limitation of this project, not an open problem in
+it.
+
+If it is ever reopened, the trigger is not a better wording idea — eight rounds
+say wording is not the lever on this field. It is the response shape changing
+enough to free budget, the way deriving `status` bought back 26 tokens and
+`matchPercent` could buy back more. Until then the eight rounds above are the
+record, and the durable thing in them is the method rather than the field:
+instrument before tuning, read the contents and not only the counts, and say in
+advance what a change would prove — including when the answer turns out to be
+that it did not.
+
 **Guided JSON decoding can run away on whitespace, and it still does.** This is
 the failure mode that cost the most to find, because it never once looked like
 itself.

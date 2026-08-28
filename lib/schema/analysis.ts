@@ -109,13 +109,25 @@ export const FIELD_CAPS = {
    * the hard ceiling** and 230 leaves 7 tokens. 250 was asked for and does not
    * fit — it is 25 tokens over.
    *
-   * The falsifiable part, stated in advance because the README asks for it:
-   * **notes stop arriving cut, and the mean lands near 150-190 rather than
-   * climbing to 230.** If the mean instead sits on this cap the way it sat on
-   * 190, the length is being set by the prescription now permitted and not by
-   * the target — and the next lever is NOT another raise, because there is no
-   * room for one. It would be removing a field from the response, the way
-   * deriving `status` bought back 26 tokens.
+   * The falsifiable part was stated in advance, as the README asks — notes
+   * stop arriving cut, and the mean lands near 150-190 rather than climbing to
+   * 230 — and **it failed.** A live note came back at 225-230 against this cap,
+   * chaining three ideas instead of closing one with one clause, and cut
+   * mid-thought. The note itself is quoted in the README's round-eight entry.
+   * It failed on the branch the prediction named: the length is being set by
+   * the prescription now permitted, not by the target.
+   *
+   * **THIS FIELD IS CLOSED. DO NOT OPEN A NINTH ROUND.** These numbers stay
+   * where they are — not because they are right, but because every lever is
+   * spent. The cap cannot rise: the `redFlag` trade recorded below left a 204
+   * ceiling. Wording has lost every round it has been tried in, the
+   * prohibition and the allowance that replaced it alike, so reverting is not
+   * an answer either. Chained and occasionally cut notes are a documented
+   * limitation of this project rather than an open problem in it.
+   *
+   * The only thing that would justify reopening this is the RESPONSE SHAPE
+   * changing enough to free budget — deriving `matchPercent` out of it the way
+   * `status` and `verdict` already are. Not a better wording idea.
    */
   sectionNote: 230,
   /**
