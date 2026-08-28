@@ -9,6 +9,14 @@ import type { AnalyzeResponse } from "@/types";
  * A detail long enough to overrun any plausible `FIELD_CAPS.feedbackDetail`,
  * so slicing it at the cap reproduces a real mid-word decoder cut.
  */
+/**
+ * A requirement sentence long enough to overrun `FIELD_CAPS.keyword`, so
+ * slicing it at the cap reproduces the mid-word decoder cut observed live —
+ * this exact string came back as a pill reading "...in an acute inp".
+ */
+const LONG_KEYWORD =
+  "Minimum 3 years post-registration experience in an acute inpatient ward";
+
 const LONG_DETAIL =
   "Responsible for maintaining the booking service describes a duty rather than a result, and the same pattern repeats across the section. Say what changed and by how much, using the figures you already have to hand: the request volume the service carried, the incidents it avoided, or the size of the team that depended on it, so a reviewer can weigh the work instead of guessing at the scope of the migration.";
 
@@ -330,6 +338,52 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     const kept = detail.slice(0, -1);
     expect(LONG_DETAIL.startsWith(kept)).toBe(true);
     expect(LONG_DETAIL[kept.length]).toBe(" ");
+  });
+
+  /**
+   * The same cut, in the one field that was not marked.
+   *
+   * `FIELD_CAPS.keyword` is on the wire schema, so a strict decoder stops a
+   * copied requirement at exactly 60 characters mid-word. Every other capped
+   * field went through `repairTruncation` and this one did not, so the pill
+   * rendered the raw cut — "…in an acute inp" — with no ellipsis to say
+   * anything was missing. The keyword is verbatim from a live nursing run.
+   *
+   * Asserted on `matched` and `missing` both: they are separate arrays built
+   * by separate expressions, and repairing one is the shape of this bug.
+   */
+  it("marks keywords the decoder cut mid-word", async () => {
+    const cutAtCap = LONG_KEYWORD.slice(0, FIELD_CAPS.keyword);
+
+    harness.reply(
+      wire({
+        keywordMatch: { matched: [cutAtCap], missing: [cutAtCap] },
+      }),
+    );
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+
+    const match = payload.data.keywordMatch!;
+    for (const [list, terms] of Object.entries({
+      matched: match.matched,
+      missing: match.missing,
+    })) {
+      const term = terms[0]!;
+      expect(term.endsWith("…"), `${list}: ${JSON.stringify(term)}`).toBe(true);
+      expect(term.length).toBeLessThanOrEqual(FIELD_CAPS.keyword);
+
+      // Same structural check as the detail case: the ellipsis replaces the
+      // cut fragment rather than being bolted onto it.
+      const kept = term.slice(0, -1);
+      expect(LONG_KEYWORD.startsWith(kept)).toBe(true);
+      expect(LONG_KEYWORD[kept.length]).toBe(" ");
+    }
   });
 
   /**

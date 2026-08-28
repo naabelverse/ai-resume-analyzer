@@ -379,6 +379,67 @@ specifically, and the behaviour moved in tech while barely moving in nursing.
 So the lesson has a boundary: worked examples teach a FORM, and they generalise
 across instances of a domain far better than across domains themselves.
 
+*Reopened once, on a diagnosis rather than a complaint, and closed harder.*
+The five wrong nursing terms were not five unrelated failures: every one of
+them **led with a qualifier** and left the skill buried behind it.
+
+| returned | qualifier kept | term inside |
+| --- | --- | --- |
+| "Minimum 3 years post-registration experience in an acute inp" | Minimum N years … experience in | acute inpatient care |
+| "Current registration with the Malaysian Nursing Board" | Current registration with | Malaysian Nursing Board registration |
+| "Demonstrated competence in telemetry monitoring and interpre" | Demonstrated competence in | telemetry monitoring |
+| "Proficiency in IV cannulation and administration of intrave" | Proficiency in | IV cannulation |
+| "Willingness to work a rotating three-shift roster" | Willingness to | rotating shift work |
+
+That is one pattern, not five, and the prompt had never stated the operation —
+only shown a sentence beside an unrelated-looking short term and left the
+transformation to be inferred. So it was stated: six explicit
+`qualifier → term` mappings, plus the duration case given both sanctioned
+outputs ("3+ years acute inpatient experience", or split into two terms).
+Predicted in advance: the qualifier-led terms reduce.
+
+**All seven terms came back byte identical.** Not reduced, not partially
+reduced — the same seven strings, confirmed by running the previous round's
+raw output through `repairTruncation` and reproducing this round's output
+exactly, all seven. A mechanical rule naming the exact pattern, in the exact
+failing domain, changed nothing. Those prompt lines were reverted rather than
+shipped, because prompt text that has never been shown to move anything still
+costs input tokens on every call.
+
+So the boundary is narrower and harder than "examples don't cross domains":
+**this field does not respond to prompt wording at all.** Three rounds of
+examples and one of explicit rules have now been tried. Whatever selects a
+requirement sentence over the term inside it is not reachable from the system
+prompt, and the next idea that is only a better way of saying it should not be
+attempted.
+
+*The measurement was flattering itself, and that is fixed.* The same round
+added truncation markers to keyword pills (below), which replaces a cut
+fragment with an ellipsis — **one fewer word**. "Demonstrated competence in
+telemetry monitoring and interpre" is seven words and over the limit; repaired
+it is six and under. The over-limit count fell 5/7 → 4/7 on byte-identical
+output and looked like progress. `isCopiedRequirement` in the quality suite now
+counts a truncation marker as evidence of a copied requirement in its own
+right, since a term only carries one if it reached a 60-character cap and no
+legitimate term runs that long. On the same seven terms it reports **6/7**,
+and that is the more accurate number, not merely the more conservative one:
+"Experience with electronic medical records documentation" is the JD's bullet
+copied verbatim, and at exactly six words the old limit had been letting it
+through.
+
+The metric still under-reports, and it is worth saying by how much. All seven
+nursing terms are JD requirement bullets — "Advanced Cardiac Life Support
+certification" is one too, minus the trailing "preferred" — so the true count
+is 7/7. Word count cannot separate a short requirement from a term, because
+for a short enough bullet there is nothing to separate. What the number tracks
+is how many are long enough to be obviously wrong.
+
+Tech was not re-measured. The run that would have covered it lost that call to
+the endpoint, and the prompt it would have been measured against is the same
+prompt as before the round — the qualifier rules were reverted — so the earlier
+11/11 stands unchanged. The keyword repair cannot reach tech terms either: the
+longest is 19 characters against a window that starts at 55.
+
 Three mechanisms were considered for enforcing shape and all three were
 rejected, which is why this is closed rather than open:
 
@@ -392,7 +453,10 @@ rejected, which is why this is closed rather than open:
   the worse outcome.
 - **Another prompt round** is what this entry exists to rule out. Two domains of
   worked examples moved tech to 11/11 and nursing to 2/7; a third domain is the
-  same lever again.
+  same lever again. This has since been tested directly and at the strongest
+  setting available — not a third domain but the transformation itself, stated
+  as explicit rules — and the output did not change by a single character. The
+  lever is spent.
 
 **So this is a known limitation, not an open problem, and there are no further
 rounds on this field.** What ships: on a technical job description the pills are
@@ -405,6 +469,32 @@ prints the nursing distribution, and deliberately does not fail on it — a suit
 left permanently red over a defect nobody intends to fix next stops being read
 at all. If nursing ever comes back clean, that test fails on purpose and says
 to re-open this.
+
+*Fixed, and found while looking at the above: keyword pills were the one field
+the decoder could cut without saying so.* `FIELD_CAPS.keyword` is on the wire
+schema, so NVIDIA's `strict: true` decoder stops a long term at exactly 60
+characters mid-word — and `analyze.ts` passed `keywordMatch.matched` and
+`.missing` straight through, while every other decoder-reachable field went
+through `repairTruncation`. So `sectionNote`, `feedbackText`, `feedbackDetail`,
+the three rewrite fields and `redFlag` all got an ellipsis and keywords got
+`"...experience in an acute inp"`. A pill has no `line-clamp` to hide behind:
+what the decoder cut is exactly what rendered. Three of the seven nursing terms
+were arriving that way, which is why this looked like a shape defect for longer
+than it was only a shape defect.
+
+Both arrays now go through `repairTruncation`, and the offline suite pins it on
+both providers. Two things worth knowing about the fix:
+
+- **It can shorten a term the decoder never cut**, and the case is measured
+  rather than hypothetical: "Experience with electronic medical records
+  documentation" is 56 characters and complete, and renders as "Experience with
+  electronic medical records…". `SUSPICION_WINDOW` is an absolute 5 characters —
+  1.25% of `feedbackDetail`, 8.3% of this cap — so the heuristic bites hardest
+  on the shortest field it guards. Left shared anyway: a per-field window is new
+  machinery for one observed case, and at 56 characters that string is a copied
+  requirement whichever end of it you lose. But a keyword ellipsis does not
+  reliably mean the model was cut off, and the other fields' do.
+- **It flattered the metric it was measured beside**, which is recorded above.
 
 ## Limitations of the score measurement
 

@@ -127,6 +127,26 @@ const KEYWORD_WORD_LIMIT = 6;
 
 const wordsIn = (term: string): number => term.trim().split(/\s+/).length;
 
+/**
+ * Whether a term is a copied requirement rather than a keyword.
+ *
+ * Word count is the readable half of this, and it is not sufficient on its
+ * own — this round found that out the hard way. Once `analyze.ts` started
+ * running the keyword arrays through `repairTruncation`, a term the decoder
+ * cut at `FIELD_CAPS.keyword` came back with its last fragment replaced by an
+ * ellipsis, which is ONE FEWER WORD. "Demonstrated competence in telemetry
+ * monitoring and interpre" is seven words and over the limit; the same string
+ * repaired to "…monitoring and…" is six and under it. The over-limit count
+ * fell from 5/7 to 4/7 on BYTE-IDENTICAL model output, and read as progress.
+ *
+ * So the marker counts too. A term only carries one if it reached the 60
+ * character cap, and nothing this field is for runs that long — the longest
+ * legitimate term on record is 43 characters. Hitting the cap is itself the
+ * evidence that a requirement was copied, wherever the cut happened to land.
+ */
+const isCopiedRequirement = (term: string): boolean =>
+  wordsIn(term) > KEYWORD_WORD_LIMIT || term.endsWith("…");
+
 interface KeywordRun {
   label: string;
   terms: string[];
@@ -452,7 +472,7 @@ async function measure(): Promise<void> {
       continue;
     }
     const lengths = terms.map(wordsIn);
-    const over = terms.filter((term) => wordsIn(term) > KEYWORD_WORD_LIMIT);
+    const over = terms.filter(isCopiedRequirement);
     say(
       `  ${pad(label, 9, true)} ${terms.length} terms` +
         ` | mean ${mean(lengths).toFixed(1)} words` +
@@ -463,7 +483,7 @@ async function measure(): Promise<void> {
     // contents say which instruction is wrong — the lesson the section note
     // round paid for.
     for (const term of terms) {
-      say(`      ${wordsIn(term) > KEYWORD_WORD_LIMIT ? "OVER " : "     "}${JSON.stringify(term)}`);
+      say(`      ${isCopiedRequirement(term) ? "OVER " : "     "}${JSON.stringify(term)}`);
     }
   }
 
@@ -1044,7 +1064,7 @@ describe("score spread across resume quality", () => {
     expect(tech.failure, `tech: ${tech.failure}`).toBeNull();
     expect(tech.terms.length, "tech extracted nothing").toBeGreaterThan(0);
 
-    const over = tech.terms.filter((term) => wordsIn(term) > KEYWORD_WORD_LIMIT);
+    const over = tech.terms.filter(isCopiedRequirement);
     expect(
       over,
       `tech returned requirement sentences: ${over
@@ -1063,6 +1083,16 @@ describe("score spread across resume quality", () => {
    * already in the prompt. The README records that as a known limitation and
    * closes the field.
    *
+   * It was reopened once more, on a sharper diagnosis than "still fails": all
+   * five wrong terms led with a QUALIFIER — "Minimum N years ... experience
+   * in", "Current registration with", "Demonstrated competence in",
+   * "Proficiency in", "Willingness to" — so the prompt got the transformation
+   * stated as a mechanical rule with six pattern-to-result mappings, rather
+   * than a third domain of examples. **All seven terms came back byte
+   * identical.** Not moved slightly; unchanged. That run is why the prompt no
+   * longer carries those lines, and it is the strongest evidence on record
+   * that this field does not respond to prompt wording at all.
+   *
    * Asserting it anyway would leave `pnpm test:quality` red on every run for a
    * defect nobody intends to fix next, which is how a suite stops being read at
    * all — and it would take the other assertions in this file down with it. So
@@ -1076,9 +1106,7 @@ describe("score spread across resume quality", () => {
     expect(nursing.failure, `nursing: ${nursing.failure}`).toBeNull();
     expect(nursing.terms.length, "nursing extracted nothing").toBeGreaterThan(0);
 
-    const over = nursing.terms.filter(
-      (term) => wordsIn(term) > KEYWORD_WORD_LIMIT,
-    );
+    const over = nursing.terms.filter(isCopiedRequirement);
     if (over.length === 0) {
       throw new Error(
         "nursing extraction came back clean. That is good news and this test " +

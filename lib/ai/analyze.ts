@@ -260,10 +260,36 @@ async function attempt(
     // model for it created a second source that could disagree — and did,
     // rendering a 5-of-11 match as 40%. The wire schema no longer carries the
     // field, so there is nothing left to disagree with.
+    // Marked like every other field the decoder can reach, and this one was
+    // the last that was not. `FIELD_CAPS.keyword` is on the wire schema, so a
+    // strict decoder stops a long term at exactly 60 characters mid-word —
+    // "Minimum 3 years post-registration experience in an acute inp" is a real
+    // capture — and a pill has no `line-clamp` to hide behind, so what the
+    // decoder cut is exactly what renders. Three of seven terms in the nursing
+    // measurement arrived that way.
+    //
+    // This DOES occasionally shorten a term the decoder never cut, and the
+    // case is measured rather than hypothetical: "Experience with electronic
+    // medical records documentation" is 56 characters, complete, and comes
+    // back as "Experience with electronic medical records…". `SUSPICION_WINDOW`
+    // is an absolute 5 characters, which is 1.25% of `feedbackDetail` and 8.3%
+    // of this cap — the heuristic was sized against fields three to seven times
+    // longer. It is left shared anyway: a per-field window is new machinery for
+    // one observed case, and at 56 characters that string is a copied
+    // requirement whichever end of it you lose. Worth knowing before trusting a
+    // keyword ellipsis to mean the model was cut off.
+    //
+    // `matchPercent` counts the arrays, so repairing before or after it makes
+    // no difference to the number. It goes before anyway, so the two lists the
+    // percentage describes are the two lists that render.
     keywordMatch: isWireKeywordMatch(wire.keywordMatch)
       ? {
-          matched: wire.keywordMatch.matched,
-          missing: wire.keywordMatch.missing,
+          matched: wire.keywordMatch.matched.map((term) =>
+            repair(term, FIELD_CAPS.keyword),
+          ),
+          missing: wire.keywordMatch.missing.map((term) =>
+            repair(term, FIELD_CAPS.keyword),
+          ),
           matchPercent: deriveMatchPercent(
             wire.keywordMatch.matched,
             wire.keywordMatch.missing,
