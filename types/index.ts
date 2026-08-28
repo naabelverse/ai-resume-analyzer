@@ -69,6 +69,32 @@ export const VERDICT_TONE: Record<Verdict, string> = {
   great: "var(--success)",
 };
 
+/**
+ * The dashboard score badge, keyed by the same `verdict` as the ring and the
+ * label. A third entry on one key, for the reason the first two share: the
+ * badge cannot disagree with the gauge about a score, because it decides
+ * nothing — it looks up what `deriveVerdict` already decided.
+ *
+ * A separate map from `VERDICT_TONE` rather than a reuse of it, because the
+ * two answer different questions. `VERDICT_TONE` is one raw colour for an SVG
+ * stroke; this is a background/foreground PAIR whose foreground is deliberately
+ * NOT the colour the ring strokes with. A status fill read as type on its own
+ * tint measures 2.07:1 (success) and 3.30:1 (danger); the `*-ink` variants in
+ * `globals.css` exist for exactly that, and the badge being replaced here was
+ * already AA at 4.69:1. Making it informative must not make it unreadable.
+ *
+ * Why `deriveVerdict` and not `statusFor`: the boundaries are identical, both
+ * being `STATUS_THRESHOLDS`, but `statusFor` lives in `lib/scoring.ts`, which
+ * imports `lib/text.ts`, which is `server-only`. `<HistoryList>` is a client
+ * component, so `deriveVerdict` is the one of the two that can cross that
+ * boundary. Same numbers, same single source, importable from the client.
+ */
+export const VERDICT_BADGE: Record<Verdict, string> = {
+  "needs-work": "bg-danger-tint text-danger-ink",
+  good: "bg-warning-tint text-warning-ink",
+  great: "bg-success-tint text-success-ink",
+};
+
 /** Severity order for the feedback list: actionable items first. */
 export const SEVERITY_ORDER: Record<Status, number> = {
   fail: 0,

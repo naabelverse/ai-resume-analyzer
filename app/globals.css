@@ -28,6 +28,26 @@
   */
   --warning-ink: #8a5a06;
   --danger: #ef4444;
+  /*
+    The other two status hues, carried down for the same reason as --warning-ink
+    and by the same method: same hue, darkened until it clears AA on its tint.
+
+    These exist because the dashboard score badge states a NUMBER in colour.
+    Every earlier use of a status hue was a fill, a rule or a glyph — the icons
+    in <FeedbackList>, the bars in <SectionBreakdown>, the gauge ring — so amber
+    was the only hue that had ever needed a text-safe variant. Measured on their
+    own tints the fill colours are 2.07:1 (--success) and 3.30:1 (--danger),
+    both well under AA, while the badge they were destined for reads at 4.69:1
+    today. Reusing the fills would have made an accessible badge inaccessible in
+    the act of making it more informative.
+
+    --success-ink: hue 142.6 against --success's 142.1, at 5.45:1.
+    --danger-ink:  hue 0.0, identical to --danger, at 5.68:1.
+    Both land beside --warning-ink's 5.40:1, so the three bands are equally
+    legible rather than only equally coloured.
+  */
+  --success-ink: #157238;
+  --danger-ink: #b91c1c;
 
   /* Surfaces */
   --surface: #ffffff;
@@ -191,9 +211,11 @@
   --color-brand-600: var(--brand-600);
   --color-violet-600: var(--violet-600);
   --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-warning: var(--warning);
   --color-warning-ink: var(--warning-ink);
   --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
   --color-surface: var(--surface);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);

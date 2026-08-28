@@ -7,6 +7,8 @@ import { AlertCircle, ArrowRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DEGRADED_COPY } from "@/lib/errors";
 import { persistenceMode, store } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { VERDICT_BADGE, deriveVerdict } from "@/types";
 import type { AnalysisSummary } from "@/types";
 
 /**
@@ -99,7 +101,12 @@ export function HistoryList() {
               <AlertCircle className="size-4" strokeWidth={2.4} />
             </span>
           ) : (
-            <span className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-brand-tint text-body font-semibold text-brand-600 tabular-nums">
+            <span
+              className={cn(
+                "grid size-10 shrink-0 place-items-center rounded-[12px] text-body font-semibold tabular-nums",
+                VERDICT_BADGE[deriveVerdict(record.overallScore)],
+              )}
+            >
               {record.overallScore}
             </span>
           )}
