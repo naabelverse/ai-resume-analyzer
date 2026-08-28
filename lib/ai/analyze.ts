@@ -9,6 +9,7 @@ import {
   DimensionScoresSchema,
   FIELD_CAPS,
   SECTION_NAMES,
+  deriveMatchPercent,
   deriveOverallScore,
   deriveVerdict,
   type AnalysisResult,
@@ -154,6 +155,18 @@ async function attempt(
     }
   }
 
+  // Narrow before deriving. `null` is the legitimate no-job-description case
+  // and must pass straight through; anything else malformed is left alone so
+  // `AnalysisResultSchema` below reports it, rather than being papered over
+  // with a percentage computed from arrays that were not there.
+  const isWireKeywordMatch = (
+    value: unknown,
+  ): value is { matched: string[]; missing: string[] } =>
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { matched?: unknown }).matched) &&
+    Array.isArray((value as { missing?: unknown }).missing);
+
   // The wire format keys sections by name so all six are structurally
   // guaranteed; the UI wants them ordered, so flatten here.
   const wire = payload as {
@@ -164,6 +177,7 @@ async function attempt(
     feedback?: unknown;
     bulletRewrites?: unknown;
     redFlags?: unknown;
+    keywordMatch?: unknown;
   };
   const sections = wire.sections
     ? SECTION_NAMES.map((name) => {
@@ -241,6 +255,21 @@ async function attempt(
     redFlags: Array.isArray(wire.redFlags)
       ? wire.redFlags.map((flag) => repair(flag, FIELD_CAPS.redFlag))
       : wire.redFlags,
+    // Computed here for the reason `verdict` two lines down and the section
+    // statuses above it are: it is a function of the two arrays, so asking the
+    // model for it created a second source that could disagree — and did,
+    // rendering a 5-of-11 match as 40%. The wire schema no longer carries the
+    // field, so there is nothing left to disagree with.
+    keywordMatch: isWireKeywordMatch(wire.keywordMatch)
+      ? {
+          matched: wire.keywordMatch.matched,
+          missing: wire.keywordMatch.missing,
+          matchPercent: deriveMatchPercent(
+            wire.keywordMatch.matched,
+            wire.keywordMatch.missing,
+          ),
+        }
+      : wire.keywordMatch,
     sections,
     overallScore,
     verdict: deriveVerdict(overallScore),

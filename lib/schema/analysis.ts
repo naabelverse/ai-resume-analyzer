@@ -186,6 +186,33 @@ export const FIELD_CAPS = {
   rewriteImproved: 300,
   rewriteWhy: 200,
   redFlag: 200,
+  /**
+   * Sixty, unchanged — and the note is the point, not the number.
+   *
+   * This is a TRUNCATION BACKSTOP. It bounds the response and stops a runaway
+   * string; it cannot make a keyword keyword-shaped, and it never could. When
+   * production returned requirement sentences as pills — "3+ years
+   * post-registration experience in an acute inpatient" — every one of them was
+   * UNDER this cap and therefore a legal decode. Nothing was truncated and
+   * nothing was wrong from the schema's point of view.
+   *
+   * Raising or lowering it would not have helped either. Lower and it cuts
+   * legitimate long terms — "Malaysian Nursing Board registration" is 36
+   * characters and is exactly the kind of thing this field is for. The defect
+   * is SHAPE, and a character count cannot express shape.
+   *
+   * What actually constrains shape is stated where the model reads it: the
+   * GOOD/BAD pairs in `=== KEYWORD MATCHING ===` and the "a TERM, not the
+   * requirement sentence" rule in the two `.describe()` calls below. Recorded
+   * here so nobody re-reads this 60 as a guard it is not, and goes looking for
+   * the bug in the wrong mechanism.
+   *
+   * Deliberately NOT enforced as a word count in the result schema. A hard
+   * reject would fail validation, spend the one retry, and then degrade the
+   * whole analysis to the deterministic report — turning a cosmetic defect in
+   * one section into no AI review at all. Degrading over pill length is a
+   * worse outcome than a long pill.
+   */
   keyword: 60,
 } as const;
 
@@ -211,9 +238,15 @@ export const FIELD_CAPS = {
  * `feedbackDetail` sit inside an 8-item array, so **each +1 character costs
  * 8**; `sectionNote` sits in six sections, so **each +1 costs 6**.
  *
- * At the caps that ship the worst case is **14,973 characters, ~3,993 tokens:
- * it fits, with 7 tokens to spare.** The ceiling for `sectionNote` alone is
- * **234**, and 230 is what ships.
+ * At the caps that ship the worst case is **14,954 characters, ~3,988 tokens:
+ * it fits, with 12 tokens to spare.** The ceiling for `sectionNote` alone is
+ * **237**, and 230 is what ships.
+ *
+ * It was 14,973 / 3,993 / 7 spare, with a ceiling of 234, until `matchPercent`
+ * stopped being asked for. `"matchPercent":100,` is 19 characters of every
+ * response — 5.07 tokens — and it came back for free, because the field was
+ * always a function of the two arrays beside it. The prediction below that the
+ * only lever left was removing a derivable field is the one that paid out.
  *
  * **THE 215 IS RESOLVED. READ THIS BEFORE RAISING ANYTHING ELSE.** The
  * disagreement recorded here for several commits — "about 215" against a
@@ -249,9 +282,18 @@ export const FIELD_CAPS = {
  * is 96 characters, 26 tokens, and the model no longer spends them. Worth
  * noting as a shape — the cheapest way to buy room here is to stop asking for
  * a field that can be computed, not to shave a character cap. **That is now
- * the only lever left**, and the next candidate is `matchPercent`, which is
- * `round(matched / (matched + missing) * 100)` and could be derived exactly
- * the way `status` and `verdict` already are.
+ * the only lever left**, and it has since been pulled a second time:
+ * `matchPercent` was named here as the next candidate and is now derived by
+ * `deriveMatchPercent`, returning another 19 characters per response.
+ *
+ * It was not pulled to buy room. It was pulled because the field was WRONG in
+ * production — a 5-of-11 match rendered as 40% — and the budget gain was a
+ * side effect of fixing a correctness bug. Worth separating, because the shape
+ * this paragraph is recording is "derive what can be computed", and the reason
+ * to do that is never primarily the tokens.
+ *
+ * What is left after it: nothing obvious. Every remaining field is content the
+ * model has to supply.
  *
  * That figure was wrong here once and the correction is worth keeping. This
  * read "14.8k characters, ~3.95k tokens... about 50 tokens to spare" for the
@@ -265,7 +307,7 @@ export const FIELD_CAPS = {
  * against captured output. `redFlag` has not: the only capture on disk,
  * `live-report.txt`, carries `"redFlags": []` twice, so the model has never
  * been seen filling this field at all — while it carries a 200 cap in a 6-item
- * array, which is 6 characters per +1 of the **7 tokens that now remain**.
+ * array, which is 6 characters per +1 of the **12 tokens that now remain**.
  * Nothing says it is safe. It is simply unseen, and it is the most likely
  * field to bite next without warning.
  *
@@ -299,8 +341,9 @@ export const FIELD_CAPS = {
  *     spare — reproduced exactly, which is what validated the method before
  *     spending against it. At the caps that ship now: 14,973 and 3,993, 7
  *     spare. If `redFlag` ever does need room, the largest cap that still fits
- *     is **204** — +4 characters, which is not a raise in any useful sense. It
- *     was 244 before `sectionNote` took the room.
+ *     is **207** — +7 characters, which is not a raise in any useful sense. It
+ *     was 244 before `sectionNote` took the room and 204 before deriving
+ *     `matchPercent` handed a little of it back.
  *
  * The `.describe()` text that carries the new rule is an INPUT cost, so it does
  * not touch this budget, which bounds the response.
@@ -633,20 +676,20 @@ export const AnalysisWireSchema = z.object({
         .array(z.string().max(FIELD_CAPS.keyword))
         .max(ARRAY_CAPS.keywords)
         .describe(
-          "Skills from the job description the resume demonstrates. At most 20, each a short skill name rather than a sentence.",
+          "Skills, tools, certifications or qualifications from the job description that the resume demonstrates. At most 20. Each is a TERM, not the requirement sentence it appeared in: 1-4 words, the name of the thing itself. From 'Minimum 3 years post-registration experience in an acute inpatient ward' extract 'acute inpatient care', never the whole line. A term over about six words means you copied a requirement instead of naming a skill.",
         ),
       missing: z
         .array(z.string().max(FIELD_CAPS.keyword))
         .max(ARRAY_CAPS.keywords)
         .describe(
-          "Skills from the job description the resume does not show. At most 20, each a short skill name rather than a sentence.",
+          "Skills, tools, certifications or qualifications from the job description that the resume does not show. At most 20. Same form as `matched`: a TERM of 1-4 words, never the requirement sentence it appeared in.",
         ),
-      matchPercent: z
-        .number()
-        .int()
-        .min(0)
-        .max(100)
-        .describe("round(matched / (matched + missing) * 100)."),
+      // `matchPercent` is absent on purpose, and it is the newest member of the
+      // set `verdict`, `overallScore` and section `status` already belong to.
+      // It is a function of the two arrays above, so asking for it created a
+      // second source for one fact — and the two disagreed in production: a
+      // 5-of-11 match rendered as 40%. `deriveMatchPercent` computes it after
+      // parsing. See the note above that function.
     })
     .nullable()
     .describe("Null when no job description was supplied. Never invent one."),
@@ -781,4 +824,38 @@ export function deriveVerdict(overallScore: number): Verdict {
   if (overallScore >= STATUS_THRESHOLDS.pass) return "great";
   if (overallScore >= STATUS_THRESHOLDS.warn) return "good";
   return "needs-work";
+}
+
+/**
+ * The keyword match percentage, computed rather than asked for.
+ *
+ * This was the last number in the response that a model supplied and nothing
+ * checked. The formula was stated twice — once in the system prompt, once in
+ * the wire schema's `.describe()` — and enforced in neither, so what reached
+ * the gauge was whatever integer the model wrote next to two arrays it had
+ * also written. Production returned **40% for a 5-of-11 match**, which is 4/10:
+ * the counts were rounded before the division rather than after.
+ *
+ * It hid for a long time because every captured case was exact. Both
+ * `keywordMatch` blocks in `live-report.txt` are 4 matched and 4 missing, and
+ * 4/8 is 50 however carelessly you compute it; the first ratio that needed real
+ * arithmetic was the first one to be wrong. `quality-report.txt` logged only a
+ * `keywords=NN%` summary with no arrays beside it, so it could not have caught
+ * the disagreement either — a number with nothing to check it against.
+ *
+ * So it joins `verdict`, `overallScore` and section `status`. The rule those
+ * three record is the rule here: two sources for one fact eventually disagree,
+ * and the fix is never to ask the model more firmly.
+ *
+ * Zero matched and zero missing yields 0, not `NaN`. That is the no-overlap
+ * case — a job description whose every requirement the extractor dropped — and
+ * a gauge reading 0% is a truthful "nothing matched", where `NaN` reaches the
+ * UI as "NaN%" and reads as a crash.
+ */
+export function deriveMatchPercent(
+  matched: readonly string[],
+  missing: readonly string[],
+): number {
+  const total = matched.length + missing.length;
+  return total === 0 ? 0 : Math.round((matched.length / total) * 100);
 }

@@ -11,6 +11,7 @@ import {
   SECTION_COHERENCE_TOLERANCE,
   SECTION_NAMES,
   STATUS_THRESHOLDS,
+  deriveMatchPercent,
   deriveOverallScore,
   deriveVerdict,
 } from "@/lib/schema/analysis";
@@ -885,6 +886,9 @@ describe("the largest permitted response fits in AI_MAX_TOKENS", () => {
         improved: fill(FIELD_CAPS.rewriteImproved),
         why: fill(FIELD_CAPS.rewriteWhy),
       })),
+      // No `matchPercent`. It left the wire schema when it became derived, and
+      // counting a field the model is no longer asked for would overstate the
+      // worst case — the stale-number failure this block exists to stop.
       keywordMatch: {
         matched: Array.from({ length: ARRAY_CAPS.keywords }, () =>
           fill(FIELD_CAPS.keyword),
@@ -892,7 +896,6 @@ describe("the largest permitted response fits in AI_MAX_TOKENS", () => {
         missing: Array.from({ length: ARRAY_CAPS.keywords }, () =>
           fill(FIELD_CAPS.keyword),
         ),
-        matchPercent: 100,
       },
       redFlags: Array.from({ length: ARRAY_CAPS.redFlags }, () =>
         fill(FIELD_CAPS.redFlag),
@@ -920,11 +923,92 @@ describe("the largest permitted response fits in AI_MAX_TOKENS", () => {
    * fails HERE, with the arithmetic in front of you, rather than in production
    * as a response truncated at `max_tokens`.
    */
-  it("puts the sectionNote ceiling at 234, with 230 shipping", () => {
+  it("puts the sectionNote ceiling at 237, with 230 shipping", () => {
     expect(FIELD_CAPS.sectionNote).toBe(230);
-    expect(tokensFor(maxedWire(234))).toBeLessThanOrEqual(AI_MAX_TOKENS);
-    expect(tokensFor(maxedWire(235))).toBeGreaterThan(AI_MAX_TOKENS);
-    // 250 was asked for in the round that raised this to 230. It does not fit.
+    expect(tokensFor(maxedWire(237))).toBeLessThanOrEqual(AI_MAX_TOKENS);
+    expect(tokensFor(maxedWire(238))).toBeGreaterThan(AI_MAX_TOKENS);
+    // 250 was asked for in the round that raised this to 230. It still does not
+    // fit, even with the room deriving `matchPercent` bought back.
     expect(tokensFor(maxedWire(250))).toBeGreaterThan(AI_MAX_TOKENS);
+  });
+
+  /**
+   * The ceiling was 234 until `matchPercent` stopped being asked for.
+   *
+   * `"matchPercent":100,` is 19 characters of every response, and removing a
+   * derivable field is the only lever this budget has left — the thing the
+   * `sectionNote` round predicted would be next and could not use at the time.
+   * Pinned as a number so the gain is visible rather than folded silently into
+   * a ceiling nobody can account for.
+   */
+  it("recovers budget by not asking for a derivable field", () => {
+    expect(tokensFor(maxedWire(234))).toBeLessThan(AI_MAX_TOKENS);
+    // The 19 characters, in tokens, at the 3.75 chars/token this file uses.
+    const recovered = 19 / CHARS_PER_TOKEN;
+    expect(recovered).toBeCloseTo(5.07, 2);
+  });
+});
+
+/**
+ * `matchPercent`, the last number the model supplied and nothing checked.
+ *
+ * The formula was stated twice — in the system prompt and in the wire schema's
+ * `.describe()` — and enforced in neither, so the gauge rendered whatever
+ * integer arrived beside two arrays the model had also written. Production
+ * returned 40% for a 5-of-11 match, which is 4/10: the counts were rounded
+ * before the division rather than after.
+ *
+ * The bug needed a ratio that was not exact to show itself. Both `keywordMatch`
+ * blocks captured in `live-report.txt` are 4 matched and 4 missing, and 4/8 is
+ * 50 however carelessly it is computed — which is why months of reports showing
+ * `keywords=NN%` never caught it.
+ */
+describe("deriveMatchPercent", () => {
+  const terms = (n: number) => Array.from({ length: n }, (_, i) => `term-${i}`);
+
+  it("computes the case that shipped wrong", () => {
+    // 5 of 11 is 45.45. The model said 40.
+    expect(deriveMatchPercent(terms(5), terms(6))).toBe(45);
+  });
+
+  it.each([
+    [8, 4, 67], // 66.67 — the earlier example that happened to be right
+    [4, 4, 50], // the only ratio ever captured on disk, and exact
+    [1, 2, 33],
+    [2, 1, 67],
+    [20, 0, 100],
+    [0, 20, 0],
+  ])("rounds %i matched and %i missing to %i%%", (matched, missing, expected) => {
+    expect(deriveMatchPercent(terms(matched), terms(missing))).toBe(expected);
+  });
+
+  /**
+   * Zero over zero is 0, not NaN. A job description whose every requirement the
+   * extractor dropped leaves both arrays empty, and `NaN` reaches the gauge as
+   * "NaN%" — which reads as a crash rather than as "nothing matched".
+   */
+  it("returns 0 rather than NaN when both lists are empty", () => {
+    const percent = deriveMatchPercent([], []);
+    expect(Number.isNaN(percent)).toBe(false);
+    expect(percent).toBe(0);
+  });
+
+  it("is not something the model can supply", () => {
+    const json = z.toJSONSchema(AnalysisWireSchema) as unknown as {
+      properties: {
+        keywordMatch: { anyOf?: { properties?: Record<string, unknown> }[] };
+      };
+    };
+    // Nullable, so the object form sits inside `anyOf`. Whichever branch
+    // carries properties must not offer the field.
+    const branches = json.properties.keywordMatch.anyOf ?? [];
+    for (const branch of branches) {
+      if (branch.properties) {
+        expect(Object.keys(branch.properties)).not.toContain("matchPercent");
+        expect(Object.keys(branch.properties)).toContain("matched");
+      }
+    }
+    // The result schema still carries it — the UI reads it from there.
+    expect(AnalysisResultSchema.shape.keywordMatch).toBeDefined();
   });
 });

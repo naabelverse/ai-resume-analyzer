@@ -330,11 +330,38 @@ rather than acted on.
 
 === KEYWORD MATCHING ===
 
+A keyword is a TERM, not the requirement it appeared in. Extract the name of
+the skill, tool, certification or qualification — one to four words. A job
+description states its requirements as sentences; pull the thing being required
+out of each one and discard the sentence around it.
+
+This holds in EVERY field, not only software. A bulleted requirements list
+looks the same in every industry, and copying the bullets is the exact failure
+this rule exists to prevent.
+
+  GOOD: "acute inpatient care", "ACLS", "Malaysian Nursing Board registration",
+        "telemetry monitoring", "IV cannulation"
+  BAD:  "Minimum 3 years post-registration experience in an acute inpatient
+        ward", "Advanced Cardiac Life Support certification preferred"
+        <- requirements copied whole. The terms inside them were "acute
+           inpatient care" and "ACLS". These render as pills beside a match
+           count; a sentence in a pill cannot be scanned.
+
+  GOOD: "SQL", "AppsFlyer", "structured creative testing"
+  BAD:  "Demonstrated experience running structured creative testing across
+        paid social channels"
+        <- the same error in a different industry.
+
+If a term runs past about six words, you have copied a requirement. Name the
+skill instead.
+
 - Extract the required and preferred skills from the job description itself.
 - Judge presence SEMANTICALLY, not by substring. "Built REST endpoints in
   Express" satisfies "Node.js". "Shipped a Next.js dashboard" satisfies "React".
+  "Managed post-operative recovery patients" satisfies "acute inpatient care".
   Never mark a skill missing just because the exact token is absent.
-- matchPercent is round(matched / (matched + missing) * 100).
+- Do NOT report a match percentage. It is computed from the two lists after you
+  return them — there is no field for it and no arithmetic for you to do.
 - If no job description is supplied, keywordMatch MUST be null. Do not guess a
   target role and invent keywords for it.
 

@@ -81,6 +81,61 @@ const JOB_DESCRIPTION =
   "CI/CD pipelines, distributed tracing.";
 
 /**
+ * A second job description, in a field that is not software, kept permanently.
+ *
+ * Keyword extraction was measured only against `JOB_DESCRIPTION` for its whole
+ * life, and the prompt's only worked examples were tech. That combination hid a
+ * real defect: on a nursing job description the model returned the REQUIREMENT
+ * SENTENCES as keywords — "3+ years post-registration experience in an acute
+ * inpatient", "Advanced Cardiac Life Support preferred" — because a bulleted
+ * requirements list looks structurally identical to a bulleted skills list, and
+ * nothing had ever shown it a non-technical worked example.
+ *
+ * Written in the style that CAUSED the failure rather than one that avoids it:
+ * prose requirements with the qualification buried inside the sentence, not a
+ * comma-separated skills list. A fixture that states its skills as a list
+ * cannot reproduce the bug, and a regression fixture that cannot fail is
+ * decoration.
+ *
+ * The resume fixtures stay as they are. Extraction reads the JOB DESCRIPTION,
+ * so the JD is the variable under test — a low match rate against a backend
+ * resume is expected and is not what this measures. What is measured is the
+ * SHAPE of the terms in both lists.
+ */
+const NURSING_JOB_DESCRIPTION =
+  "Registered Nurse — Acute Medical Ward. Reporting to the Nurse Manager, you " +
+  "will deliver direct patient care on a 32-bed inpatient unit. " +
+  "Requirements: Minimum 3 years post-registration experience in an acute " +
+  "inpatient ward. Current registration with the Malaysian Nursing Board is " +
+  "mandatory. Demonstrated competence in telemetry monitoring and " +
+  "interpretation of cardiac rhythms. Proficiency in IV cannulation and " +
+  "administration of intravenous medications. Advanced Cardiac Life Support " +
+  "certification preferred. Experience with electronic medical records " +
+  "documentation. Willingness to work a rotating three-shift roster.";
+
+/**
+ * The job descriptions keyword extraction is measured against. Adding a third
+ * costs one live call per run, not one per fixture.
+ */
+const KEYWORD_JDS = [
+  { label: "tech", jd: JOB_DESCRIPTION },
+  { label: "nursing", jd: NURSING_JOB_DESCRIPTION },
+] as const;
+
+/** Longest a term may run before it is a copied requirement. Stated in the prompt too. */
+const KEYWORD_WORD_LIMIT = 6;
+
+const wordsIn = (term: string): number => term.trim().split(/\s+/).length;
+
+interface KeywordRun {
+  label: string;
+  terms: string[];
+  failure: string | null;
+}
+
+const keywordRuns: KeywordRun[] = [];
+
+/**
  * The bands each fixture was written to land in, from the acceptance
  * criterion. These are asserted, not merely reported — a fixture that drifts
  * out of its band means either the resume or the rubric changed, and both are
@@ -349,6 +404,66 @@ async function measure(): Promise<void> {
             : ""
         }`,
       );
+    }
+  }
+
+  /* ------------------------------------------------- keyword extraction -- */
+
+  /*
+    One call per job description, against `strong` only.
+
+    The rest of this report varies the RESUME against a fixed JD. Extraction
+    reads the JD, so this varies the JD against a fixed resume — the other axis,
+    and the one that was never measured. Two calls, not two per fixture.
+
+    Match rate is deliberately not asserted here. A backend resume scores badly
+    against a nursing JD and that is correct; what this measures is whether the
+    terms in both lists are TERMS. A percentage cannot show that, which is the
+    reason the defect survived a report that had been printing `keywords=NN%`
+    for months.
+  */
+  const strong = results.get("strong")!;
+
+  for (const { label, jd } of KEYWORD_JDS) {
+    try {
+      const { result } = await analyzeResumeWithDiagnostics({
+        resumeText: strong.text,
+        jobDescription: jd,
+        truncated: false,
+        facts: strong.facts,
+      });
+      const match = result.keywordMatch;
+      keywordRuns.push({
+        label,
+        terms: match ? [...match.matched, ...match.missing] : [],
+        failure: match ? null : "keywordMatch was null despite a job description",
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      keywordRuns.push({ label, terms: [], failure: message });
+    }
+  }
+
+  say();
+  say(`keyword shape (a term is <= ${KEYWORD_WORD_LIMIT} words; longer is a copied requirement):`);
+  for (const { label, terms, failure } of keywordRuns) {
+    if (failure) {
+      say(`  ${pad(label, 9, true)} FAILED: ${failure}`);
+      continue;
+    }
+    const lengths = terms.map(wordsIn);
+    const over = terms.filter((term) => wordsIn(term) > KEYWORD_WORD_LIMIT);
+    say(
+      `  ${pad(label, 9, true)} ${terms.length} terms` +
+        ` | mean ${mean(lengths).toFixed(1)} words` +
+        ` | max ${Math.max(0, ...lengths)}` +
+        ` | over limit ${over.length}/${terms.length}`,
+    );
+    // The terms themselves, because a count says a field is wrong and only the
+    // contents say which instruction is wrong — the lesson the section note
+    // round paid for.
+    for (const term of terms) {
+      say(`      ${wordsIn(term) > KEYWORD_WORD_LIMIT ? "OVER " : "     "}${JSON.stringify(term)}`);
     }
   }
 
@@ -906,6 +1021,37 @@ describe("score spread across resume quality", () => {
 
     expect(Math.min(...strong!)).toBeGreaterThan(Math.max(...middling!));
     expect(Math.min(...middling!)).toBeGreaterThan(Math.max(...weak!));
+  });
+
+  /**
+   * The regression this fixture pair exists for.
+   *
+   * Asserted on BOTH job descriptions, and the nursing one is the case that
+   * actually failed: requirement sentences arriving as pills, because the only
+   * worked examples the prompt carried were tech and a bulleted requirements
+   * list looks like a bulleted skills list. Passing on tech alone is what the
+   * report did for months while this was broken, so tech alone proves nothing.
+   *
+   * Note what is NOT asserted: the match percentage. A backend resume against a
+   * nursing JD should score badly, and a percentage could not have shown this
+   * defect anyway — it is a shape failure, and every wrong term was under
+   * `FIELD_CAPS.keyword` and therefore a legal decode.
+   */
+  it("extracts terms rather than requirement sentences, on every job description", () => {
+    expect(keywordRuns).toHaveLength(KEYWORD_JDS.length);
+
+    for (const { label, terms, failure } of keywordRuns) {
+      expect(failure, `${label}: ${failure}`).toBeNull();
+      expect(terms.length, `${label} extracted nothing`).toBeGreaterThan(0);
+
+      const over = terms.filter((term) => wordsIn(term) > KEYWORD_WORD_LIMIT);
+      expect(
+        over,
+        `${label} returned requirement sentences: ${over
+          .map((term) => JSON.stringify(term))
+          .join(", ")}`,
+      ).toEqual([]);
+    }
   });
 
   // Q3. The one that decides whether the score measures anything at all.
