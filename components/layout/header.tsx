@@ -9,11 +9,15 @@ import { HeaderShell } from "./header-shell";
  * carrying the brand gradient, subtitle beneath — and, opposite it, at most
  * one nav item.
  *
- * At most one on two counts. The demo link sat here for a while and the two
- * competed with each other and with the wordmark; it has gone to the form,
- * next to the drop target it is an alternative to. And what is left hides
- * itself on the page it points at, so /dashboard sees a header with no nav at
- * all.
+ * At most one, and that rule is load-bearing. The demo link sat here for a
+ * while and the two competed with each other and with the wordmark; it has
+ * gone to the form, next to the drop target it is an alternative to.
+ *
+ * The one that is left never points at the page you are on. It used to satisfy
+ * that by disappearing, which left /dashboard with no nav at all and the
+ * wordmark as the only way back to the form; it now swaps to "New analysis"
+ * instead. Still exactly one item on every route — see `<HeaderNav>` for why
+ * one item that changes beats two that filter.
  *
  * Stays a server component. Both pathname-dependent decisions — whether the
  * nav item appears, and how wide the row is — are made in the two client
@@ -57,9 +61,9 @@ export function Header() {
         </div>
       </Link>
 
-      {/* Renders nothing on the page it points at — see `<HeaderNav>`. With one
-          child left the row keeps the wordmark's height and `justify-between`
-          has nothing to push against, so no gap is left where it was. */}
+      {/* One item, whichever of the two destinations is not the current page —
+          see `<HeaderNav>`. It renders on every route now, so `justify-between`
+          always has two children to push apart. */}
       <HeaderNav />
     </HeaderShell>
   );
