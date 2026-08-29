@@ -11,7 +11,7 @@ mid-JSON — and what happens when someone uploads a scanned photo of a printout
 a 40MB file, or a PDF renamed `.docx`. Every one of those has a designed answer,
 and the app degrades rather than breaking.
 
-> **Screenshot placeholder** — add `docs/screenshot.png` and link it here.
+![AI Resume Analyzer](docs/screenshot.png)
 
 ---
 
