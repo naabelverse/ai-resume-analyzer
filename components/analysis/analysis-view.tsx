@@ -132,7 +132,30 @@ export function AnalysisView({ id }: { id: string }) {
         <Card>
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
             <ScoreGauge score={analysis.overallScore} />
-            <div className="grid min-w-0 flex-1 gap-5 min-[1040px]:grid-cols-2 min-[1040px]:gap-8">
+            {/*
+              The divider lands on the ROW's midpoint, and the first track is
+              derived from that rather than picked as a ratio.
+
+              These two columns were `grid-cols-2` — genuinely equal, measured
+              at 433px each on a 1440 viewport. They still read as lopsided,
+              because the ring is a flex sibling outside this grid and the eye
+              groups it with the heading beside it: ring + gap + summary is
+              645px of apparent "Resume score" against 401px of rationale.
+              Even columns, uneven regions. Equalising the columns harder does
+              nothing, since they were never unequal.
+
+              With R the ring block (180 gauge + the row's 32px gap = 212) and
+              G this grid's own width, a divider at the row midpoint (R + G)/2
+              sits after a first track of G/2 - R/2 - gap = G/2 - 138px. A
+              percentage in `grid-template-columns` resolves against G, so that
+              expression IS the track.
+
+              Derived, not tuned, because the ring is a fixed 180px while the
+              columns are fluid — so any fixed fr ratio only balances at one
+              width. The 4fr/7fr that centres the divider at 1440 puts it 26px
+              off centre at 1040, where this two-column mode starts.
+            */}
+            <div className="grid min-w-0 flex-1 gap-5 min-[1040px]:grid-cols-[calc(50%_-_138px)_minmax(0,1fr)] min-[1040px]:gap-8">
               <div className="min-w-0">
                 <CardTitle>Resume score</CardTitle>
                 <p className="mt-2 text-body leading-relaxed text-ink-soft">
