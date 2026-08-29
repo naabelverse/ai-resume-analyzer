@@ -114,12 +114,75 @@ const NURSING_JOB_DESCRIPTION =
   "documentation. Willingness to work a rotating three-shift roster.";
 
 /**
+ * A third job description, in a field whose requirements are written about the
+ * PERSON rather than the skill, kept permanently.
+ *
+ * Nursing proved the prompt could shorten a requirement sentence into a term.
+ * It could not prove anything about a requirement that has no term inside it,
+ * because every bullet in both prior JDs names something a candidate either
+ * has or has not: a certification, a tool, a ward, a roster. Creative job
+ * descriptions do not read that way. They mix real tools with statements about
+ * who may apply and how the successful candidate is expected to behave, and
+ * neither of those has a resume-side counterpart at all.
+ *
+ * That gap produced the defect this fixture exists for. "fresh graduates
+ * welcome" and "take direction from senior designers" both reached pills under
+ * "In your resume" with a checkmark. Nothing on a resume can literally match
+ * either, so the model inferred a soft match — and the matching rule leaves it
+ * no choice, since it is told to judge presence semantically and never to mark
+ * a skill missing on the absence of a literal token. A false positive is worse
+ * than a shortening miss: it tells the candidate they have something they do
+ * not.
+ *
+ * VERBATIM a real posting, and the first invented attempt is why. A synthetic
+ * version of this JD — the same sentences, flattened into one prose paragraph —
+ * was extracted CLEANLY on the current prompt: eligibility 0, working-style 0,
+ * nothing to fix. The phrasing was too separable, and a fixture that cannot
+ * fail is decoration.
+ *
+ * What the real one has that the invention did not is structure. The
+ * eligibility and working-style lines are bullets sitting in the SAME lists as
+ * genuine requirements — "Take direction from senior designers" is a
+ * responsibility bullet between two real ones, and "Fresh graduates welcome"
+ * shares its bullet with "internship or freelance experience counts", which
+ * does name something. That is what makes them read as requirements worth
+ * extracting, and no invented phrasing reproduced it.
+ *
+ * Kept whole, including the section headings and the "Nice to have" block. The
+ * failure is about a sentence's ROLE in the document, so a fixture that strips
+ * the document's shape has removed the variable under test.
+ */
+const CREATIVE_JOB_DESCRIPTION = `We are a 25-person branding studio working with F&B, retail and hospitality clients across Klang Valley. You would work alongside two senior designers on live client projects from your first week.
+
+What you would do
+- Produce social media assets, print collateral and packaging artwork to brand guidelines
+- Take direction from senior designers and revise work based on client feedback
+- Prepare artwork files for print production and liaise with printers
+- Contribute ideas in concept sessions — we expect juniors to have opinions
+- Maintain and organise the studio's asset library
+
+What we are looking for
+- A portfolio showing real work, personal projects included — we care more about the thinking than the client list
+- Working knowledge of Adobe Illustrator, Photoshop and InDesign
+- Understanding of typography, layout and colour theory
+- Basic understanding of print production — bleed, CMYK, file preparation
+- Ability to take feedback without taking it personally
+- Fresh graduates welcome; internship or freelance experience counts
+
+Nice to have
+- Figma for digital and web assets
+- Motion basics — After Effects or Canva animation
+- Photography or retouching skills
+- Experience with packaging or point-of-sale materials`;
+
+/**
  * The job descriptions keyword extraction is measured against. Adding a third
  * costs one live call per run, not one per fixture.
  */
 const KEYWORD_JDS = [
   { label: "tech", jd: JOB_DESCRIPTION },
   { label: "nursing", jd: NURSING_JOB_DESCRIPTION },
+  { label: "creative", jd: CREATIVE_JOB_DESCRIPTION },
 ] as const;
 
 /** Longest a term may run before it is a copied requirement. Stated in the prompt too. */
@@ -162,6 +225,40 @@ const isDurationShape = (term: string): boolean =>
 
 const isRosterShape = (term: string): boolean =>
   /roster|rotating|shift/i.test(term);
+
+/**
+ * The two shapes in the creative JD that must yield NOTHING.
+ *
+ * Unlike the nursing predicates, which find a term and then ask what shape it
+ * is, these match terms that should not exist at all. A hit is the defect.
+ * Matched on the words only those JD sentences carry, so a hit classifies the
+ * same whether the sentence arrived copied whole or shortened to the fragment
+ * that was actually observed ("fresh graduates welcome").
+ */
+const isEligibilityTerm = (term: string): boolean =>
+  /fresh graduate|graduates? welcome|welcome to apply|career changer|encouraged to apply|internship or freelance/i.test(
+    term,
+  );
+
+const isWorkingStyleTerm = (term: string): boolean =>
+  /take direction|takes? feedback|taking it personally|have opinions|contribute ideas|revise work|concept sessions|senior designers/i.test(
+    term,
+  );
+
+/**
+ * The craft terms this JD genuinely names, which must SURVIVE.
+ *
+ * The contrast case in the invented fixture was a weekend-availability bullet;
+ * the real posting has none, so the roster shape stays covered by nursing
+ * alone. What this JD can prove instead is the other half: a rule that
+ * discards the eligibility bullets must not also flatten the tool list sitting
+ * beside them. A pass with zero leaks and zero craft terms is not a fix, it is
+ * an extractor that stopped working.
+ */
+const isCraftTerm = (term: string): boolean =>
+  /illustrator|photoshop|indesign|figma|after effects|canva|typography|layout|colour theory|color theory|print production|bleed|cmyk|file prep|packaging|point-of-sale|photography|retouch|motion|asset library|brand guidelines/i.test(
+    term,
+  );
 
 interface KeywordRun {
   label: string;
@@ -495,6 +592,23 @@ async function measure(): Promise<void> {
         ` | max ${Math.max(0, ...lengths)}` +
         ` | over limit ${over.length}/${terms.length}`,
     );
+    /*
+      The creative JD is measured on WHAT IS ABSENT, so the counts have to be
+      printed or the pass is unreadable. A term list alone cannot show that a
+      sentence yielded nothing — only that it is not in the list, which looks
+      the same as a model that skipped it by luck.
+    */
+    if (label === "creative") {
+      const elig = terms.filter(isEligibilityTerm);
+      const style = terms.filter(isWorkingStyleTerm);
+      const craft = terms.filter(isCraftTerm);
+      say(
+        `            eligibility ${elig.length} (want 0)` +
+          ` | working-style ${style.length} (want 0)` +
+          ` | craft ${craft.length} (want >=4)`,
+      );
+      for (const t of [...elig, ...style]) say(`            LEAK ${JSON.stringify(t)}`);
+    }
     // The terms themselves, because a count says a field is wrong and only the
     // contents say which instruction is wrong — the lesson the section note
     // round paid for.

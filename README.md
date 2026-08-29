@@ -529,6 +529,56 @@ both providers. Two things worth knowing about the fix:
   reliably mean the model was cut off, and the other fields' do.
 - **It flattered the metric it was measured beside**, which is recorded above.
 
+*Reported and not reproduced: matched pills nothing on a resume could match.*
+Two pills — "fresh graduates welcome" and "take direction from senior
+designers" — were reported under "In your resume" with a checkmark, from a real
+analysis against a creative job description. Neither is something a candidate
+states about themselves: the first is the employer describing who they will
+consider, the second an expectation about working style. Both are structurally
+unmatchable, and a false positive is the worse error in this section — it tells
+someone they have something they do not.
+
+The mechanism is coherent on paper. `=== KEYWORD MATCHING ===` polices shape by
+LENGTH — a six-word limit, plus named shapes for duration and availability — and
+both terms sit under it at three and five words. Nothing in the prompt tells the
+model to DISCARD a requirement containing no term at all, because every worked
+example assumes there is a term inside to find. Matching then has no way out: it
+is told to judge presence semantically and never to mark a skill missing on the
+absence of a literal token, so an unmatchable term can only come back matched.
+
+**It reproduced zero times in two live attempts.** The first used an invented
+creative JD and extracted cleanly. The second used the real posting verbatim,
+kept whole including its section headings, and extracted cleanly again — 17
+craft terms, eligibility 0, working-style 0, with "Take direction from senior
+designers and revise work based on client feedback", "Fresh graduates welcome;
+internship or freelance experience counts", "Ability to take feedback without
+taking it personally" and "Contribute ideas in concept sessions" all discarded
+with no rule telling it to. Provider and model match production exactly —
+`nvidia`, `nvidia/nemotron-3-super-120b-a12b`, confirmed against `/api/health`
+on the deployment that produced the report — so a provider difference is
+excluded rather than assumed.
+
+So it is recorded as intermittent extractor variance rather than a stable
+defect, consistent with drift already visible in the same suite: two consecutive
+baseline passes on IDENTICAL inputs returned 10 then 11 tech terms ("Python or
+Go" one run, "Python" and "Go" the next) and 7 then 8 nursing terms. The same
+prompt does not return the same list twice.
+
+No fix was written. A fourth shape excluding eligibility and working-style
+language was drafted and deliberately not shipped: against a before-rate of 0/2
+it would have passed a fixture that was already passing, and carried a green
+test as false assurance. Establishing a real before-rate needs the three-to-four
+pass discipline the duration fix used, which spends live credits on every run,
+and the defect has not been seen twice.
+
+*The creative JD stays, measured and not asserted* — the same treatment as the
+nursing residual above. It is a permanent fixture in `KEYWORD_JDS`, verbatim
+because a flattened synthetic version of the same sentences extracted cleanly
+and proved nothing. `pnpm test:quality` prints its eligibility, working-style
+and craft counts every run. Asserting zero leaks would pin a green that was
+never earned; printing them means whoever sees these pills next has a baseline
+to compare against and the JD that produced them already loaded.
+
 ## Limitations of the score measurement
 
 The spread numbers above are real, and they are also narrower than they look.
