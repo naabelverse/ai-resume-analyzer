@@ -36,7 +36,6 @@ export const TAIL_CHARS = 3_000;
 export const TRUNCATION_MARKER =
   "\n\n[... middle of resume omitted for length ...]\n\n";
 
-
 /* --------------------------------------------------------------- timing -- */
 
 /**

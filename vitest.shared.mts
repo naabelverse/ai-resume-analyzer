@@ -11,8 +11,10 @@ import { fileURLToPath } from "node:url";
  * on import and the failure would look like a broken test rather than a
  * broken config.
  *
- * A `.ts` file rather than `.mts` so both configs can import it by an
- * extensionless specifier under `moduleResolution: "bundler"`.
+ * An `.mts` file, imported by both configs with its real extension, which is
+ * what Vitest's native-ESM config loader wants. `allowImportingTsExtensions`
+ * in tsconfig.json is what makes that specifier legal to typecheck; nothing
+ * here is ever emitted, so no .js file needs the extension rewritten.
  */
 export const RESOLVE = {
   // Native replacement for the vite-tsconfig-paths plugin: resolves the

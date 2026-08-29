@@ -1,10 +1,18 @@
 import type { AnalysisResult } from "@/types";
 
 /**
- * Static demo data for Phase 1 so the full layout can be reviewed before any
- * logic exists. Every value here is invented — there is no real resume behind
- * it. Phase 4 replaces these imports with the live API response and this file
- * is deleted.
+ * Static demo data behind the `/analyze/demo` route.
+ *
+ * Written for Phase 1 so the full layout could be reviewed before any logic
+ * existed, and this comment said for a long time that Phase 4 would delete it.
+ * That is not what happened. The live path arrived and this became the sample
+ * instead: `<AnalysisView>` serves this record for the `demo` id, and
+ * `<AnalyzeForm>` links to it beside the drop target, so the whole report
+ * is readable without an API key or a resume of your own.
+ *
+ * It is load-bearing, not leftover — deleting it breaks that route.
+ *
+ * Every value here is invented — there is no real resume behind it.
  */
 export const PLACEHOLDER_FILE_NAME = "muhammad-nabil-resume.pdf";
 

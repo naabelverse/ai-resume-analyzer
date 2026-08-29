@@ -5,15 +5,16 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
-/** The real pipeline stages, in order. Phase 4 advances these from the fetch. */
+/**
+ * The real pipeline stages, in order. `<AnalyzeForm>` advances them from
+ * elapsed time while the request is in flight.
+ */
 export const SCAN_STAGES = [
   "Reading your file",
   "Extracting text",
   "Analysing content",
   "Scoring",
 ] as const;
-
-export type ScanStage = (typeof SCAN_STAGES)[number];
 
 /**
  * Ceiling held while the request is still in flight. The bar only completes

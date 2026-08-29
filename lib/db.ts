@@ -6,7 +6,7 @@ import { PrismaClient } from "@/lib/generated/prisma/client";
 import { getEnv } from "@/lib/env";
 
 /**
- * Database access for Phase 7's resume history.
+ * Database access for the resume history.
  *
  * Everything here is optional by design. The app's core promise is that it
  * runs on a fresh clone with no infrastructure, so the database is a feature

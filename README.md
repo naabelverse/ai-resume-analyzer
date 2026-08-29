@@ -302,7 +302,7 @@ Each has a designed state, reachable and tested. None is a toast.
 
 ## Security
 
-- **The key never reaches the browser.** `lib/ai/client.ts` imports
+- **The key never reaches the browser.** `lib/ai/providers/*` import
   `server-only`, which makes an accidental client import a build error rather
   than a leak. Verified against the built bundle: no key, no SDK, and no prompt
   text in `.next/static`.

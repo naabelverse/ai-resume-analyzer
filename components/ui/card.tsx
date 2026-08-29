@@ -11,16 +11,6 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="card" className={cn("card", className)} {...props} />;
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-header"
-      className={cn("mb-4 flex items-start justify-between gap-3", className)}
-      {...props}
-    />
-  );
-}
-
 function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
     <h2
@@ -41,8 +31,4 @@ function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="card-content" className={cn(className)} {...props} />;
-}
-
-export { Card, CardHeader, CardTitle, CardDescription, CardContent };
+export { Card, CardTitle, CardDescription };

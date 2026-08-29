@@ -226,7 +226,6 @@
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-brand-600: var(--brand-600);
-  --color-violet-600: var(--violet-600);
   --color-success: var(--success);
   --color-success-ink: var(--success-ink);
   --color-warning: var(--warning);
@@ -263,7 +262,9 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* Shape and depth — generates rounded-card, rounded-panel, shadow-card… */
+/* Shape and depth. In @theme so the panel and control radii are reachable as
+   `rounded-panel` / `rounded-control` utilities. The rest are consumed as
+   `var()` inside the component classes below rather than as utilities. */
 @theme {
   --radius-card: 22px;
   --radius-panel: 16px;
