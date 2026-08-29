@@ -10,6 +10,22 @@
   /* Ink */
   --ink: #0b1220;
   --ink-soft: #475069;
+  /*
+    One step below --ink-soft, for a footnote that must not read at the same
+    weight as the line above it.
+
+    Sized against the FOOTER's background, not white, which is the darkest end
+    of the canvas gradient (#ebe4fb at 100%) plus the purple bloom anchored at
+    78% 98% — the one place on the page where both land together. Measured on
+    that bloomed worst case it is 4.72:1, and 5.36:1 on the bare gradient, so
+    it clears AA for small text where the text actually sits rather than where
+    it would be easiest to pass.
+
+    dL* 5.24 from --ink-soft: a visible step down, not a second shade nobody
+    can tell apart. Same blue-grey family (R < G < B), so it reads as the same
+    ink lightened rather than as a different colour.
+  */
+  --ink-faint: #545c78;
 
   /* Brand */
   --brand-600: #2563eb;
@@ -208,6 +224,7 @@
 @theme inline {
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
   --color-brand-600: var(--brand-600);
   --color-violet-600: var(--violet-600);
   --color-success: var(--success);

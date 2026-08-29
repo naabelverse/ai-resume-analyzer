@@ -182,6 +182,28 @@ export function FeedbackLink() {
             Send feedback
           </Dialog.Trigger>
         </p>
+
+        {/*
+          A footnote, and its own <p> rather than a third item in the line
+          above. `.footer-line` stacks its children when they stop fitting, so
+          joining that row would make this the thing a narrow screen wraps
+          around the credit — and the disclaimer would land between "Built by"
+          and "Send feedback" instead of under both.
+
+          Not a link. The obvious target is Anthropic's support article about
+          Claude.ai, which is about a different product and would send someone
+          off this site to read about something else.
+
+          --ink-faint, not a smaller type size. `text-caption` is 0.75rem,
+          already the smallest rung on the scale and the same size the row
+          above uses, and the next step down would put a statement about the
+          output's reliability into fine print — the one place it should not
+          be. Weight separation is carried by colour, which is what the new
+          token exists for.
+        */}
+        <p className="mt-2 text-center text-caption text-ink-faint text-balance">
+          AI-generated feedback may contain mistakes. Use your own judgement.
+        </p>
       </footer>
 
       <Dialog.Portal>
