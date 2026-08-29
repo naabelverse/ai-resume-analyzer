@@ -156,7 +156,24 @@ export function AnalysisView({ id }: { id: string }) {
               off centre at 1040, where this two-column mode starts.
             */}
             <div className="grid min-w-0 flex-1 gap-5 min-[1040px]:grid-cols-[calc(50%_-_138px)_minmax(0,1fr)] min-[1040px]:gap-8">
-              <div className="min-w-0">
+              {/*
+                Both columns centre their own content, and the grid keeps its
+                default `stretch` so the rule between them still runs the full
+                height of the row.
+
+                Grid items stretch, but text inside a stretched box starts at
+                the top, so every pixel of the height difference between the
+                two columns collected at the BOTTOM of the shorter one. That is
+                what read as sparse: at 1440 a two-line rationale is 37px of
+                text in a 121px box — 82px of void under it, none above.
+
+                It redistributes the slack rather than removing it. What
+                removes it is a shorter column, and there is nothing here to
+                shorten: the two fields are capped independently
+                (`FIELD_CAPS.summary` 500, `scoreRationale` 220), so their
+                heights are free to differ by design.
+              */}
+              <div className="flex min-w-0 flex-col justify-center">
                 <CardTitle>Resume score</CardTitle>
                 <p className="mt-2 text-body leading-relaxed text-ink-soft">
                   {analysis.summary}
@@ -173,9 +190,21 @@ export function AnalysisView({ id }: { id: string }) {
                 forbids it naming a band or a range here at all, because
                 "Band 60-74" is our vocabulary and means nothing to a reader.
               */}
-              <p className="min-w-0 border-t border-line pt-4 text-note leading-relaxed text-ink-soft min-[1040px]:border-t-0 min-[1040px]:border-l min-[1040px]:pt-0 min-[1040px]:pl-8">
-                <span className="font-medium text-ink">Why this score: </span>
-                {analysis.scoreRationale}
+              <p className="flex min-w-0 flex-col justify-center border-t border-line pt-4 text-note leading-relaxed text-ink-soft min-[1040px]:border-t-0 min-[1040px]:border-l min-[1040px]:pt-0 min-[1040px]:pl-8">
+                {/*
+                  This wrapper is load-bearing, not tidying. A flex container
+                  wraps each contiguous run of text in its own anonymous item,
+                  so without it the label and the rationale become two separate
+                  flex items and `flex-col` stacks them — "Why this score:" on
+                  its own line above a paragraph it is meant to open. One
+                  element holding both keeps them a single run of inline text
+                  that wraps normally, and gives `justify-center` the one child
+                  it needs to centre.
+                */}
+                <span>
+                  <span className="font-medium text-ink">Why this score: </span>
+                  {analysis.scoreRationale}
+                </span>
               </p>
             </div>
           </div>
