@@ -387,6 +387,52 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
   });
 
   /**
+   * The same bug one step earlier, and the half the cap-length test cannot see.
+   *
+   * "Willing to work rotating shifts including nights and" reached a live pill
+   * at 52 characters against a cap of 60. `repairTruncation` only suspects a
+   * cut within `SUSPICION_WINDOW` of the cap, so at eight clear of it the term
+   * is indistinguishable by length from a complete short one and passes
+   * through untouched — rendering as a phrase that simply stops on "and",
+   * beside another pill that WAS marked. Two pills, both cut, one honest.
+   *
+   * Through the route rather than against `markDanglingCut` directly, because
+   * the unit is already covered in `text.test.ts` and what failed here was the
+   * wiring: `keywordMatch` is the one capped field the repair pass had missed.
+   */
+  it("marks keywords that end mid-phrase well short of the cap", async () => {
+    const dangling = "Willing to work rotating shifts including nights and";
+    expect(dangling.length).toBeLessThan(FIELD_CAPS.keyword - 5);
+
+    harness.reply(
+      wire({
+        keywordMatch: { matched: [dangling], missing: [dangling] },
+      }),
+    );
+
+    const POST = await loadRoute(harness.name);
+    const payload = (await (
+      await POST(request(sampleResumePdf()))
+    ).json()) as AnalyzeResponse;
+
+    expect(payload.ok).toBe(true);
+    if (!payload.ok) return;
+
+    const match = payload.data.keywordMatch!;
+    for (const [list, terms] of Object.entries({
+      matched: match.matched,
+      missing: match.missing,
+    })) {
+      const term = terms[0]!;
+      expect(term.endsWith("…"), `${list}: ${JSON.stringify(term)}`).toBe(true);
+      expect(term.length).toBeLessThanOrEqual(FIELD_CAPS.keyword);
+      // The marker replaces nothing here — the term was already short — so the
+      // words themselves must survive intact.
+      expect(term.slice(0, -1)).toBe(dangling);
+    }
+  });
+
+  /**
    * The reported bug: a section scoring 85 labelled "warn" sitting above one
    * scoring 80 labelled "pass". `status` is no longer asked for, so this sends
    * it anyway — an older prompt, a cached response, a model that volunteers it

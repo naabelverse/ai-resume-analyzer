@@ -18,7 +18,11 @@ import {
 import { buildRetryTurn, buildUserTurn, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/providers";
 import { statusFor } from "@/lib/scoring";
-import { repairTruncation, stripLeadingMarker } from "@/lib/text";
+import {
+  markDanglingCut,
+  repairTruncation,
+  stripLeadingMarker,
+} from "@/lib/text";
 import type { AnalysisProvider, ProviderCompletion } from "@/lib/ai/types";
 
 /**
@@ -95,6 +99,16 @@ interface Attempt {
  */
 function repair(value: unknown, limit: number): unknown {
   return typeof value === "string" ? repairTruncation(value, limit) : value;
+}
+
+/**
+ * Applies `markDanglingCut` only to values that are actually strings.
+ *
+ * Same shape as `repair` above, and for the same reason: the wire guards check
+ * that the arrays ARE arrays, not what is inside them.
+ */
+function markCut(value: unknown): unknown {
+  return typeof value === "string" ? markDanglingCut(value) : value;
 }
 
 /** `stripLeadingMarker`, guarded the same way and for the same reason. */
@@ -284,11 +298,23 @@ async function attempt(
     // percentage describes are the two lists that render.
     keywordMatch: isWireKeywordMatch(wire.keywordMatch)
       ? {
+          // `markCut` AFTER `repair`, and it is a second pass rather than a
+          // wider suspicion window because the two answer different questions.
+          // `repair` asks "did the decoder stop here?", which only length can
+          // tell it. `markCut` asks "does this end mid-phrase?", which only the
+          // words can. A term cut well short of the cap — 52 characters against
+          // 60, dangling on "and" — is invisible to the first and obvious to
+          // the second. Widening the window instead would start rewriting
+          // complete short terms, which is the failure this pass avoids.
+          //
+          // After, not before, so `repair` sees the string the decoder actually
+          // produced: an ellipsis added first would read as terminal
+          // punctuation and stop the repair it was meant to follow.
           matched: wire.keywordMatch.matched.map((term) =>
-            repair(term, FIELD_CAPS.keyword),
+            markCut(repair(term, FIELD_CAPS.keyword)),
           ),
           missing: wire.keywordMatch.missing.map((term) =>
-            repair(term, FIELD_CAPS.keyword),
+            markCut(repair(term, FIELD_CAPS.keyword)),
           ),
           matchPercent: deriveMatchPercent(
             wire.keywordMatch.matched,

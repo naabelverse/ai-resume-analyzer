@@ -52,6 +52,63 @@ export function clampToWord(text: string, limit: number): string {
 }
 
 /**
+ * Words a phrase cannot legitimately END on.
+ *
+ * Articles, conjunctions and prepositions join a phrase to something that
+ * follows. If one is the last word, the thing it joined to is gone, and the
+ * only way a term loses its tail is by having been cut.
+ *
+ * Lower-case only, and that is the point rather than an oversight: "IT" is a
+ * real keyword and "in" is a remnant, and case is the whole difference between
+ * them. `DANGLING_WORD.has()` is case-sensitive so "Grade A" and "IT" survive.
+ */
+const DANGLING_WORD = new Set([
+  "a", "an", "the",
+  "and", "or", "but", "nor", "plus",
+  "of", "to", "in", "on", "at", "for", "with", "by", "from", "as",
+  "into", "onto", "per", "via", "up",
+  "that", "which", "who", "when", "while",
+  "including", "include", "includes", "such",
+]);
+
+/**
+ * Marks a term that ends mid-phrase, whoever cut it.
+ *
+ * `repairTruncation` can only mark a cut it can SEE — one landing within
+ * `SUSPICION_WINDOW` of the cap. A term that arrives already short of that is
+ * indistinguishable, by length alone, from a complete short term, so it is
+ * left alone and renders as if it were finished.
+ *
+ * Observed: "Willing to work rotating shifts including nights and" reached a
+ * pill at 52 characters against a cap of 60 — eight clear of the window — and
+ * rendered dangling on "and" with no marker, beside a pill cut at exactly 60
+ * that `repairTruncation` had marked correctly. Two pills, both cut, one
+ * honest about it.
+ *
+ * So the last word is the signal instead of the length. This does not try to
+ * recover the missing tail or to judge whether the term was a good one — that
+ * is extraction quality and a separate, documented problem. It only refuses to
+ * present a fragment as though it were whole.
+ *
+ * Idempotent: `TERMINAL` already matches "…", so a marked term is left alone.
+ */
+export function markDanglingCut(text: string): string {
+  const trimmed = text.trimEnd();
+  if (TERMINAL.test(trimmed)) return text;
+
+  const words = trimmed.split(/\s+/);
+
+  // A single token is the whole term, not the surviving half of one. "Nursing"
+  // is a keyword; there is no missing tail to mark.
+  if (words.length < 2) return text;
+
+  const last = words[words.length - 1].replace(DANGLING, "");
+  if (!DANGLING_WORD.has(last)) return text;
+
+  return `${trimmed.replace(DANGLING, "")}…`;
+}
+
+/**
  * List markers that never legitimately open a sentence.
  *
  * These are glyphs whose only job is to mark a list item, so one at the start

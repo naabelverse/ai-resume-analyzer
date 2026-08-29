@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { clampToWord, repairTruncation, stripLeadingMarker } from "@/lib/text";
+import {
+  clampToWord,
+  markDanglingCut,
+  repairTruncation,
+  stripLeadingMarker,
+} from "@/lib/text";
 
 describe("clampToWord", () => {
   it("leaves text within the limit alone", () => {
@@ -77,6 +82,83 @@ describe("repairTruncation", () => {
     const out = repairTruncation("z".repeat(LIMIT), LIMIT);
     expect(out.length).toBeLessThanOrEqual(LIMIT);
     expect(out.endsWith("…")).toBe(true);
+  });
+});
+
+describe("markDanglingCut", () => {
+  /** `FIELD_CAPS.keyword`, the cap the observed pills were cut against. */
+  const KEYWORD_CAP = 60;
+
+  it("marks the observed pill that dangled on 'and' with no marker", () => {
+    // 52 characters against a cap of 60 — eight clear of SUSPICION_WINDOW, so
+    // repairTruncation cannot see it and leaves it untouched.
+    const cut = "Willing to work rotating shifts including nights and";
+    expect(cut).toHaveLength(52);
+    expect(repairTruncation(cut, KEYWORD_CAP)).toBe(cut);
+
+    expect(markDanglingCut(cut)).toBe(
+      "Willing to work rotating shifts including nights and…",
+    );
+  });
+
+  it.each([
+    ["Experience with", "Experience with…"],
+    ["Reporting to the", "Reporting to the…"],
+    ["Rotating shifts including", "Rotating shifts including…"],
+    ["Nights and weekends or", "Nights and weekends or…"],
+    ["Handover, escalation and,", "Handover, escalation and…"],
+  ])("marks %j", (input, expected) => {
+    expect(markDanglingCut(input)).toBe(expected);
+  });
+
+  it.each([
+    "IT",
+    "Grade A",
+    "Nursing",
+    "Acute inpatient care",
+    "Health and Safety",
+    "Opt-in",
+    "Band 5 Staff Nurse",
+  ])("leaves the complete term %j alone", (term) => {
+    expect(markDanglingCut(term)).toBe(term);
+  });
+
+  it("is idempotent — a term already marked keeps one ellipsis", () => {
+    const once = markDanglingCut("Rotating shifts including");
+    expect(markDanglingCut(once)).toBe(once);
+    expect(once.endsWith("……")).toBe(false);
+  });
+
+  it("never lengthens a term past the keyword cap", () => {
+    // A dangling word sitting exactly at the cap: the ellipsis has to replace
+    // the characters it removes, not stack on top of them.
+    const atCap = "coordination and escalation across the acute inpatient and";
+    expect(atCap.length).toBeLessThanOrEqual(KEYWORD_CAP);
+    expect(markDanglingCut(atCap).length).toBeLessThanOrEqual(KEYWORD_CAP);
+  });
+
+  /*
+    The property the bug was: a term that renders must never end on a bare
+    dangling word. Both passes run, in the order the keyword path runs them,
+    across every cut position of a phrase that is over the cap.
+  */
+  it("marks every over-cap cut position, whichever pass catches it", () => {
+    const phrase =
+      "Willing to work rotating shifts including nights and weekends and public holidays";
+    expect(phrase.length).toBeGreaterThan(KEYWORD_CAP);
+
+    const DANGLES = /\s(a|an|the|and|or|but|nor|plus|of|to|in|on|at|for|with|by|from|as|into|onto|per|via|up|that|which|who|when|while|including|include|includes|such)$/;
+
+    for (let cut = 2; cut <= KEYWORD_CAP; cut += 1) {
+      const term = phrase.slice(0, cut);
+      const rendered = markDanglingCut(
+        repairTruncation(term, KEYWORD_CAP) as string,
+      );
+
+      expect(rendered.length).toBeLessThanOrEqual(KEYWORD_CAP);
+      // Never a bare dangling word with nothing after it.
+      expect(rendered).not.toMatch(DANGLES);
+    }
   });
 });
 
