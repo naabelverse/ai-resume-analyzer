@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { DegradedBanner } from "@/components/analysis/degraded-banner";
-import { DEGRADED_COPY, ERROR_COPY } from "@/lib/errors";
+import { DEGRADED_COPY, ERROR_COPY, GENERIC_RETRY } from "@/lib/errors";
 
 /** The four codes the route can degrade on, and the only ones this renders. */
 const DEGRADABLE = [
@@ -78,6 +78,31 @@ describe("DegradedBanner", () => {
     expect(broke.textContent).toContain(ERROR_COPY.AI_CREDITS_EXHAUSTED.action);
     expect(broke.textContent).toMatch(/won't help/i);
   });
+
+  /*
+    The banner must not print the one instruction its own button already is.
+
+    "Running it again usually works." sat beside a button reading "Upload it
+    again" from `95ae0c9`, the commit that wrote both — never a regression,
+    just a pairing that was wrong from the first render. Asserted on the two
+    codes that carry `GENERIC_RETRY`, and asserted as the absence of the string
+    rather than of a rendered node, so reinstating it in any form fails here.
+
+    The button is checked in the same breath: dropping the line is only correct
+    while something else on the banner still tells the reader what to do.
+  */
+  it.each(["AI_UNAVAILABLE", "AI_SCHEMA"] as const)(
+    "drops the generic retry line for %s, because the button already says it",
+    (code) => {
+      const { container } = render(<DegradedBanner reason={code} />);
+
+      expect(ERROR_COPY[code].action).toBe(GENERIC_RETRY);
+      expect(container.textContent).not.toContain(GENERIC_RETRY);
+      expect(
+        screen.getByRole("link", { name: DEGRADED_COPY.linkLabel }),
+      ).toHaveAttribute("href", "/");
+    },
+  );
 
   it("still renders the state when the cause is unknown", () => {
     render(<DegradedBanner reason={null} />);

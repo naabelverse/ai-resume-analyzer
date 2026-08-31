@@ -38,7 +38,7 @@ production outage takes, so it is worth seeing once on purpose.
 key and no request.
 
 ```bash
-pnpm test         # 515 tests, no network
+pnpm test         # 517 tests, no network
 pnpm test:live    # one real analysis against your key
 pnpm test:quality # twelve real calls: does the score discriminate?
 pnpm build        # type check and production build
@@ -285,7 +285,7 @@ run through `vitest.live.config.mts`.
 | Condition | Code | What the user is told |
 | --- | --- | --- |
 | 40 req/min ceiling hit | `AI_RATE_LIMITED` | Wait about a minute |
-| Free credits exhausted | `AI_CREDITS_EXHAUSTED` | Top up, or switch provider |
+| Free credits exhausted | `AI_CREDITS_EXHAUSTED` | Waiting won't help; check back later or tell whoever runs the app |
 | Anything else | `AI_UNAVAILABLE` | Try again shortly |
 
 Credits are split from rate limiting deliberately. They look similar on the wire
@@ -309,9 +309,26 @@ Each has a designed state, reachable and tested. None is a toast.
 | Missing or invalid API key | Full deterministic report + banner |
 | Model refuses, truncates, or times out | Same — degraded, never a 500 |
 | NVIDIA rate limit (40/min) | Degraded report + "wait a minute" banner |
-| NVIDIA credits exhausted | Degraded report + "top up or switch provider" |
+| NVIDIA credits exhausted | Degraded report + "won't help until that's restored" banner |
 | Model output fails validation twice | Same |
 | Database down (with `PERSISTENCE=db`) | Falls back to session storage |
+
+**The degraded banner sends you back to the upload form rather than retrying in
+place, and that is deliberate.** `<AnalyzeForm>` posts the raw `File`, stores
+`{id, fileName, createdAt, data, meta}` and navigates, which unmounts the form
+and drops the bytes; the server never kept them either, and the extracted text
+is not persisted anywhere — the same decision the "never stores your resume"
+promise on the upload card rests on. A true in-place retry would mean holding
+the resume text and the job description across a navigation, so the button says
+"Upload it again" because that is what the click does. The cost is real and
+worth naming: a single transient model failure forces a re-upload.
+
+The banner used to print "Running it again usually works." beside that button —
+two wordings of one step, reading as two different actions. It is dropped from
+the banner and kept in `ERROR_COPY`, where `<ErrorState>` still needs it and no
+button sits alongside. Worth recording precisely: both strings were written in
+the same commit, `95ae0c9`, and neither changed afterwards, so this was copy
+that was never right rather than a fix that regressed.
 
 ---
 
@@ -1509,7 +1526,7 @@ lib/
   scoring.ts  deterministic checks + the degraded report
   errors.ts   typed failures, one copy map for the whole app
   mail.ts     the one place this app sends mail from
-tests/        515 tests; fixtures are built in memory, not committed
+tests/        517 tests; fixtures are built in memory, not committed
 ```
 
 ---

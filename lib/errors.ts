@@ -89,6 +89,28 @@ export const DEGRADED_COPY = {
   rowNote: "Formatting checks only — the written review didn't run",
 } as const;
 
+/**
+ * The next step for a failure whose only remedy is "do it again".
+ *
+ * Named rather than written out twice because `<DegradedBanner>` has to
+ * RECOGNISE it. That banner already carries a button reading
+ * `DEGRADED_COPY.linkLabel`, so a per-code action that says the same thing in
+ * different words puts two instructions side by side — "Running it again
+ * usually works." beside a button labelled "Upload it again" — which read as
+ * two different actions and left the reader deciding which one the click
+ * performs. The banner drops the action when it is this constant and keeps
+ * every action that is not, because those say something the button cannot:
+ * wait a minute, or don't bother until the credit is back.
+ *
+ * It stays a real `action` on both codes rather than being deleted, because
+ * `<ErrorState>` and `<InlineError>` render the same map with no button beside
+ * them, and `tests/components/error-state.test.tsx` requires every code to
+ * carry a title, a cause and a next action. Comparing against a shared
+ * constant is what stops the two copies drifting into a check that silently
+ * stops matching.
+ */
+export const GENERIC_RETRY = "Running it again usually works.";
+
 export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   UNSUPPORTED_FILE: {
     title: "That file type isn't supported",
@@ -162,7 +184,7 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   AI_UNAVAILABLE: {
     title: "The written review didn't run",
     message: "We couldn't reach the service that reviews how a resume is written.",
-    action: "Running it again usually works.",
+    action: GENERIC_RETRY,
   },
   /**
    * Every word of this was rewritten, and the old version is worth keeping in
@@ -181,7 +203,7 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
   AI_SCHEMA: {
     title: "The written review didn't finish",
     message: "The review came back in a state we couldn't use.",
-    action: "Running it again usually works.",
+    action: GENERIC_RETRY,
   },
   /**
    * These two used to name NVIDIA, on the argument that it was accurate: only

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 
-import { DEGRADED_COPY, ERROR_COPY, type ErrorCode } from "@/lib/errors";
+import {
+  DEGRADED_COPY,
+  ERROR_COPY,
+  GENERIC_RETRY,
+  type ErrorCode,
+} from "@/lib/errors";
 
 /**
  * Shown when `meta.degraded` is true: the AI portion failed, so what renders
@@ -25,9 +30,19 @@ import { DEGRADED_COPY, ERROR_COPY, type ErrorCode } from "@/lib/errors";
  * both land here, and one is fixed by waiting a minute while the other never
  * is — telling someone to run it again when the credit is gone wastes their
  * afternoon.
+ *
+ * WHICH IS WHY THE GENERIC ACTION IS DROPPED HERE. `AI_UNAVAILABLE` and
+ * `AI_SCHEMA` both carry `GENERIC_RETRY`, and that sentence is the one thing
+ * the button beside it already says. Rendering both put "Running it again
+ * usually works." next to a button reading "Upload it again" — two phrasings
+ * of one step, which read as two different actions and left the reader
+ * guessing which the click performs. That pairing shipped in `95ae0c9`, where
+ * both strings were written, and was never right rather than having broken
+ * later. Only actions the button CANNOT express survive here.
  */
 export function DegradedBanner({ reason }: { reason: ErrorCode | null }) {
-  const action = reason ? ERROR_COPY[reason].action : null;
+  const copy = reason ? ERROR_COPY[reason].action : null;
+  const action = copy === GENERIC_RETRY ? null : copy;
 
   return (
     <div
