@@ -339,7 +339,7 @@ export const FIELD_CAPS = {
  *   - The arithmetic above was re-run rather than read off this comment, as it
  *     asks: at the PREVIOUS caps, 14,733 characters and 3,929 tokens with 71
  *     spare — reproduced exactly, which is what validated the method before
- *     spending against it. At the caps that ship now: 14,973 and 3,993, 7
+ *     spending against it. At the caps that ship now: 14,954 and 3,988, 12
  *     spare. If `redFlag` ever does need room, the largest cap that still fits
  *     is **207** — +7 characters, which is not a raise in any useful sense. It
  *     was 244 before `sectionNote` took the room and 204 before deriving

@@ -547,7 +547,8 @@ async function measure(): Promise<void> {
 
     The rest of this report varies the RESUME against a fixed JD. Extraction
     reads the JD, so this varies the JD against a fixed resume — the other axis,
-    and the one that was never measured. Two calls, not two per fixture.
+    and the one that was never measured. One call per JD, not one per fixture:
+    three calls at the three JDs currently in `KEYWORD_JDS`.
 
     Match rate is deliberately not asserted here. A backend resume scores badly
     against a nursing JD and that is correct; what this measures is whether the

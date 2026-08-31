@@ -915,7 +915,7 @@ describe("the largest permitted response fits in AI_MAX_TOKENS", () => {
   });
 
   /**
-   * The margin is 7 tokens. That is deliberate and it is documented in
+   * The margin is 12 tokens. That is deliberate and it is documented in
    * `ARRAY_CAPS` — `sectionNote` spent the room that was being held against
    * `redFlag`, a field with zero live observations.
    *

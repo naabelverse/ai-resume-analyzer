@@ -1,7 +1,7 @@
 # AI Resume Analyzer
 
 Upload a resume, optionally paste a job description, and get a real
-Claude-generated review: a 0–100 score against a weighted rubric, pass/warn/fail
+AI-generated review: a 0–100 score against a weighted rubric, pass/warn/fail
 feedback that quotes your actual bullets, semantic keyword matching against the
 job description, a per-section breakdown, and concrete bullet rewrites.
 
@@ -10,6 +10,10 @@ LLM is unavailable, returns something malformed, refuses, or runs out of tokens
 mid-JSON — and what happens when someone uploads a scanned photo of a printout,
 a 40MB file, or a PDF renamed `.docx`. Every one of those has a designed answer,
 and the app degrades rather than breaking.
+
+**Live: <https://ai-resume-analyzer-by-naabel.up.railway.app/>** — running on
+Railway. `/analyze/demo` there renders a full sample report without touching a
+provider, so the layout is visible before uploading anything.
 
 ![AI Resume Analyzer](docs/screenshot.png)
 
@@ -33,33 +37,47 @@ production outage takes, so it is worth seeing once on purpose.
 key and no request.
 
 ```bash
-pnpm test         # 163 tests, no network
+pnpm test         # 515 tests, no network
 pnpm test:live    # one real analysis against your key
-pnpm test:quality # nine real analyses: does the score discriminate?
-pnpm build     # type check, lint, production build
-pnpm lint
+pnpm test:quality # twelve real calls: does the score discriminate?
+pnpm build        # type check and production build
+pnpm lint         # separate: Next 16 removed linting from `next build`
 ```
 
-Requires Node 20+ (developed on 24) and pnpm.
+`pnpm test:quality` is twelve calls, not nine: three fixtures at `QUALITY_RUNS`
+(default 3) for the score spread, plus one call per job description in
+`KEYWORD_JDS` — tech, nursing and creative — for the keyword shape checks.
+
+**Requires Node 22.13 or newer** (developed on 24) and pnpm. The floor is not
+`>=20`; see [Node version](#node-version) for the deploy this broke.
 
 ---
 
 ## Environment
 
+**This table is canonical.** Every variable the app reads is here, with its
+default. The provider section and the deployment section link back to it rather
+than repeating it, because three copies of a default is three places for it to
+drift.
+
 | Variable | Required | Default | Notes |
 | --- | --- | --- | --- |
 | `AI_PROVIDER` | No | `nvidia` | `nvidia` or `anthropic`. Selects the transport. |
-| `AI_MODEL` | No | per provider | Never hardcoded in source. |
+| `AI_MODEL` | No | `nvidia/nemotron-3-super-120b-a12b`; `claude-sonnet-5` when `AI_PROVIDER=anthropic` | Read from the environment at every call site. The per-provider defaults live in `lib/env.ts` and nowhere else. |
 | `NVIDIA_API_KEY` | With `nvidia` | — | Server-side only. Free from build.nvidia.com. |
+| `NVIDIA_BASE_URL` | No | `https://integrate.api.nvidia.com/v1` | Override only to point at a self-hosted NIM container. |
+| `NVIDIA_ENABLE_THINKING` | No | `false` | Off deliberately; the measurement is in [What running on an open-weight model actually cost](#what-running-on-an-open-weight-model-actually-cost). |
+| `NVIDIA_REASONING_BUDGET` | No | `4096` | Only consulted when thinking is on. |
 | `ANTHROPIC_API_KEY` | With `anthropic` | — | Server-side only. |
-| `AI_TEMPERATURE` | No | `0.2` | Low for repeatability. |
-| `AI_MAX_TOKENS` | No | `4000` | Floored at `4000`. Bounds the whitespace runaway; see limitations. |
-| `AI_TIMEOUT_MS` | No | `120000` | Open-weight inference is slow, and rate varies 4.5x by the hour. |
-| `NVIDIA_ENABLE_THINKING` | No | `false` | See the AI section for the measurements. |
 | `ANTHROPIC_EFFORT` | No | `medium` | `low`…`max`. Anthropic only. |
+| `AI_TEMPERATURE` | No | `0.2` | Low for repeatability. **NVIDIA only** — `claude-sonnet-5` returns a 400 for it, so the Anthropic provider never sends it. |
+| `AI_MAX_TOKENS` | No | `4000` | Floored at `4000`. Bounds the whitespace runaway rather than answer size; see [Guided JSON decoding can run away on whitespace](#limitations-of-the-score-measurement). |
+| `AI_TIMEOUT_MS` | No | `120000` | Per model call. Open-weight inference is slow and the per-token rate varies 4.5x by the hour; the ceiling it has to stay under is in [Why not Vercel](#why-not-vercel). |
 | `PERSISTENCE` | No | `session` | `session` or `db`. Read by the server. |
-| `NEXT_PUBLIC_PERSISTENCE` | No | `session` | Must match. Read by the browser. |
+| `NEXT_PUBLIC_PERSISTENCE` | No | `session` | Must match `PERSISTENCE`. Read by the browser — see [Resume history](#resume-history-optional) for why it has to be `NEXT_PUBLIC_`. |
 | `DATABASE_URL` | Only with `db` | `file:./prisma/dev.db` | |
+| `RESEND_API_KEY` | No | — | Feedback form transport. Needed together with `FEEDBACK_EMAIL`, or `/api/feedback` refuses the send and logs which one is missing; every other route is unaffected. |
+| `FEEDBACK_EMAIL` | No | — | Where feedback is delivered. Must be the address the Resend account is registered under, since the app sends from `onboarding@resend.dev`. |
 
 Only the key for the provider you actually selected is required, and only to get
 a real AI review — the app runs without one.
@@ -85,7 +103,7 @@ without a live secret is a build CI cannot run at all.
                                     ↓
                                     measure            words, bullets, sections
                                     ↓
-                                    Claude             structured outputs
+                                    model              structured outputs
                                     ↓
                                     validate           Zod, retry once
                                     ↓
@@ -154,15 +172,10 @@ kept working and both are covered by the same parameterised test suite — the
 Anthropic path is not dead code kept "just in case", it is the thing that proves
 the seam is real. An abstraction with one implementation is just indirection.
 
-| Variable | Purpose |
-| --- | --- |
-| `AI_PROVIDER` | `nvidia` \| `anthropic` |
-| `AI_MODEL` | Model id for that provider — never hardcoded |
-| `NVIDIA_API_KEY` | Required when provider is `nvidia` |
-| `ANTHROPIC_API_KEY` | Required when provider is `anthropic` |
-| `AI_TEMPERATURE` | Default `0.2` |
-| `AI_MAX_TOKENS` | Default `4000`, floored at `4000` |
-| `AI_TIMEOUT_MS` | Default `120000` |
+The variables that select and tune the transport — `AI_PROVIDER`, `AI_MODEL`,
+the two API keys, `AI_TEMPERATURE`, `AI_MAX_TOKENS`, `AI_TIMEOUT_MS` and the
+`NVIDIA_*` / `ANTHROPIC_*` pairs — are documented once in
+[Environment](#environment).
 
 A missing key **for the provider you selected** is reported at boot, naming the
 exact variable. It is never a 500 at request time — the request path returns the
@@ -245,8 +258,9 @@ Findings from probing the live API, not from documentation:
   was 2 attempts x 3 SDK requests x 90s = 540s against a `maxDuration` of 120s,
   so slow requests were killed by the platform and the user got a dead
   connection instead of the degraded report. Both clients now use
-  `maxRetries: 0` and `AI_TIMEOUT_MS` is 120s, giving a worst case of
-  2 x 120s + 5s = 245s inside a `maxDuration` of 300s.
+  `maxRetries: 0` and `AI_TIMEOUT_MS` is 120s, which brings the worst case
+  back inside the route's budget — the arithmetic is in
+  [Why not Vercel](#why-not-vercel).
 
   The bound was 50s for one reason: Vercel's 120s function cap, worked
   backwards. This app targets Railway, which imposes no such cap, so the
@@ -317,17 +331,29 @@ Each has a designed state, reachable and tested. None is a toast.
 
 ---
 
-## Three honest limitations
+## Known limitations, and the rounds behind them
+
+Three limitations, and then the working log of what it took to close or narrow
+the third. The log is long on purpose: the failed attempts are the part worth
+keeping.
+
+> **On the evidence files cited here and in the next section.**
+> `live-report.txt`, `quality-report.txt`, `run.log`, `before.log` and
+> `after.log` are local run artefacts, gitignored by design — `pnpm test:live`
+> and `pnpm test:quality` regenerate them and they cost credits, so the numbers
+> that matter are transcribed into this file rather than committed. A fresh
+> clone will not have them.
 
 **The rate limiter is in-process.** On serverless that means 5 requests per
-*instance*, not 5 globally, and it trusts `x-forwarded-for` — safe behind Vercel
-or any normal reverse proxy, forgeable if the app is directly exposed. It raises
-the cost of casual abuse; it is not a security control. Redis or Vercel KV is
-the right answer for real traffic and the wrong answer for a project whose point
-is that it runs on a fresh clone with no infrastructure.
+*instance*, not 5 globally, and it trusts `x-forwarded-for` — safe behind
+Railway's proxy or any normal reverse proxy, forgeable if the app is directly
+exposed. It raises the cost of casual abuse; it is not a security control. Redis
+or any shared store is the right answer for real traffic and the wrong answer
+for a project whose point is that it runs on a fresh clone with no
+infrastructure.
 
 **"Never stores your resume" means the raw text.** With `PERSISTENCE=db`, the
-stored analysis contains bullet fragments Claude quoted back from the resume.
+stored analysis contains bullet fragments the model quoted back from the resume.
 The extracted text itself is never persisted, but that distinction is real and
 worth stating rather than rounding off.
 
@@ -652,7 +678,8 @@ The tell is the pair of numbers. A tail at the cap with a mean under the target
 is a few verbose sections. A tail at the cap while the **target** is being
 missed wholesale is an instruction losing to a louder one somewhere else, and
 raising the cap treats the symptom — it also pulls the tail up again, which
-`FIELD_CAPS.feedbackText` already recorded at 90.
+`FIELD_CAPS.feedbackText` had already recorded back when it was capped at 90.
+(That field is 120 now; the round that moved it is below.)
 
 The fix was to scope the clause to the paragraph it was written against and to
 say in the note's own description what it is NOT. The cap did not move.
@@ -761,20 +788,27 @@ round actually observed.
 
 The arithmetic was re-run before spending, as `ARRAY_CAPS` demands, and it
 settled the "215 vs 234-252" disagreement that comment had carried for several
-commits: the true ceiling is **234**, compact at 3.75 chars/token, so the old
-215 was too conservative by 19 characters. The worst case at the shipped caps
-is 14,973 characters / ~3,993 tokens — **7 tokens of margin**. 250 was asked
-for and does not fit; it is 25 tokens over. 234 was available and was declined:
-230 ships because the extra margin is worth more than one token of headroom on
-a field that already has room. `tests/schema.test.ts` now builds the maxed wire
-object, parses it, and asserts it fits, so the next person to raise a cap fails
-a test instead of reading a stale number off a comment.
+commits: the ceiling at this round's caps was **234**, compact at 3.75
+chars/token, so the old 215 was too conservative by 19 characters. The worst
+case then was 14,973 characters / ~3,993 tokens — **7 tokens of margin**. 250
+was asked for and does not fit; it is 25 tokens over. 234 was available and was
+declined: 230 ships because the extra margin is worth more than one token of
+headroom on a field that already has room. `tests/schema.test.ts` now builds the
+maxed wire object, parses it, and asserts it fits, so the next person to raise a
+cap fails a test instead of reading a stale number off a comment.
+
+Those three numbers have since moved once, and they are the current ones:
+deriving `matchPercent` out of the response returned 19 characters, so the
+ceiling is **237**, the worst case at the shipped caps is **14,954 characters /
+~3,988 tokens**, and the margin is **12 tokens**. 230 still ships and 250 still
+does not fit.
 
 **Where the room came from, recorded so it is traceable: `redFlags`.** The 40
 characters this raise spent were the reserve the previous round explicitly held
 against `redFlag`, and the consequence is exact — **`redFlag`'s own ceiling
 falls from 244 to 204**, against a cap of 200. There is no longer room to raise
-it.
+it. (Deriving `matchPercent` has since handed a little back: the ceiling is
+**207** today, which is not a raise in any useful sense.)
 
 `redFlag` still has **zero live observations**. Every other capped field has
 been measured against captured output; this one has never been seen populated
@@ -947,13 +981,14 @@ better than none; an instrument that reports a plausible wrong number is
 worse.**
 
 
-**`maxDuration` has never met a real platform.** The 245s worst case
-(2 attempts x 120s + 5s) is arithmetic checked by a test, not an observation.
-Nothing here has been deployed. The app targets Railway, which does not cap
-function duration — and on a long-running Node server the route segment config
-has no runtime effect at all. The invariant is kept because it is the one place
-that states what a single request is allowed to cost, not because a platform is
-currently enforcing it.
+**`maxDuration` has never met a real platform.** The worst case it is checked
+against is arithmetic checked by a test, not an observation — the derivation is
+in [Why not Vercel](#why-not-vercel). The app runs on Railway, which does not
+cap function duration, and on a long-running Node server the route segment
+config has no runtime effect at all, so nothing has ever enforced this bound in
+production. The invariant is kept because it is the one place that states what a
+single request is allowed to cost, not because a platform is currently enforcing
+it.
 
 **The bound trades slow successes for fast degrades, and the cost is real.**
 Under the earlier unbounded configuration two of nine calls only succeeded
@@ -1024,6 +1059,24 @@ against roughly one in five at the old cap. The model went on writing the same
 ~80-character headline and simply got truncated earlier. Reverted to 90, and
 filed here beside the frequency penalty and the count rule as a third obvious
 lever that moved nothing it was aimed at.
+
+**The cap is 120 now, and that is the same finding applied in the other
+direction.** What the 70 round established is that the model writes to a length
+it has already decided on, and the cap only decides where the cut lands. So the
+lever was pulled the only way that finding permits: measured against the 90 cap
+the distribution was mean 70.7 / 74.4 with a max of 84, and a live capture
+showed `text` arriving at exactly 90, cut mid-token and ending on a stray
+character from another script. A ceiling of 120 clears the whole observed range,
+so the cuts stop because the tail fits — not because the model wrote anything
+different.
+
+The description deliberately did **not** move with the cap. It still says "Aim
+for 65 characters, never exceed 85", because the description is what the model
+aims at and the cap is only the backstop; raising both would be the 70
+experiment run in reverse. The prediction it ships on, falsifiable from ordinary
+use: **the mean stays at ~72-75 and headlines stop arriving cut.** If instead
+the mean climbs toward 110, the model does anchor upward on the ceiling and this
+belongs beside the 70 attempt as a lever that moved the wrong thing.
 
 What holds the layout together instead is the clamp: `line-clamp-2` on the
 collapsed headline in `feedback-list.tsx`, released when the row opens. A row
@@ -1272,8 +1325,6 @@ tell is a run in which no `detail` needs stripping.
 
 ---
 
----
-
 ## Resume history (optional)
 
 Set the following in `.env.local`, then run `pnpm db:migrate`:
@@ -1415,38 +1466,25 @@ prompts.
 
 ### Environment variables
 
-Required:
+Every variable, with its default, is documented once in
+[Environment](#environment). What is specific to a deploy is which of them you
+have to set yourself, and one that behaves differently here than it does
+locally.
+
+Set these two:
 
 | Variable | What it does |
 | --- | --- |
 | `NVIDIA_API_KEY` | The provider key. Without it the app still runs, but every analysis silently degrades to the deterministic checks. |
-| `NEXT_PUBLIC_PERSISTENCE` | `session` for the recommended deploy. Chooses the store **in the browser**. |
+| `NEXT_PUBLIC_PERSISTENCE` | `session` for the recommended deploy. Chooses the store **in the browser** — see [Resume history](#resume-history-optional) for why it has to be `NEXT_PUBLIC_`. |
+
+Everything else has a working default and can be left unset.
 
 > **`NEXT_PUBLIC_PERSISTENCE` is inlined at build time, not read at runtime.**
 > Setting or changing it in the Railway dashboard after a build leaves the
 > deployed bundle pinned to whatever it was when that bundle was compiled.
-> Changing it needs a rebuild, not a restart. It has to be `NEXT_PUBLIC_` at
-> all because the store is chosen in the browser, where a server-only variable
-> reads as `undefined` and silently pins everyone to session mode.
-
-Optional — every one of these has a working default:
-
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `AI_PROVIDER` | `nvidia` | Transport: `nvidia` or `anthropic`. |
-| `AI_MODEL` | `nvidia/nemotron-3-super-120b-a12b` | Model id for the selected provider. |
-| `AI_MAX_TOKENS` | `4000` | Floored at 4000. Bounds the whitespace runaway, not answer size. |
-| `AI_TEMPERATURE` | `0.2` | Low for repeatability. |
-| `AI_TIMEOUT_MS` | `120000` | Per model call. 2x this + 5s must stay under `maxDuration`. |
-| `NVIDIA_BASE_URL` | NVIDIA hosted | Override only for a self-hosted NIM container. |
-| `NVIDIA_ENABLE_THINKING` | `false` | Off deliberately: 7s vs 129s for the same score. |
-| `NVIDIA_REASONING_BUDGET` | `4096` | Only consulted when thinking is on. |
-| `ANTHROPIC_API_KEY` | — | Required only when `AI_PROVIDER=anthropic`. |
-| `ANTHROPIC_EFFORT` | `medium` | Anthropic reasoning effort. |
-| `PERSISTENCE` | `session` | Server-side half of the persistence switch. |
-| `DATABASE_URL` | — | Required only when `PERSISTENCE=db`. |
-| `RESEND_API_KEY` | — | Feedback form transport. This and the next are both needed, or the form refuses to send. |
-| `FEEDBACK_EMAIL` | — | Where feedback is delivered. Must be the address the Resend account is registered under, since the app sends from `onboarding@resend.dev`. |
+> Changing it needs a rebuild, not a restart. This is the one thing about it
+> that is deploy-specific rather than general.
 
 `PORT` is injected by Railway. Do not set it.
 
@@ -1470,7 +1508,7 @@ lib/
   scoring.ts  deterministic checks + the degraded report
   errors.ts   typed failures, one copy map for the whole app
   mail.ts     the one place this app sends mail from
-tests/        325 tests; fixtures are built in memory, not committed
+tests/        515 tests; fixtures are built in memory, not committed
 ```
 
 ---
@@ -1495,14 +1533,9 @@ rather than rediscovered.
   new value for the existing ones.
 - **The report's two columns come apart in the degraded state.** The layout is
   loaded so section breakdown carries one column against feedback plus keyword
-  match in the other, which balances for a full report. A degraded one has
-  three deterministic feedback items and an empty keyword panel, so the right
-  column ends around 400px above the left at 1440px.
-- **The submit button stays enabled when the held file is invalid.** The form
-  keeps a rejected file on purpose, but `disabled={!file || busy}` does not
-  consult the error, so the primary action invites a click that can only
-  re-show the same message. The chip beside it no longer claims success, so
-  this is now the last part of that state that misleads.
+  match in the other, which balances for a full report. A degraded one has six
+  deterministic feedback items and an empty keyword panel, and the imbalance was
+  measured at around 400px of overhang at 1440px.
 - **Nothing marks the form as busy while the request is in flight** except the
   button label. The drop target still reads and behaves as live, so a second
   file can be chosen mid-analysis.
@@ -1539,3 +1572,9 @@ rather than rediscovered.
 3. **An eval set.** A dozen resumes of known quality with expected score bands,
    run against prompt changes. Right now "the scores spread sensibly" is a
    judgement made by reading them, and that does not survive a prompt edit.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
