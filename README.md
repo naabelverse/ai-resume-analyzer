@@ -1531,11 +1531,15 @@ rather than rediscovered.
   are also the progress-bar and section-meter fills, where they are correct at
   this lightness, so the fix is a separate pair of text tokens rather than a
   new value for the existing ones.
-- **The report's two columns come apart in the degraded state.** The layout is
-  loaded so section breakdown carries one column against feedback plus keyword
-  match in the other, which balances for a full report. A degraded one has six
-  deterministic feedback items and an empty keyword panel, and the imbalance was
-  measured at around 400px of overhang at 1440px.
+- **The degraded report's columns were said to come apart. Measured, they do
+  not.** This entry claimed the right column ended ~400px above the left on an
+  empty keyword panel. Neither half holds: the panel is not empty — it explains
+  that keyword matching needs the AI leg and did not run, 244px of it — and
+  with seven deterministic feedback items the right column is 661px against the
+  left's 601px, so it ends 60px *below*. The likely origin is a build where
+  that panel rendered nothing, which would have put the right column 204px
+  short in the direction described. Kept because the number was quoted for
+  several rounds before anyone rendered the state it described.
 - **Nothing marks the form as busy while the request is in flight** except the
   button label. The drop target still reads and behaves as live, so a second
   file can be chosen mid-analysis.
