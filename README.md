@@ -15,6 +15,7 @@ and the app degrades rather than breaking.
 Railway. `/analyze/demo` there renders a full sample report without touching a
 provider, so the layout is visible before uploading anything.
 
+![Landing page](docs/screenshot-landing.png)
 ![AI Resume Analyzer](docs/screenshot.png)
 
 ---
