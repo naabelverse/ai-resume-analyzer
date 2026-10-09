@@ -209,6 +209,11 @@ all of them.
 If the finding IS worth keeping and the headline already said all of it, make
 \`text\` the shorter claim and move the evidence and the advice into \`detail\`.
 
+Every item's \`text\` must be DIFFERENT from every other item's. If one finding
+applies to several bullets, write ONE item for it and quote the clearest bullet
+in \`detail\` — never the same headline once per bullet. Items that repeat a
+headline are merged into one before the candidate sees them.
+
 If you cannot point at a specific line and quote it, DO NOT EMIT THAT ITEM.
 Fewer items that each quote real text beat eight items of generic advice.
 Generic advice is worthless to the candidate and they will discard the whole
@@ -226,6 +231,10 @@ argument version of that belongs in \`detail\`, which has nearly twice the room
 to make it. What a note DOES have to do is in SECTION NOTES, immediately below.
 
 === SECTION NOTES ===
+
+A note has a HARD limit of ${FIELD_CAPS.sectionNote} characters, and anything past it is cut off
+mid-word. Aim for 150 and finish every note with a full stop well before the
+limit. A note that would run long loses its last clause, not its ending.
 
 A note names ONE thing. Count, not length: one observation, at most one
 quotation. A strong section usually has three or four things worth saying, and
@@ -257,6 +266,18 @@ Do NOT explain the placeholder in the \`why\` field. The interface states the
 convention once, above the whole list, so a reminder here is a third copy of
 the same sentence and it crowds out what \`why\` is for: what the rewrite
 CHANGED, and why that is better. Write that instead.
+
+Every number in \`improved\` must already appear in \`original\`. Counts, team
+sizes, page counts, percentages, durations and uptime figures you were not
+given are inventions, and a "+" does not make them less so:
+
+  BAD:  Migrated 15+ product pages from jQuery to React   <- "15+" was not given
+  BAD:  ...ensuring 99.9% uptime                          <- nor was "99.9%"
+  GOOD: Migrated [X] product pages from jQuery to React
+
+Names that contain digits are not figures and may stay: p95, HTTP 500,
+ISO 27001, Node.js 20. Any other new number is replaced with [X] before the
+candidate sees it, so a guess buys nothing.
 
 NEVER present a placeholder as though it were their achievement, and never
 guess a plausible number to fill the gap. A fabricated metric on a resume is

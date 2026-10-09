@@ -14,7 +14,7 @@ import type { AnalysisResult } from "@/types";
  *
  * Every value here is invented — there is no real resume behind it.
  */
-export const PLACEHOLDER_FILE_NAME = "muhammad-nabil-resume.pdf";
+export const PLACEHOLDER_FILE_NAME = "sample-resume.pdf";
 
 export const PLACEHOLDER_ANALYSIS: AnalysisResult = {
   scoreRationale:

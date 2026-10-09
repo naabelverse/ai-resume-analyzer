@@ -38,7 +38,7 @@ production outage takes, so it is worth seeing once on purpose.
 key and no request.
 
 ```bash
-pnpm test         # 517 tests, no network
+pnpm test         # 538 tests, no network
 pnpm test:live    # one real analysis against your key
 pnpm test:quality # twelve real calls: does the score discriminate?
 pnpm build        # type check and production build
@@ -146,6 +146,30 @@ error *and the model's own previous output* quoted back — a bare "try again"
 just resamples the same distribution. Two failures means something is genuinely
 wrong, and the route returns the deterministic report with a banner rather than
 an error page.
+
+**Cosmetic defects are repaired after validation, not rejected.** Three were
+seen in one live run: a feedback headline repeated once per bullet, section
+notes cut by the decoder at the 230-character cap, and rewrites inventing
+figures such as "15+ product pages". Each is fixed in code once the result has
+already passed:
+
+- **Note trimming.** A note cut at the cap goes back to its last complete
+  sentence, or ends on "…" when there is none (`trimToSentence`). The cut was
+  missed before because `repairTruncation` read a trailing opening quote —
+  "…Lead a '" — as finished punctuation.
+- **Headline merging.** Items sharing a headline (trimmed, case-insensitive)
+  become one, with the most severe status and the details joined, unless that
+  would take the list below `ARRAY_CAPS.feedbackMin` (`mergeDuplicateFeedback`).
+- **Number masking.** A figure in a rewrite that the original bullet never
+  stated becomes `[X]`, keeping its unit ("99.9%" → "[X]%"), while names such as
+  p95, HTTP 500 and Node.js 20 are left alone (`maskNewFigures`). Stray `[Y]` or
+  `[Z]` placeholders are normalised to `[X]`.
+
+Rejecting them instead would spend the single retry on a cosmetic problem, and
+a second validation failure degrades the *whole* analysis to the fallback
+report — trading a flawed section for no AI review at all. The prompt asks for
+each fix as well; the repairs are the net, and the log line counts how often
+each one fires, never the text.
 
 ---
 
@@ -1526,7 +1550,7 @@ lib/
   scoring.ts  deterministic checks + the degraded report
   errors.ts   typed failures, one copy map for the whole app
   mail.ts     the one place this app sends mail from
-tests/        517 tests; fixtures are built in memory, not committed
+tests/        538 tests; fixtures are built in memory, not committed
 ```
 
 ---

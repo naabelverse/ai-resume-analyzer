@@ -26,6 +26,19 @@ const DANGLING = /[\s,;:—–-]+$/;
 const TERMINAL = /[.!?…"'’”)\]]$/;
 
 /**
+ * A quotation mark with whitespace before it OPENS a quote, so it cannot end a
+ * sentence. `TERMINAL` accepts `'` and `"` because a closing quote can; on its
+ * own it cannot tell the two apart. A live section note was cut by the decoder
+ * at exactly its cap on "…Lead a '" and passed as finished, with no ellipsis.
+ */
+const OPENING_QUOTE = /\s["'‘“]$/;
+
+/** True when `text` ends the way a finished sentence ends. */
+function endsComplete(text: string): boolean {
+  return TERMINAL.test(text) && !OPENING_QUOTE.test(text);
+}
+
+/**
  * How close to the cap a string must sit before truncation is suspected.
  *
  * Constrained decoding stops at exactly `maxLength`, but a cut landing inside a
@@ -94,7 +107,7 @@ const DANGLING_WORD = new Set([
  */
 export function markDanglingCut(text: string): string {
   const trimmed = text.trimEnd();
-  if (TERMINAL.test(trimmed)) return text;
+  if (endsComplete(trimmed)) return text;
 
   const words = trimmed.split(/\s+/);
 
@@ -188,7 +201,7 @@ export function repairTruncation(text: string, limit: number): string {
 
   if (trimmed.length > limit) return text;
   if (trimmed.length < limit - SUSPICION_WINDOW) return text;
-  if (TERMINAL.test(trimmed)) return trimmed;
+  if (endsComplete(trimmed)) return trimmed;
 
   const lastSpace = trimmed.lastIndexOf(" ");
   const body =
@@ -197,4 +210,78 @@ export function repairTruncation(text: string, limit: number): string {
       : trimmed.slice(0, -1);
 
   return `${body.replace(DANGLING, "")}…`;
+}
+
+/** The end of a sentence: terminal punctuation, any closing quotes, then a space. */
+const SENTENCE_END = /[.!?]["'’”)]*(?=\s)/g;
+
+/**
+ * `repairTruncation` for a field that reads as prose: a cut note goes back to
+ * its last complete sentence rather than ending on "…" mid-thought.
+ *
+ * Same trigger as `repairTruncation` — within `SUSPICION_WINDOW` of the cap and
+ * not ending like a finished sentence — so a short note is never touched. With
+ * no complete sentence to fall back to, it defers to `repairTruncation`.
+ */
+export function trimToSentence(text: string, limit: number): string {
+  const trimmed = text.trimEnd();
+
+  if (trimmed.length > limit) return text;
+  if (trimmed.length < limit - SUSPICION_WINDOW) return text;
+  if (endsComplete(trimmed)) return trimmed;
+
+  let end = 0;
+  for (const match of trimmed.matchAll(SENTENCE_END)) {
+    end = match.index + match[0].length;
+  }
+
+  return end > 0 ? trimmed.slice(0, end) : repairTruncation(trimmed, limit);
+}
+
+/**
+ * A figure: digits, optionally grouped or decimal, with an optional unit or
+ * qualifier. The lookarounds keep it standalone, so `p95`, `Q3`, `S3` and
+ * `IPv6` are text, not figures.
+ */
+const FIGURE =
+  /(?<![\w.,[])(\d+(?:[.,]\d+)*)(%|\+|x|×|k|K|M|B|ms|s|h|GB|MB|KB|TB)?(?![\w\]])/g;
+
+/**
+ * A number following one of these is a name, not a figure: an acronym
+ * ("HTTP 500", "ISO 27001") or a dotted name ("Node.js 20", "ASP.NET 8").
+ */
+const IDENTIFIER_BEFORE = /(?:\b[A-Z]{2,}|\b[A-Za-z]+\.[A-Za-z.]+)\s$/;
+
+/**
+ * Replaces each figure in a rewrite that the original bullet never stated with
+ * the `[X]` placeholder RULE 2 asks for, keeping its unit: "15+" becomes
+ * "[X]+", "99.9%" becomes "[X]%".
+ *
+ * A repair rather than a rejection. Failing validation over one guessed number
+ * would spend the retry and could degrade the whole report; the candidate is
+ * better served by the rewrite with the guess taken out.
+ *
+ * Figures already in the original survive, compared without grouping commas so
+ * "1,200" matches "1200". Names that carry numbers survive too — see
+ * `FIGURE` and `IDENTIFIER_BEFORE` — so the demo's "p95 latency" is untouched.
+ */
+export function maskNewFigures(original: string, improved: string): string {
+  const known = new Set(
+    [...original.matchAll(/\d+(?:[.,]\d+)*/g)].map(([n]) => n.replace(/,/g, "")),
+  );
+
+  return improved.replace(FIGURE, (figure, digits: string, unit = "", offset: number) => {
+    if (known.has(digits.replace(/,/g, ""))) return figure;
+    if (!unit && IDENTIFIER_BEFORE.test(improved.slice(0, offset))) return figure;
+    return `[X]${unit}`;
+  });
+}
+
+/**
+ * Rewrites any other single-letter placeholder — "[Y]", "[Z]", "[N%]" — as the
+ * "[X]" RULE 2 standardises on. A live rewrite used "[X]s to [Y]s … [Z]%";
+ * the interface explains one symbol, so a second reads as a different thing.
+ */
+export function normalisePlaceholders(text: string): string {
+  return text.replace(/\[(?!X)[A-Z](?=\]|%)/g, "[X");
 }

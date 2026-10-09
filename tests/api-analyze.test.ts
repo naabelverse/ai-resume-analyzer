@@ -587,7 +587,7 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
    * say which field, and not enough to tell a schema mismatch apart from the
    * whitespace runaway that produces the same code.
    */
-  it("logs the second attempt's reason and raw body when it degrades", async () => {
+  it("logs the second attempt's reason, but never the raw body", async () => {
     const sentinel = "SENTINEL_RAW_BODY_MARKER";
     harness.reply(wire({ summary: sentinel + "x".repeat(501) }));
     harness.reply(wire({ summary: sentinel + "x".repeat(501) }));
@@ -600,9 +600,9 @@ describe.each(HARNESSES)("POST /api/analyze [$name]", (harness) => {
     // The field the validator named. Without it the line says a failure
     // happened and nothing about what to change.
     expect(logged).toContain("summary");
-    // The body itself, not a description of it — the whole point is that the
-    // next occurrence can be read rather than reproduced.
-    expect(logged).toContain(sentinel);
+    // The body quotes the resume (`detail` opens with a verbatim quote), so it
+    // must not reach the log. It used to, unsliced.
+    expect(logged).not.toContain(sentinel);
   });
 
   it("logs the token counts that separate a runaway from a schema mismatch", async () => {

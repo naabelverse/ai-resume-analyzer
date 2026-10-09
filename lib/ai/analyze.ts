@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { AiSchemaError, AiUnavailableError, AppError } from "@/lib/errors";
 import {
+  ARRAY_CAPS,
   AnalysisResultSchema,
   AnalysisWireSchema,
   DimensionScoresSchema,
@@ -14,14 +15,20 @@ import {
   deriveVerdict,
   type AnalysisResult,
   type DimensionScores,
+  type FeedbackItem,
+  type Status,
 } from "@/lib/schema/analysis";
 import { buildRetryTurn, buildUserTurn, SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/providers";
 import { statusFor } from "@/lib/scoring";
 import {
+  clampToWord,
   markDanglingCut,
+  maskNewFigures,
+  normalisePlaceholders,
   repairTruncation,
   stripLeadingMarker,
+  trimToSentence,
 } from "@/lib/text";
 import type { AnalysisProvider, ProviderCompletion } from "@/lib/ai/types";
 
@@ -129,6 +136,83 @@ function deriveStatus(score: unknown): unknown {
   return typeof score === "number" ? statusFor(score) : undefined;
 }
 
+/** `trimToSentence` at the note cap, guarded the same way as `repair`. */
+function trimNote(value: unknown): unknown {
+  return typeof value === "string"
+    ? trimToSentence(value, FIELD_CAPS.sectionNote)
+    : value;
+}
+
+const SEVERITY: Record<Status, number> = { pass: 0, warn: 1, fail: 2 };
+
+/**
+ * Merges feedback items that share a headline (trimmed, case-insensitive)
+ * into one: the first item's place and headline, the most severe status, and
+ * the details joined — clamped to the detail cap, because a saved record is
+ * validated again by `/api/analyses`.
+ *
+ * A live run returned "Only 1 of 8 experience bullets contains a measurable
+ * result" seven times, one per bullet. Each item was valid, so this is a
+ * repair after validation rather than a rejection: a duplicate is a cosmetic
+ * defect, and rejecting it could spend the retry and degrade the whole report.
+ *
+ * Left alone when merging would take the list below `ARRAY_CAPS.feedbackMin`,
+ * so the repaired report still satisfies the schema it was validated against.
+ */
+export function mergeDuplicateFeedback(items: FeedbackItem[]): FeedbackItem[] {
+  const groups = new Map<string, FeedbackItem[]>();
+  for (const item of items) {
+    const key = item.text.trim().toLowerCase();
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+
+  if (groups.size === items.length || groups.size < ARRAY_CAPS.feedbackMin) {
+    return items;
+  }
+
+  return [...groups.values()].map(([first, ...rest]) => ({
+    ...first,
+    status: rest.reduce<Status>(
+      (worst, { status }) => (SEVERITY[status] > SEVERITY[worst] ? status : worst),
+      first.status,
+    ),
+    detail: clampToWord(
+      [first, ...rest].map(({ detail }) => detail).join(" "),
+      FIELD_CAPS.feedbackDetail,
+    ),
+  }));
+}
+
+/**
+ * The repairs that run on a VALIDATED result. Each can only make a valid report
+ * better, never invalid, so none of them can trigger the retry or the fallback.
+ * Returns counts for the log line; never the text.
+ */
+function repairValidated(result: AnalysisResult): {
+  result: AnalysisResult;
+  merged: number;
+  masked: number;
+} {
+  const feedback = mergeDuplicateFeedback(result.feedback);
+  const placeholders = (text: string) => text.match(/\[X\]/g)?.length ?? 0;
+
+  let masked = 0;
+  const bulletRewrites = result.bulletRewrites.map((rewrite) => {
+    const maskedText = maskNewFigures(rewrite.original, rewrite.improved);
+    masked += placeholders(maskedText) - placeholders(rewrite.improved);
+    const improved = normalisePlaceholders(maskedText);
+    if (improved === rewrite.improved) return rewrite;
+    // "[X]" is longer than most figures it replaces, so re-clamp to the cap.
+    return { ...rewrite, improved: clampToWord(improved, FIELD_CAPS.rewriteImproved) };
+  });
+
+  return {
+    result: { ...result, feedback, bulletRewrites },
+    merged: result.feedback.length - feedback.length,
+    masked,
+  };
+}
+
 async function attempt(
   provider: AnalysisProvider,
   system: string,
@@ -161,9 +245,12 @@ async function attempt(
     try {
       payload = JSON.parse(completion.text);
     } catch (cause) {
+      // Position only. `JSON.parse` messages can quote a fragment of the
+      // output, and this reason is logged.
+      const at = /position \d+/.exec(String(cause))?.[0];
       return {
         ok: false,
-        reason: `Output was not valid JSON: ${cause instanceof Error ? cause.message : String(cause)}`,
+        reason: `Output was not valid JSON${at ? ` (${at})` : ""}.`,
         completion,
       };
     }
@@ -193,9 +280,12 @@ async function attempt(
     redFlags?: unknown;
     keywordMatch?: unknown;
   };
+  let notesTrimmed = 0;
   const sections = wire.sections
     ? SECTION_NAMES.map((name) => {
         const body = wire.sections![name] as { score?: unknown; note?: unknown };
+        const note = trimNote(body.note);
+        if (note !== body.note) notesTrimmed += 1;
         return {
           name,
           ...body,
@@ -205,7 +295,9 @@ async function attempt(
           // OVERWRITTEN rather than merged: a field the model fills and the
           // code discards is the next person's confusion.
           status: deriveStatus(body.score),
-          note: repair(body.note, FIELD_CAPS.sectionNote),
+          // Back to the last complete sentence when the decoder cut it, which
+          // reads better in a note than `repair`'s mid-thought ellipsis.
+          note,
         };
       })
     : undefined;
@@ -331,7 +423,12 @@ async function attempt(
     return { ok: false, reason: z.prettifyError(validated.error), completion };
   }
 
-  return { ok: true, result: validated.data, completion, dimensions: dimensions.data };
+  const repaired = repairValidated(validated.data);
+  console.info(
+    `[analyze] repairs: notesTrimmed=${notesTrimmed} duplicateHeadlinesMerged=${repaired.merged} figuresMasked=${repaired.masked}`,
+  );
+
+  return { ok: true, result: repaired.result, completion, dimensions: dimensions.data };
 }
 
 /** Wraps transport failures, letting the app's own typed errors through. */
@@ -341,11 +438,11 @@ function rethrow(cause: unknown): never {
 }
 
 /**
- * The terminal failure, logged in full — and the one place in this pipeline
- * that prints a model response verbatim.
+ * The terminal failure, logged with enough to diagnose it — and, like the rest
+ * of this pipeline, never the model's response text.
  *
- * Everything else logs counts and timings only. This path is the exception
- * because it is the end of the line: `AiSchemaError` degrades the report, and
+ * This path logs more than any other because it is the end of the line:
+ * `AiSchemaError` degrades the report, and
  * the reason for the SECOND failure was previously never written down
  * anywhere. A production run degraded with `AI_SCHEMA` and left behind only
  * the code itself — enough to say validation failed twice, not enough to say
@@ -362,15 +459,13 @@ function rethrow(cause: unknown): never {
  *     reading the body at all: a runaway is thousands of tokens at roughly one
  *     character each, a schema mismatch is an ordinary-sized body with the
  *     wrong content in it.
- *   - The raw body of the attempt that failed last, unsliced. A truncated
- *     diagnostic is how this became invisible in the first place.
  *
- * The body is the MODEL'S output. The extracted resume is still never logged,
- * here or anywhere else. Note what the body can nonetheless carry: `detail` is
- * required to open with a verbatim quote, so a handful of the candidate's own
- * words can appear on this line. That is the deliberate trade for a failure
- * that is otherwise undiagnosable, and it is confined to the path where the
- * analysis has already been lost.
+ * The raw body is NOT printed. It used to be, unsliced, and that leaked resume
+ * content: `detail` is required to open with a verbatim quote, so the
+ * candidate's own words reached the log. The validator complaints name the
+ * fields that failed and the lengths separate a runaway from a mismatch, which
+ * is what the body was there to tell apart. To read a body, reproduce the run
+ * with `pnpm test:live`, which prints it locally.
  */
 function logTerminalFailure(
   provider: AnalysisProvider,
@@ -398,9 +493,7 @@ function logTerminalFailure(
       `  attempt 1: ${shape(first)}\n` +
       `             ${first.reason ?? "(no reason recorded)"}\n` +
       `  attempt 2: ${shape(second)}\n` +
-      `             ${second.reason ?? "(no reason recorded)"}\n` +
-      `  raw body of attempt 2 follows, unsliced:\n` +
-      second.completion.text,
+      `             ${second.reason ?? "(no reason recorded)"}`,
   );
 }
 

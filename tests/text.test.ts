@@ -3,9 +3,122 @@ import { describe, expect, it } from "vitest";
 import {
   clampToWord,
   markDanglingCut,
+  maskNewFigures,
+  normalisePlaceholders,
   repairTruncation,
   stripLeadingMarker,
+  trimToSentence,
 } from "@/lib/text";
+
+describe("normalisePlaceholders", () => {
+  it("rewrites other single-letter placeholders as [X] (live rewrite)", () => {
+    expect(
+      normalisePlaceholders("Cut load from [X]s to [Y]s, reducing bounce by [Z]% and [N%] errors."),
+    ).toBe("Cut load from [X]s to [X]s, reducing bounce by [X]% and [X%] errors.");
+  });
+});
+
+/**
+ * A live section note, cut by the decoder at exactly the 230 cap on an OPENING
+ * quote. `TERMINAL` accepted the `'` as a closing quote, so it passed as whole.
+ */
+const CUT_ON_OPENING_QUOTE =
+  "Hardworking and passionate frontend developer and team player with experience " +
+  "building web applications. Looking for a challenging role where I can grow my " +
+  "skills. That opening spends your first line on subjective traits. Lead a '";
+
+describe("trimToSentence", () => {
+  it("is the live note at the cap", () => {
+    expect(CUT_ON_OPENING_QUOTE.length).toBe(230);
+  });
+
+  it("trims a cut note back to its last complete sentence", () => {
+    expect(trimToSentence(CUT_ON_OPENING_QUOTE, 230)).toBe(
+      CUT_ON_OPENING_QUOTE.slice(0, CUT_ON_OPENING_QUOTE.indexOf(" Lead a '")),
+    );
+  });
+
+  it("keeps a closing quote with the sentence it ends", () => {
+    const note = "Only one bullet has a metric: 'cut abandonment 31% to 22%.' That is the";
+    expect(trimToSentence(note, note.length)).toBe(
+      "Only one bullet has a metric: 'cut abandonment 31% to 22%.'",
+    );
+  });
+
+  it("ends on an ellipsis when there is no complete sentence to keep", () => {
+    const note = "Lists tools without depth such as years of use or project scale or team";
+    const out = trimToSentence(note, note.length);
+    expect(out.endsWith("…")).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(note.length);
+  });
+
+  it("leaves a note that ends complete at the cap alone", () => {
+    const note = "Two sentences here. The second one finishes.";
+    expect(trimToSentence(note, note.length)).toBe(note);
+  });
+
+  it("leaves a note well under the cap alone, finished or not", () => {
+    expect(trimToSentence("Short note. And a fragment", 230)).toBe("Short note. And a fragment");
+  });
+});
+
+describe("repairTruncation on an opening quote", () => {
+  it("marks a cut that lands right after an opening quote", () => {
+    const out = repairTruncation(CUT_ON_OPENING_QUOTE, 230);
+    expect(out.endsWith("…")).toBe(true);
+    expect(out).not.toContain("'…");
+  });
+
+  it("still treats a closing quote as finished", () => {
+    const text = "x".repeat(20) + " ended on 'a quote'";
+    expect(repairTruncation(text, text.length)).toBe(text);
+  });
+});
+
+describe("maskNewFigures", () => {
+  const original = "Worked on the team that migrated the storefront from jQuery to React.";
+
+  it("replaces invented figures and keeps their units (live rewrites)", () => {
+    expect(
+      maskNewFigures(original, "Migrated 15+ product pages from jQuery to React."),
+    ).toBe("Migrated [X]+ product pages from jQuery to React.");
+    expect(
+      maskNewFigures("Maintained the company marketing website.", "Maintained the site at 99.9% uptime."),
+    ).toBe("Maintained the site at [X]% uptime.");
+  });
+
+  it("keeps figures the original already stated", () => {
+    const from = "Rebuilt the checkout form, cutting abandonment from 31% to 22%.";
+    const to = "Rebuilt the checkout in React, cutting abandonment from 31% to 22%.";
+    expect(maskNewFigures(from, to)).toBe(to);
+  });
+
+  it("matches figures with and without grouping commas", () => {
+    expect(maskNewFigures("Served 1200 users.", "Served 1,200 daily users.")).toBe(
+      "Served 1,200 daily users.",
+    );
+  });
+
+  it("treats p95 as text, so the demo rewrite is unchanged", () => {
+    const demo =
+      "Maintained a booking service handling [X] requests/day, cutting p95 latency from [X]ms to [X]ms.";
+    expect(maskNewFigures("Responsible for maintaining the booking service.", demo)).toBe(demo);
+  });
+
+  it("treats numbers in names as text", () => {
+    const to = "Upgraded to Node.js 20, fixed HTTP 500 errors and passed ISO 27001 audit.";
+    expect(maskNewFigures("Maintained the API.", to)).toBe(to);
+  });
+
+  it("masks a figure after a capitalised verb that opens the bullet", () => {
+    expect(maskNewFigures("Led the team.", "Led 5 engineers.")).toBe("Led [X] engineers.");
+  });
+
+  it("leaves a rewrite with no figures alone", () => {
+    const to = "Built [X] screens of the admin dashboard in React and TypeScript.";
+    expect(maskNewFigures(original, to)).toBe(to);
+  });
+});
 
 describe("clampToWord", () => {
   it("leaves text within the limit alone", () => {
