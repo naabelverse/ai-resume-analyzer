@@ -108,7 +108,7 @@
      stops it reading as a rectangle pasted onto the background. */
   --surface-card: linear-gradient(180deg, #ffffff 0%, #fbfaff 100%);
 
-  /* The one gradient: wordmark, gauge stroke, progress fills */
+  /* The one gradient: gauge stroke, progress fills */
   --grad-brand: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
 
   /*
@@ -570,23 +570,6 @@
     show. A state style kept for a state that cannot occur is one nobody can
     check.
   */
-
-  /*
-    `background-clip: text` paints the glyphs with the background and Chrome
-    limits that paint to the border box, so ink outside the box is not clipped
-    — it is never painted at all. The display rung's leading is 1.02 while this
-    face needs ~1.26 to contain its own ascender and descender, which left the
-    tail of every g, j, p, q and y unpainted. The padding buys the box the room
-    the ink already occupied. No negative margin to claw it back: that margin
-    would collapse against the next element's and silently eat the gap.
-  */
-  .gradient-text {
-    background: var(--grad-brand);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    padding-bottom: 0.16em;
-  }
 
   .gradient-fill {
     background: var(--grad-brand);

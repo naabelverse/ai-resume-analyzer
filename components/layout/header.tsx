@@ -54,7 +54,7 @@ export function Header() {
 
         <div className="min-w-0">
           {/* The one place the display face gets to be the size it was chosen for. */}
-          <h1 className="gradient-text text-display">AI Resume Analyzer</h1>
+          <h1 className="text-display text-brand-600">AI Resume Analyzer</h1>
           <p className="mt-2 text-body text-ink-soft">
             Get AI-powered feedback to improve your resume
           </p>
