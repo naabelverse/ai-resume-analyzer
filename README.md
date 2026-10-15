@@ -1606,24 +1606,36 @@ reporting `UNKNOWN` (it has its own `ANALYSIS_NOT_FOUND` code).
 
 `pnpm test:eval` scores twelve resumes — backend, nursing, junior designer and
 accountant, one strong, middling and weak each — against a job description in
-their own field, and asserts every score lands in its tier's band (80-100,
-55-70, 0-44) and every role ranks strong > middling > weak. Fixtures are in
-`tests/fixtures/eval/`; the backend trio is the `quality/` one, reused. The
-line to compare between two prompt versions is the last one in
-`eval-report.txt`. `EVAL_RUNS=3` judges noise; `EVAL_ONLY=design/strong`
-re-scores one case for one call.
+their own field, three times each (36 calls), and asserts every case's MEAN
+lands in its tier's band (80-100, 55-70, 0-44) and every role ranks strong >
+middling > weak. Fixtures are in `tests/fixtures/eval/`; the backend trio is
+the `quality/` one, reused. The line to compare between two prompt versions is
+the last one in `eval-report.txt`. `EVAL_ONLY=design/strong` re-scores one
+case; `EVAL_RUNS=1` is a cheap look, not a verdict.
 
-First run (nemotron-3-super, one run each): **in band 10/12, roles ranked 4/4.**
+Current result (nemotron-3-super): **in band 12/12, roles ranked 4/4.**
 
-- `design/strong` scored 76 on `impact=55` while every other strong fixture
-  sat at 85-95. The fixture, not the model: only two of its seven bullets
-  reported an outcome, the rest counted output ("400+ files", "30 outlets"),
-  and the rubric asks for outcomes. Rewriting those four bullets as outcomes —
-  same fresh graduate, same internships — scored 83 on `impact=85`. Worth
-  remembering: a junior candidate's numbers are usually volume, and this
-  rubric does not credit volume.
-- `finance/middling` scored 54, one point under its band. Unexamined; a
-  three-run pass will say whether it is noise.
+Getting there took three things, each worth knowing before touching this:
+
+- **Three fixtures were wrong, not the model.** `design/strong` and
+  `finance/strong` sat at 76 and 81 on low `impact`: their bullets counted
+  output ("400+ files", "led 11 audits") and the rubric credits outcomes.
+  Rewritten as outcomes — same candidate, same seniority — they score 83 and
+  86. `finance/middling` scored 54 because it failed the JD's hard
+  requirements (no ACCA membership, no manufacturing or audit years), which
+  made it unqualified rather than middling; given them, it scores 60. Note the
+  first one: a junior candidate's numbers are usually volume, and this rubric
+  does not credit volume.
+- **One run is not a verdict.** On byte-identical text the `ats` dimension
+  swung 55-95 between runs, about four points of overall score, so a
+  single-run suite failed on noise. Hence three runs and an asserted mean.
+- **The endpoint drops calls.** Three `AI_UNAVAILABLE`s in about fifty calls,
+  with no response. The suite retries those once — and only those; a schema
+  failure is a measurement and is never retried away.
+
+Tightest margins: `design/strong` (single runs 80-90, mean 83) and
+`backend/middling` (mean 57.7, shared with `quality-spread`). Those are the
+two to look at first if a prompt change turns this red.
 
 ---
 

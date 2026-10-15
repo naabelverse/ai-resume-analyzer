@@ -16,11 +16,11 @@ Accountant, Precision Moulding Sdn Bhd - Apr 2022 to present
 - Rebuilt standard costing for 1,400 inventory SKUs after a 9% variance between book and physical stock; variance has held under 1% at every quarterly count since.
 - Prepare monthly SST returns and annual corporate tax computations with the tax agent; recovered RM210K of over-paid sales tax from prior periods.
 - Cleared a 14-month backlog of intercompany balances (RM3.2M) and set up a monthly matching routine that keeps them reconciled.
-- Built a Power BI margin dashboard the plant director uses in weekly production meetings.
+- Built a Power BI margin dashboard that exposed two loss-making product lines; repricing them added RM1.4M of annual gross margin.
 
 Audit Senior, Rahim Lau & Partners - Jan 2019 to Mar 2022
-- Led field work on 11 statutory audits of manufacturing and distribution clients with revenue from RM20M to RM400M.
-- Supervised teams of 3-4 associates and delivered every engagement inside budgeted hours in my final year.
+- Led field work on 11 statutory audits of manufacturing clients (RM20M-RM400M revenue), cutting average fieldwork from six weeks to four by standardising the inventory testing programme.
+- Supervised teams of 3-4 associates and brought every engagement in under budgeted hours in my final year, against a firm average overrun of 15%.
 - Found a RM1.1M inventory overstatement during a client stock count, reported as a key audit matter.
 
 EDUCATION

@@ -8,7 +8,7 @@
  * not survive an edit. The summary line at the foot of the report is the
  * number to compare between two runs.
  *
- * Spends real credits — 12 calls x EVAL_RUNS, default 1 — so it is excluded
+ * Spends real credits — 12 calls x EVAL_RUNS, default 3 — so it is excluded
  * from `pnpm test` like the other live suites. Run it explicitly:
  *
  *   pnpm test:eval
@@ -20,14 +20,23 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 loadEnv({ path: ".env.local", quiet: true });
 
+import { AppError } from "@/lib/errors";
 import { normaliseText } from "@/lib/extract";
 import { runDeterministicChecks, summariseChecksForModel } from "@/lib/scoring";
 import { EVAL_CASES, EVAL_ROLES, TIERS, type EvalCase } from "./fixtures/eval/cases";
 
 const OUT = "eval-report.txt";
 
-/** Overridable: one run is enough to compare prompts, three to judge noise. */
-const RUNS = Number(process.env.EVAL_RUNS ?? 1);
+/**
+ * Three by default, and the bands are asserted on the MEAN of the three.
+ *
+ * One run was the default and it could not be trusted to go green: on
+ * byte-identical text the model's `ats` dimension swung 55-95, which moves an
+ * overall score ~4 points, and four of twelve cases sit within that of an
+ * edge. A single run therefore failed on noise. `EVAL_RUNS=1` is still there
+ * for a cheap look; it is not a verdict.
+ */
+const RUNS = Number(process.env.EVAL_RUNS ?? 3);
 
 /**
  * `EVAL_ONLY=design/strong` scores only the named cases (comma-separated): one
@@ -114,24 +123,45 @@ async function measure(): Promise<void> {
     for (const c of CASES) {
       const { text, facts } = inputs.get(c.id)!;
       const result = results.get(c.id)!;
-      try {
-        const outcome = await analyzeResumeWithDiagnostics({
-          resumeText: text,
-          jobDescription: c.jd,
-          truncated: false,
-          facts,
-        });
-        const dims = outcome.diagnostics.dimensions;
-        result.scores.push(outcome.result.overallScore);
-        say(
-          `[${c.id} round ${round}] score=${outcome.result.overallScore} ` +
-            `${outcome.diagnostics.elapsedMs}ms ` +
-            `dims: ${dims ? Object.entries(dims).map(([k, v]) => `${k}=${v}`).join(" ") : "none"}`,
-        );
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : String(cause);
-        result.failures.push(`round ${round}: ${message}`);
-        say(`[${c.id} round ${round}] FAILED: ${message}`);
+      /*
+        One retry, for transport failures only. The hosted endpoint drops
+        roughly one call in twenty-five with AI_UNAVAILABLE and no response at
+        all — measured three times in fifty calls — which at 36 calls a run
+        failed the suite on infrastructure about as often as it passed. That
+        is no measurement of the prompt. AI_SCHEMA is NOT retried: the model
+        failing validation twice IS a measurement, and retrying it away would
+        hide exactly what this suite exists to catch. Each dropped call is
+        still printed, so the endpoint's flakiness stays visible.
+      */
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+          const outcome = await analyzeResumeWithDiagnostics({
+            resumeText: text,
+            jobDescription: c.jd,
+            truncated: false,
+            facts,
+          });
+          const dims = outcome.diagnostics.dimensions;
+          result.scores.push(outcome.result.overallScore);
+          say(
+            `[${c.id} round ${round}] score=${outcome.result.overallScore} ` +
+              `${outcome.diagnostics.elapsedMs}ms ` +
+              `dims: ${dims ? Object.entries(dims).map(([k, v]) => `${k}=${v}`).join(" ") : "none"}`,
+          );
+          break;
+        } catch (cause) {
+          const message = cause instanceof Error ? cause.message : String(cause);
+          const transient =
+            cause instanceof AppError &&
+            (cause.code === "AI_UNAVAILABLE" || cause.code === "AI_RATE_LIMITED");
+          if (transient && attempt === 1) {
+            say(`[${c.id} round ${round}] dropped, retrying: ${message}`);
+            continue;
+          }
+          result.failures.push(`round ${round}: ${message}`);
+          say(`[${c.id} round ${round}] FAILED: ${message}`);
+          break;
+        }
       }
     }
   }
