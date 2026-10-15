@@ -347,6 +347,10 @@ real resume end to end.
 
 ## Phases 7–10 (post-v1, lighter detail)
 
+> **Status, 2026-10-15:** Phase 7 is built. Phases 8, 9 and 10 were decided
+> against and will not be built. They are kept below as the record of what was
+> considered, not as pending work.
+
 **Phase 7 — Resume history.** Prisma with SQLite locally and Postgres in prod. `Analysis`
 model stores score, filename, date, and the result JSON — never the resume text. A second
 implementation of the existing `lib/store` interface from Phase 4, chosen by a

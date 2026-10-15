@@ -1204,6 +1204,18 @@ reports are thinner than they were: three findings where it used to write five
 or six. That is the rule working as written, and it is the trade the 5.1%
 bought. If it falls further, the floor is what to revisit — not the rule.
 
+**Re-measured 2026-10-15** (nine calls, nemotron-3-super): the detail that
+stopped at the quote is **0/21** warn/fail items — the third shape the next
+entry describes no longer appears, so that entry is closed. Items per call
+held at **3.4** (31/9) — not falling, but now at the floor in seven of nine
+runs, and that thinness has a cost the earlier runs did not show:
+`feedback is no harsher than the score` FAILED on a middling run scoring 58
+whose three items were `fail fail warn`. Two honest weaknesses out of three
+is a majority; out of four it would not have been. The README's own lever
+applies — revisit `ARRAY_CAPS.feedbackMin`, 3 to 4 — and is not done yet:
+it needs a `test:quality` and a `test:eval` pass to show it does not bring
+back the filler a floor of five once forced.
+
 **The detail now stops at the quote instead, and that ships UNMEASURED.** The
 restatement is gone and a third shape took its place. On a warn item in
 production:
@@ -1591,16 +1603,12 @@ reporting `UNKNOWN` (it has its own `ANALYSIS_NOT_FOUND` code).
 
 ---
 
-## What I would build next
+## Scope
 
-1. **Stream the analysis.** Feedback items appearing one at a time instead of
-   after a 25-second wait, with the progress bar driven by real token progress
-   rather than elapsed time — the honest version of what the scanning card
-   currently approximates.
-2. **Before/after re-scoring.** Accept the bullet rewrites, re-analyse the
-   amended resume, and show a genuine score delta rather than arithmetic on the
-   old one.
-3. ~~An eval set.~~ Built — see below.
+PDF export, streaming the analysis and before/after re-scoring — phases 8,
+9 and 10 of [PLAN.md](PLAN.md) — were considered and deliberately not built.
+The eval set that was third on the old "what I would build next" list is
+built; it is the next section.
 
 ## Eval set
 
