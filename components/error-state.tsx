@@ -53,6 +53,14 @@ const ICON: Record<ErrorCode, LucideIcon> = {
   UNKNOWN: Ban,
 };
 
+/*
+  Codes that report a state rather than a failure. ANALYSIS_NOT_FOUND opens
+  "Nothing went wrong", and a red badge above that sentence contradicts it —
+  so these take the brand tint the upload prompt wears, which is also where
+  their one action sends the reader.
+*/
+const NOT_A_FAILURE: ReadonlySet<ErrorCode> = new Set(["ANALYSIS_NOT_FOUND"]);
+
 interface ErrorStateProps {
   code: ErrorCode;
   /** Rendered under the action line — a retry button, usually. */
@@ -71,7 +79,12 @@ export function ErrorState({ code, children, className }: ErrorStateProps) {
     >
       <span
         aria-hidden="true"
-        className="grid size-11 place-items-center rounded-full bg-danger-tint text-danger"
+        className={cn(
+          "grid size-11 place-items-center rounded-full",
+          NOT_A_FAILURE.has(code)
+            ? "bg-brand-tint text-brand-600"
+            : "bg-danger-tint text-danger",
+        )}
       >
         <Icon className="size-5" strokeWidth={2.2} />
       </span>
