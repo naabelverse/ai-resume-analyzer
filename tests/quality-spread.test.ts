@@ -38,7 +38,12 @@ import {
 } from "@/lib/scoring";
 import type { AnalyzeOutcome } from "@/lib/ai/analyze";
 import { FIELD_CAPS } from "@/lib/schema/analysis";
-import { endsAtQuote, leakedHeadlines, restatementOverlap } from "./helpers";
+import {
+  endsAtQuote,
+  leakedHeadlines,
+  restatementOverlap,
+  withTransportRetry,
+} from "./helpers";
 import {
   CREATIVE_JOB_DESCRIPTION,
   JOB_DESCRIPTION,
@@ -358,12 +363,17 @@ async function measure(): Promise<void> {
 
       let outcome: AnalyzeOutcome;
       try {
-        outcome = await analyzeResumeWithDiagnostics({
-          resumeText: fixture.text,
-          jobDescription: JOB_DESCRIPTION,
-          truncated: false,
-          facts: fixture.facts,
-        });
+        outcome = await withTransportRetry(
+          () =>
+            analyzeResumeWithDiagnostics({
+              resumeText: fixture.text,
+              jobDescription: JOB_DESCRIPTION,
+              truncated: false,
+              facts: fixture.facts,
+            }),
+          (message) => say(`
+[${name} round ${round}] dropped, retrying: ${message}`),
+        );
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : String(cause);
         fixture.failures.push(`round ${round}: ${message}`);
@@ -454,12 +464,16 @@ async function measure(): Promise<void> {
 
   for (const { label, jd } of KEYWORD_JDS) {
     try {
-      const { result } = await analyzeResumeWithDiagnostics({
-        resumeText: strong.text,
-        jobDescription: jd,
-        truncated: false,
-        facts: strong.facts,
-      });
+      const { result } = await withTransportRetry(
+        () =>
+          analyzeResumeWithDiagnostics({
+            resumeText: strong.text,
+            jobDescription: jd,
+            truncated: false,
+            facts: strong.facts,
+          }),
+        (message) => say(`[keywords ${label}] dropped, retrying: ${message}`),
+      );
       const match = result.keywordMatch;
       keywordRuns.push({
         label,

@@ -4,6 +4,36 @@ import {
   SECTION_NAMES,
 } from "@/lib/schema/analysis";
 import type { AnalysisResult, DimensionScores } from "@/lib/schema/analysis";
+import { AppError } from "@/lib/errors";
+
+/* ------------------------------------------------------ live call retry -- */
+
+/**
+ * Runs one live call, retrying once if the endpoint dropped it.
+ *
+ * Shared by the live suites. The hosted endpoint drops roughly one call in
+ * twenty-five with AI_UNAVAILABLE and no response at all, which at 12-36 calls
+ * a run failed a suite on infrastructure about as often as it passed — no
+ * measurement of the prompt. AI_SCHEMA is NOT retried: the model failing
+ * validation twice IS a measurement, and retrying it away would hide exactly
+ * what these suites exist to catch. `onDrop` reports each retry so the
+ * endpoint's flakiness stays visible in the report.
+ */
+export async function withTransportRetry<T>(
+  call: () => Promise<T>,
+  onDrop: (message: string) => void,
+): Promise<T> {
+  try {
+    return await call();
+  } catch (cause) {
+    const transient =
+      cause instanceof AppError &&
+      (cause.code === "AI_UNAVAILABLE" || cause.code === "AI_RATE_LIMITED");
+    if (!transient) throw cause;
+    onDrop(cause.message);
+    return call();
+  }
+}
 /* ------------------------------------------------------ headline leakage -- */
 
 /**
