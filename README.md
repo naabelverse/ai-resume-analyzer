@@ -1211,10 +1211,13 @@ held at **3.4** (31/9) — not falling, but now at the floor in seven of nine
 runs, and that thinness has a cost the earlier runs did not show:
 `feedback is no harsher than the score` FAILED on a middling run scoring 58
 whose three items were `fail fail warn`. Two honest weaknesses out of three
-is a majority; out of four it would not have been. The README's own lever
-applies — revisit `ARRAY_CAPS.feedbackMin`, 3 to 4 — and is not done yet:
-it needs a `test:quality` and a `test:eval` pass to show it does not bring
-back the filler a floor of five once forced.
+is a majority; out of four it would not have been.
+
+**Fixed the same day: `ARRAY_CAPS.feedbackMin` 3 -> 4.** Re-measured: items
+per call 4.2 (38/9), every middling run `1p/1w/2f`, the harshness check
+green, `test:quality` 11/11. The filler a floor of five once forced did not
+come back — headline leakage 0/38, detail stopping at the quote 0/26 — and
+the eval set held at 12/12 in band, 4/4 ranked.
 
 **The detail now stops at the quote instead, and that ships UNMEASURED.** The
 restatement is gone and a third shape took its place. On a warn item in

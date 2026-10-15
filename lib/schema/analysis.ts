@@ -379,8 +379,15 @@ export const ARRAY_CAPS = {
    *
    * The ceiling is unchanged at eight, so the response-size arithmetic below
    * and the `AI_MAX_TOKENS` figure derived from it are untouched.
+   *
+   * Then four, not three. The drop path worked as written and reports sat at
+   * the floor in seven of nine runs — and at three items, two honest fails are
+   * a majority, so a middling run scoring 58 over `fail fail warn` read as a
+   * review harsher than its own gauge. Four leaves room for the strength or
+   * the warn that puts two fails back in proportion. Five is still the floor
+   * that compelled padding; four is the step the README named as the lever.
    */
-  feedbackMin: 3,
+  feedbackMin: 4,
   feedbackMax: 8,
   bulletRewrites: 5,
   redFlags: 6,

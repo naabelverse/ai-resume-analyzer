@@ -66,16 +66,17 @@ describe("AnalysisResultSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("rejects fewer than 3 feedback items", () => {
-    const short = validResult().feedback.slice(0, 2);
+  it("rejects fewer than 4 feedback items", () => {
+    const short = validResult().feedback.slice(0, 3);
     expect(AnalysisResultSchema.safeParse(validResult({ feedback: short })).success).toBe(false);
   });
 
   // The floor moved from 5 to 3 so the decoder's minItems would stop
-  // overriding RULE 1. Pinned in both directions: the old floor rejected this.
-  it("accepts three feedback items, the floor RULE 1 needs", () => {
-    const three = validResult().feedback.slice(0, 3);
-    expect(AnalysisResultSchema.safeParse(validResult({ feedback: three })).success).toBe(true);
+  // overriding RULE 1, then to 4 because three-item reports read harsher than
+  // their own score. Pinned in both directions.
+  it("accepts four feedback items, the floor", () => {
+    const four = validResult().feedback.slice(0, 4);
+    expect(AnalysisResultSchema.safeParse(validResult({ feedback: four })).success).toBe(true);
   });
 
   it("rejects more than 8 feedback items", () => {

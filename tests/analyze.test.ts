@@ -18,12 +18,14 @@ describe("mergeDuplicateFeedback", () => {
       item("Your contact details sit in the page header", "fail"),
       item(LIVE_HEADLINE, "fail", "'Helped with code reviews' names a duty."),
       item("The summary opens with 'hardworking'", "warn"),
+      item("Your one quantified result is strong", "pass"),
     ]);
 
     expect(merged.map(({ text }) => text)).toEqual([
       LIVE_HEADLINE,
       "Your contact details sit in the page header",
       "The summary opens with 'hardworking'",
+      "Your one quantified result is strong",
     ]);
     expect(merged[0]).toEqual({
       text: LIVE_HEADLINE,
@@ -38,8 +40,9 @@ describe("mergeDuplicateFeedback", () => {
       item("  tense is INCONSISTENT "),
       item("Skills are specific", "pass"),
       item("Layout parses cleanly", "pass"),
+      item("Dates are consistent", "pass"),
     ]);
-    expect(merged).toHaveLength(3);
+    expect(merged).toHaveLength(4);
   });
 
   it("keeps the merged detail within the detail cap", () => {
@@ -49,6 +52,7 @@ describe("mergeDuplicateFeedback", () => {
       item("a", "warn", long),
       item("B"),
       item("C"),
+      item("D"),
     ]);
     expect(merged[0].detail.length).toBeLessThanOrEqual(FIELD_CAPS.feedbackDetail);
     expect(merged[0].detail.endsWith("…")).toBe(true);
