@@ -22,6 +22,7 @@ import { RESOLVE, TEST_BASE } from "./vitest.shared.mts";
  *   pnpm test:live     one call, proves the transport works end to end
  *   pnpm test:quality  twelve calls: nine for the score spread (three fixtures
  *                      x QUALITY_RUNS), plus one per JD in KEYWORD_JDS
+ *   pnpm test:eval     twelve calls x EVAL_RUNS: four roles, three resumes each
  */
 export default defineConfig({
   plugins: [react()],

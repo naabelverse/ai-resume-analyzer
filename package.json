@@ -17,7 +17,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "test:live": "vitest run --config vitest.live.config.mts tests/live-verify.test.ts",
-    "test:quality": "vitest run --config vitest.live.config.mts tests/quality-spread.test.ts"
+    "test:quality": "vitest run --config vitest.live.config.mts tests/quality-spread.test.ts",
+    "test:eval": "vitest run --config vitest.live.config.mts tests/eval.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

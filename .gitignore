@@ -53,6 +53,9 @@ live-report.txt
 # Output of `pnpm test:quality` — regenerated on demand, costs credits.
 quality-report.txt
 
+# Output of `pnpm test:eval` — regenerated on demand, costs credits.
+eval-report.txt
+
 # RuVector plugin scratch database — a local tool artefact, not part of the app.
 ruvector.db
 

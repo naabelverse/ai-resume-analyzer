@@ -1600,9 +1600,30 @@ reporting `UNKNOWN` (it has its own `ANALYSIS_NOT_FOUND` code).
 2. **Before/after re-scoring.** Accept the bullet rewrites, re-analyse the
    amended resume, and show a genuine score delta rather than arithmetic on the
    old one.
-3. **An eval set.** A dozen resumes of known quality with expected score bands,
-   run against prompt changes. Right now "the scores spread sensibly" is a
-   judgement made by reading them, and that does not survive a prompt edit.
+3. ~~An eval set.~~ Built — see below.
+
+## Eval set
+
+`pnpm test:eval` scores twelve resumes — backend, nursing, junior designer and
+accountant, one strong, middling and weak each — against a job description in
+their own field, and asserts every score lands in its tier's band (80-100,
+55-70, 0-44) and every role ranks strong > middling > weak. Fixtures are in
+`tests/fixtures/eval/`; the backend trio is the `quality/` one, reused. The
+line to compare between two prompt versions is the last one in
+`eval-report.txt`. `EVAL_RUNS=3` judges noise; `EVAL_ONLY=design/strong`
+re-scores one case for one call.
+
+First run (nemotron-3-super, one run each): **in band 10/12, roles ranked 4/4.**
+
+- `design/strong` scored 76 on `impact=55` while every other strong fixture
+  sat at 85-95. The fixture, not the model: only two of its seven bullets
+  reported an outcome, the rest counted output ("400+ files", "30 outlets"),
+  and the rubric asks for outcomes. Rewriting those four bullets as outcomes —
+  same fresh graduate, same internships — scored 83 on `impact=85`. Worth
+  remembering: a junior candidate's numbers are usually volume, and this
+  rubric does not credit volume.
+- `finance/middling` scored 54, one point under its band. Unexamined; a
+  three-run pass will say whether it is noise.
 
 ---
 

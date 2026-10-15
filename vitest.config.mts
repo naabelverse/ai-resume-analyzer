@@ -23,6 +23,7 @@ export default defineConfig({
       "**/node_modules/**",
       "tests/live-verify.test.ts",
       "tests/quality-spread.test.ts",
+      "tests/eval.test.ts",
     ],
   },
 });
