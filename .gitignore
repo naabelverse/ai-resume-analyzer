@@ -22,7 +22,15 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+
+# editors and scratch copies
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
 
 # debug
 npm-debug.log*
@@ -62,10 +70,4 @@ ruvector.db
 # Captured stdout from a live suite run - a measurement artefact, not source.
 # before/after pairs land here when a prompt change is being measured; the
 # numbers that matter get written into the README, the transcripts do not.
-run.log
-before.log
-after.log
-notes.log
-notes2.log
-notes3.log
-keyword.log
+*.log
