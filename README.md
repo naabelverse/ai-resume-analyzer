@@ -1557,22 +1557,15 @@ tests/        538 tests; fixtures are built in memory, not committed
 
 ## Known UI issues
 
-Real, understood, and not yet fixed. Written down so they get found on purpose
-rather than rediscovered.
+Real and understood. Written down so they get found on purpose rather than
+rediscovered.
 
-- **Hit areas below the 40px minimum.** `size="sm"` buttons are 36px tall, the
-  copy button on each bullet rewrite overrides that down to 28px, and the
-  delete control in the history list is 36px. A pointer target wants at least
-  40px and ideally 44px. The fix is an expanded pseudo-element rather than a
-  bigger visible control, so no layout has to move — but the expanded areas
-  must not overlap, which is why it is not a one-line change.
-- **Status pill text fails WCAG AA.** Measured from the tokens: `pass` is
-  2.07:1 (`--success` on `--success-tint`), `warn` 1.96:1, `fail` 3.30:1, and
-  the `IMPROVED` label on each bullet rewrite 2.07:1. All four are text and all
-  four want 4.5:1. It is not a one-line darkening: `--success` and `--warning`
-  are also the progress-bar and section-meter fills, where they are correct at
-  this lightness, so the fix is a separate pair of text tokens rather than a
-  new value for the existing ones.
+**Fixed since this list was written:** sub-40px hit areas (`.btn::after` now
+expands every button's pointer target to 40px), status pill text below AA
+(pills and the `IMPROVED` label use the `--*-ink` tokens), the form staying
+live mid-analysis (now `inert` and dimmed while busy), and a missing analysis
+reporting `UNKNOWN` (it has its own `ANALYSIS_NOT_FOUND` code).
+
 - **The degraded report's columns were said to come apart. Measured, they do
   not.** This entry claimed the right column ended ~400px above the left on an
   empty keyword panel. Neither half holds: the panel is not empty — it explains
@@ -1582,14 +1575,6 @@ rather than rediscovered.
   that panel rendered nothing, which would have put the right column 204px
   short in the direction described. Kept because the number was quoted for
   several rounds before anyone rendered the state it described.
-- **Nothing marks the form as busy while the request is in flight** except the
-  button label. The drop target still reads and behaves as live, so a second
-  file can be chosen mid-analysis.
-- **A missing analysis reports `UNKNOWN`.** `/analyze/<id>` for an id this tab
-  has never held renders "the analysis stopped for a reason the app doesn't
-  recognise", which describes a failure that did not happen. In session mode
-  every shared or reopened link lands here, so it is the common case, not the
-  edge. It needs its own `ErrorCode` and copy in `lib/errors.ts`.
 - **Three surfaces render one fill — deliberate, not a defect on this list.**
   `.panel` dresses both a container (the file preview, which nests its own
   `.quote-well`) and a passive panel ("What you'll get"), and the

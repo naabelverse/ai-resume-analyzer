@@ -44,6 +44,7 @@ export type ErrorCode =
   | "FEEDBACK_RATE_LIMITED"
   | "FEEDBACK_SEND_FAILED"
   | "NETWORK"
+  | "ANALYSIS_NOT_FOUND"
   | "UNKNOWN";
 
 export interface ErrorCopy {
@@ -316,6 +317,20 @@ export const ERROR_COPY: Record<ErrorCode, ErrorCopy> = {
        also carries the reassurance the old wording buried: nothing was read. */
     message: "Your resume didn't reach us, so nothing was analysed.",
     action: "Check your connection and upload it again.",
+  },
+  /*
+    `/analyze/<id>` for an id the store does not hold. In session mode that is
+    every shared or reopened link, so it is the common case, and it used to
+    render UNKNOWN — reporting a failure that never happened.
+
+    Worded to be true in both persistence modes: the tab-scoped store is the
+    usual reason, deletion the other, and nothing the reader did was wrong.
+  */
+  ANALYSIS_NOT_FOUND: {
+    title: "This analysis isn't here",
+    message:
+      "Nothing went wrong. Results can stay only in the browser tab that created them, so a link opened anywhere else — or one that's been deleted — comes up empty.",
+    action: "Upload the resume again to get a fresh analysis.",
   },
   UNKNOWN: {
     title: "Something went wrong",

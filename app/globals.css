@@ -588,6 +588,24 @@
       color, box-shadow, transform;
     transition-duration: 160ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  /*
+    Pointer target of at least 40px either way, whatever the visible size.
+    `size="sm"` is 36px, the rewrite Copy button 28px; this grows the hit area
+    around them without moving any layout. Centred and only ever expanded, so
+    two neighbours overlap only if their gap is under (40 - size) / 2 — the
+    tightest pair, the dashboard's View and Delete, is 2px apart at 36px.
+  */
+  .btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
   }
 
   .btn:active:not(:disabled) {

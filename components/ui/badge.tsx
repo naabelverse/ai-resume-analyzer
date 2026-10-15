@@ -8,9 +8,9 @@ const badgeVariants = cva(
   {
     variants: {
       tone: {
-        pass: "bg-success-tint text-success",
-        warn: "bg-warning-tint text-warning",
-        fail: "bg-danger-tint text-danger",
+        pass: "bg-success-tint text-success-ink",
+        warn: "bg-warning-tint text-warning-ink",
+        fail: "bg-danger-tint text-danger-ink",
         brand: "bg-brand-tint text-brand-600",
         muted: "bg-muted-tint text-ink-soft",
       },

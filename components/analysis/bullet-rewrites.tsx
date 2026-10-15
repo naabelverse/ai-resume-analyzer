@@ -159,7 +159,7 @@ function RewriteRow({ rewrite }: { rewrite: BulletRewrite }) {
 
         <div className="flex flex-col rounded-panel bg-success-tint/60 p-3">
           <div className="mb-1.5 flex h-7 items-center justify-between gap-2">
-            <p className="text-caption font-semibold tracking-wide text-success uppercase">
+            <p className="text-caption font-semibold tracking-wide text-success-ink uppercase">
               Improved
             </p>
             <Button

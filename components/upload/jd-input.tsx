@@ -117,7 +117,7 @@ export function JobDescriptionInput({
           <span
             className={cn(
               "text-caption tabular-nums",
-              atCap ? "font-medium text-warning" : "text-ink-soft",
+              atCap ? "font-medium text-warning-ink" : "text-ink-soft",
             )}
           >
             {text.length.toLocaleString()} / {JD_MAX_CHARS.toLocaleString()}

@@ -13,9 +13,9 @@ const ICON: Record<Status, typeof Check> = {
 };
 
 const TONE: Record<Status, string> = {
-  pass: "bg-success-tint text-success",
-  warn: "bg-warning-tint text-warning",
-  fail: "bg-danger-tint text-danger",
+  pass: "bg-success-tint text-success-ink",
+  warn: "bg-warning-tint text-warning-ink",
+  fail: "bg-danger-tint text-danger-ink",
 };
 
 /**

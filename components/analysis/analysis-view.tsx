@@ -81,7 +81,7 @@ export function AnalysisView({ id }: { id: string }) {
   if (state.phase === "missing") {
     return (
       <Card>
-        <ErrorState code="UNKNOWN">
+        <ErrorState code="ANALYSIS_NOT_FOUND">
           <Button asChild>
             <Link href="/">Analyse a resume</Link>
           </Button>

@@ -18,6 +18,7 @@ import { JobDescriptionInput } from "./jd-input";
 import { WhatYouGet } from "./what-you-get";
 import { toErrorCode, type ErrorCode } from "@/lib/errors";
 import { newAnalysisId, store } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import type { AnalysisRecord, AnalyzeResponse } from "@/types";
 
 /**
@@ -166,7 +167,21 @@ export function AnalyzeForm() {
         column and its gap supplies the vertical rhythm the children no
         longer carry themselves.
       */}
-      <div className="grid gap-5 min-[880px]:grid-cols-2 min-[880px]:gap-7">
+      {/*
+        `inert` while the request is in flight: the file being analysed must
+        not be removable or replaceable underneath it, and inert takes the
+        whole subtree out of pointer, focus and drop handling in one attribute
+        rather than a `disabled` threaded through every child. The dim is the
+        visible half of the same fact.
+      */}
+      <div
+        inert={busy}
+        aria-busy={busy}
+        className={cn(
+          "grid gap-5 transition-opacity min-[880px]:grid-cols-2 min-[880px]:gap-7",
+          busy && "opacity-60",
+        )}
+      >
         {/* Flex column so the zone — or the preview standing in for it — can
             claim the height the right-hand column sets, with the submit error
             keeping its own space beneath. */}

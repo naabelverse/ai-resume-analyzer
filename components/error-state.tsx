@@ -10,6 +10,7 @@ import {
   MessageSquareText,
   MessageSquareWarning,
   ScanLine,
+  SearchX,
   WifiOff,
   type LucideIcon,
 } from "lucide-react";
@@ -48,6 +49,7 @@ const ICON: Record<ErrorCode, LucideIcon> = {
   FEEDBACK_RATE_LIMITED: Clock,
   FEEDBACK_SEND_FAILED: MailX,
   NETWORK: WifiOff,
+  ANALYSIS_NOT_FOUND: SearchX,
   UNKNOWN: Ban,
 };
 
@@ -95,7 +97,7 @@ export function InlineError({ code }: { code: ErrorCode }) {
   const copy = ERROR_COPY[code];
 
   return (
-    <p role="alert" className="mt-3 text-body text-danger">
+    <p role="alert" className="mt-3 text-body text-danger-ink">
       <span className="font-medium">{copy.message}</span>{" "}
       <span className="text-ink-soft">{copy.action}</span>
     </p>
