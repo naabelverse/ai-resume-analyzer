@@ -4,3 +4,11 @@ allowBuilds:
   prisma: true
   sharp: false
   unrs-resolver: false
+
+# Patched versions the parents' ranges or exact pins would not reach on their
+# own (pnpm audit). Drop each line once upstream ships the fix.
+overrides:
+  # minimatch@10 allows ^5.0.8, but pnpm update stays on 5.0.9.
+  "brace-expansion@^5": ^5.0.12
+  # prisma pins 3.15.3 exactly; the app never loads the MySQL driver.
+  mysql2: ^3.23.1
