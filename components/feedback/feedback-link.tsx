@@ -50,7 +50,7 @@ import { useFeedbackForm } from "./use-feedback-form";
 const ANALYZE_PREFIX = "/analyze/";
 
 /** Where the credit points. A public profile, not contact details. */
-const AUTHOR_URL = "https://www.linkedin.com/in/muhammad-nabil-82b16642b";
+const AUTHOR_URL = "https://www.linkedin.com/in/naabel1910";
 
 /**
  * The footer's one link treatment, worn by both the credit and the trigger so
@@ -139,7 +139,7 @@ export function FeedbackLink() {
             The inner span keeps normal inline flow, so the space between
             "Built by" and the name is a real character rather than a flex
             gap. A gap looks identical on screen and disappears from
-            `textContent` — the line copy-pastes as "Built byMuhammad Nabil"
+            `textContent` — the line copy-pastes as "Built byNaabel"
             and reads that way to anything consuming the text.
 
             The link stays inline rather than becoming an atomic inline-flex
@@ -157,7 +157,7 @@ export function FeedbackLink() {
                 rel="noopener noreferrer"
                 className={cn(QUIET_LINK, "py-1.5")}
               >
-                Muhammad Nabil
+                Naabel
               </a>
             </span>
           </span>

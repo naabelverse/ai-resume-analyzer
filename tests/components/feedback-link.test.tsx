@@ -110,11 +110,11 @@ describe("<FeedbackLink>", () => {
     render(<FeedbackLink />);
 
     const footer = screen.getByRole("contentinfo");
-    const credit = within(footer).getByRole("link", { name: "Muhammad Nabil" });
+    const credit = within(footer).getByRole("link", { name: "Naabel" });
 
     expect(credit).toHaveAttribute(
       "href",
-      "https://www.linkedin.com/in/muhammad-nabil-82b16642b",
+      "https://www.linkedin.com/in/naabel1910",
     );
     // A new tab, and `noopener` so the opened page cannot reach back through
     // `window.opener`. `noreferrer` for good measure.
@@ -126,9 +126,9 @@ describe("<FeedbackLink>", () => {
     expect(line).not.toBeNull();
     expect(within(line!).getByRole("button", { name: "Send feedback" })).toBeInTheDocument();
     // A real space, not a flex gap: a gap looks the same and vanishes from
-    // textContent, so the credit would copy-paste as "Built byMuhammad Nabil".
-    expect(line).toHaveTextContent("Built by Muhammad Nabil");
-    expect(credit.parentElement?.textContent).toBe("Built by Muhammad Nabil");
+    // textContent, so the credit would copy-paste as "Built byNaabel".
+    expect(line).toHaveTextContent("Built by Naabel");
+    expect(credit.parentElement?.textContent).toBe("Built by Naabel");
   });
 
   it("does not announce the separator", () => {
