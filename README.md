@@ -1671,8 +1671,8 @@ Getting there took three things, each worth knowing before touching this:
   with no response. The suite retries those once — and only those; a schema
   failure is a measurement and is never retried away.
 
-Tightest margins: `design/strong` (single runs 83-88, mean 86.0) and
-`backend/middling` (mean 59.3, shared with `quality-spread`). Those are the
+Tightest margins: `finance/middling` (single runs 59-59, mean 59.0) and
+`backend/middling` (single runs 58-60, mean 59.3, shared with `quality-spread`). Those are the
 two to look at first if a prompt change turns this red.
 
 ---
