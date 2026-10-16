@@ -1,24 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { preload } from "react-dom";
 import "./globals.css";
 
 import { FeedbackLink } from "@/components/feedback/feedback-link";
 
-// Body/UI face. Bound to --font-inter, consumed by --font-sans in globals.css.
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-// Display face. Weight 800 only — headings never render lighter.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  weight: ["800"],
-  display: "swap",
-});
+// Fonts are self-hosted from public/fonts and declared in globals.css. Only the
+// latin slices are preloaded, as next/font did: every page renders them, while
+// the other scripts download through unicode-range only when text needs them.
+const PRELOADED_FONTS = [
+  "/fonts/inter-latin.v1.woff2",
+  "/fonts/plus-jakarta-sans-latin.v1.woff2",
+];
 
 export const metadata: Metadata = {
   title: "AI Resume Analyzer",
@@ -26,11 +18,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  for (const href of PRELOADED_FONTS) {
+    // Fonts are always fetched in CORS mode, so a preload without crossOrigin
+    // would not match the real request and the file would download twice.
+    preload(href, { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
+  }
+
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${jakarta.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full antialiased">
       {/*
         The feedback trigger is mounted here rather than in each page, so a
         route added later gets it without anyone remembering to. It sits after
