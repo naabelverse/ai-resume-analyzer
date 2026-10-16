@@ -1672,8 +1672,9 @@ Getting there took three things, each worth knowing before touching this:
   failure is a measurement and is never retried away.
 
 Tightest margins: `finance/middling` (single runs 59-59, mean 59.0) and
-`backend/middling` (single runs 58-60, mean 59.3, shared with `quality-spread`). Those are the
-two to look at first if a prompt change turns this red.
+`backend/middling` (single runs 58-60, mean 59.3, shared with
+`quality-spread`). Those are the two to look at first if a prompt change
+turns this red.
 
 ---
 
