@@ -173,12 +173,20 @@ export function AnalyzeForm() {
         whole subtree out of pointer, focus and drop handling in one attribute
         rather than a `disabled` threaded through every child. The dim is the
         visible half of the same fact.
+
+        `grid-cols-1` is not a no-op. Without it the single column is an
+        implicit `auto` track, whose floor is its content's min-content width
+        — and the file preview's `truncate` filename is `nowrap`, so its
+        min-content is the whole name. A selected file pushed the column to
+        ~336px and both panels past the card's edge on any phone narrower
+        than that. `minmax(0, 1fr)` lets the track shrink, and the truncation
+        the preview already asks for finally gets to happen.
       */}
       <div
         inert={busy}
         aria-busy={busy}
         className={cn(
-          "grid gap-5 transition-opacity min-[880px]:grid-cols-2 min-[880px]:gap-7",
+          "grid grid-cols-1 gap-5 transition-opacity min-[880px]:grid-cols-2 min-[880px]:gap-7",
           busy && "opacity-60",
         )}
       >
