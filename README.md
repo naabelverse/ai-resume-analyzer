@@ -4,6 +4,10 @@ Upload a resume, optionally paste a job description, and get a real
 AI-generated review: a 0–100 score against a weighted rubric, pass/warn/fail
 feedback that quotes your actual bullets, semantic keyword matching against the
 job description, a per-section breakdown, and concrete bullet rewrites.
+Problems the rubric does not score — an unexplained gap, a spelling error — get
+their own "Things to fix" card. Past analyses are one click away in the header
+(kept per browser tab by default, across sessions with a database), and the
+footer carries a feedback form.
 
 The interesting part is not that it calls an LLM. It is what happens when the
 LLM is unavailable, returns something malformed, refuses, or runs out of tokens
@@ -16,7 +20,7 @@ Railway. `/analyze/demo` there renders a full sample report without touching a
 provider, so the layout is visible before uploading anything.
 
 ![Landing page](docs/screenshot-landing.png)
-![AI Resume Analyzer](docs/screenshot.png)
+![Sample report at /analyze/demo](docs/screenshot.png)
 
 ---
 
@@ -38,9 +42,10 @@ production outage takes, so it is worth seeing once on purpose.
 key and no request.
 
 ```bash
-pnpm test         # 538 tests, no network
+pnpm test         # 559 tests, no network
 pnpm test:live    # one real analysis against your key
 pnpm test:quality # twelve real calls: does the score discriminate?
+pnpm test:eval    # 36 real calls: 4 roles × 3 tiers × 3 runs, in band?
 pnpm build        # type check and production build
 pnpm lint         # separate: Next 16 removed linting from `next build`
 ```
@@ -49,8 +54,17 @@ pnpm lint         # separate: Next 16 removed linting from `next build`
 (default 3) for the score spread, plus one call per job description in
 `KEYWORD_JDS` — tech, nursing and creative — for the keyword shape checks.
 
+The three live suites spend real API credits on the selected provider; `pnpm
+test` never does. `pnpm test:eval` is the expensive one — see
+[Eval set](#eval-set).
+
 **Requires Node 22.13 or newer** (developed on 24) and pnpm. The floor is not
 `>=20`; see [Node version](#node-version) for the deploy this broke.
+
+**Stack:** Next.js 16.3 (App Router) · React 19.2 · TypeScript 5 · Tailwind
+CSS 4 · Zod 4 · Prisma 7 on SQLite (optional) · unpdf and mammoth for
+extraction · the OpenAI SDK against NVIDIA NIM, or the Anthropic SDK ·
+Resend for the feedback form · Vitest 4.
 
 ---
 
@@ -65,6 +79,7 @@ drift.
 | --- | --- | --- | --- |
 | `AI_PROVIDER` | No | `nvidia` | `nvidia` or `anthropic`. Selects the transport. |
 | `AI_MODEL` | No | `nvidia/nemotron-3-super-120b-a12b`; `claude-sonnet-5` when `AI_PROVIDER=anthropic` | Read from the environment at every call site. The per-provider defaults live in `lib/env.ts` and nowhere else. |
+| `ANTHROPIC_MODEL` | No | — | Legacy alias, predating `AI_MODEL`. Honoured only when `AI_PROVIDER=anthropic` and `AI_MODEL` is unset, so an older `.env.local` keeps working. Not in `.env.example`; use `AI_MODEL` instead. |
 | `NVIDIA_API_KEY` | With `nvidia` | — | Server-side only. Free from build.nvidia.com. |
 | `NVIDIA_BASE_URL` | No | `https://integrate.api.nvidia.com/v1` | Override only to point at a self-hosted NIM container. |
 | `NVIDIA_ENABLE_THINKING` | No | `false` | Off deliberately; the measurement is in [What running on an open-weight model actually cost](#what-running-on-an-open-weight-model-actually-cost). |
@@ -301,8 +316,8 @@ Findings from probing the live API, not from documentation:
 Verify against your own key with `pnpm test:live` — it prints the full raw
 response before parsing, whether Zod passed first try or retried, elapsed time,
 and the parsed result. `pnpm test:quality` runs the spread measurement above.
-Both are excluded from `pnpm test` so neither ever spends credits in CI; they
-run through `vitest.live.config.mts`.
+Both are excluded from `pnpm test`, as is `pnpm test:eval`, so none of them
+ever spends credits in CI; all three run through `vitest.live.config.mts`.
 
 ### Failure modes specific to NVIDIA's free tier
 
@@ -1384,7 +1399,10 @@ tell is a run in which no `detail` needs stripping.
 
 ## Resume history (optional)
 
-Set the following in `.env.local`, then run `pnpm db:migrate`:
+`/dashboard` ("Past analyses" in the header) works out of the box: with the
+default `PERSISTENCE=session` it lists the analyses from this browser tab, and
+they clear when the tab closes. For history that survives across sessions, set
+the following in `.env.local`, then run `pnpm db:migrate`:
 
 ```ini
 PERSISTENCE=db
@@ -1392,10 +1410,10 @@ NEXT_PUBLIC_PERSISTENCE=db
 DATABASE_URL=file:./prisma/dev.db
 ```
 
-`/dashboard` then lists past analyses with a delete action. Both flags are
-needed because the server and the browser each choose a store implementation,
-and a server-only variable would read as `undefined` in the browser and silently
-pin everyone to session mode.
+`/dashboard` then lists past analyses from the database, with a delete action.
+Both flags are needed because the server and the browser each choose a store
+implementation, and a server-only variable would read as `undefined` in the
+browser and silently pin everyone to session mode.
 
 Every database call goes through `withDb()` in `lib/db.ts`, which returns a
 fallback instead of throwing. **Delete `prisma/dev.db` and the app keeps
@@ -1508,7 +1526,7 @@ prompts.
 
 ### Steps
 
-1. Create a Railway project from the GitHub repo. Nixpacks detects Node and
+1. Create a Railway project from the GitHub repo. Railway detects Node and
    pnpm on its own; no Dockerfile is needed.
 2. Leave the build and start commands alone. `next build` and `next start` are
    already right, and `next start` reads `PORT` from the environment and binds
@@ -1551,21 +1569,30 @@ Everything else has a working default and can be left unset.
 
 ```
 app/
+  page.tsx                    upload form
+  analyze/[id]/page.tsx       server shell; the `demo` id serves the sample
+  dashboard/page.tsx          past analyses
   api/analyze/route.ts        validate → extract → measure → model → validate
   api/extract/route.ts        the same extraction, without the analysis
   api/analyses/               history CRUD
   api/feedback/route.ts       feedback form → Resend, two rate-limit buckets
   api/health/route.ts         readiness without echoing secrets
-  analyze/[id]/page.tsx       server shell around the client view
+components/                   upload · analysis · dashboard · feedback · layout · ui
 lib/
-  ai/         providers (server-only), analyze (retry + degrade), prompts
-  extract/    magic-byte dispatch, unpdf, mammoth, normalise, truncate
-  schema/     the two-schema strategy
-  store/      persistence seam: session · remote, one interface
-  scoring.ts  deterministic checks + the degraded report
-  errors.ts   typed failures, one copy map for the whole app
-  mail.ts     the one place this app sends mail from
-tests/        538 tests; fixtures are built in memory, not committed
+  ai/                         providers (server-only), analyze (retry + degrade), prompts
+  extract/                    magic-byte dispatch, unpdf, mammoth, normalise, truncate
+  schema/                     the two-schema strategy
+  store/                      persistence seam: session · remote, one interface
+  scoring.ts                  deterministic checks + the degraded report
+  errors.ts                   typed failures, one copy map for the whole app
+  limits.ts                   caps shared by browser and server (no server-only guard)
+  rate-limit.ts               in-process limiter for analyze, extract and feedback
+  text.ts                     post-validation repairs: truncation, markers, figures
+  feedback.ts                 feedback form validation
+  mail.ts                     the one place this app sends mail from
+  placeholder.ts              the static sample behind /analyze/demo
+instrumentation.ts            reports config problems once at boot, never throws
+tests/                        559 tests; fixtures are built in memory, not committed
 ```
 
 ---
