@@ -12,3 +12,7 @@ overrides:
   "brace-expansion@^5": ^5.0.12
   # prisma pins 3.15.3 exactly; the app never loads the MySQL driver.
   mysql2: ^3.23.1
+  # @vitejs/plugin-react and vitest ranges allow it, but the lock sat on 8.2.1.
+  vite: ^8.2.4
+  # @typescript-eslint/typescript-estree asks ^10.2.2; the fix is only in 11.
+  "minimatch@^10": ^11.0.1
