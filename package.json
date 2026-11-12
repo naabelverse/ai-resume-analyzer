@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
-    "@prisma/adapter-better-sqlite3": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@radix-ui/react-collapsible": "^1.1.20",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-progress": "^1.1.16",
@@ -33,7 +33,7 @@
     "framer-motion": "^13.1.0",
     "lucide-react": "^1.31.0",
     "mammoth": "^1.12.1",
-    "next": "16.3.8",
+    "next": "16.4.1",
     "openai": "^7.5.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -41,7 +41,7 @@
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
     "unpdf": "^1.8.1",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -54,12 +54,12 @@
     "@vitejs/plugin-react": "^6.0.5",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "16.4.1",
     "jsdom": "^30.0.1",
-    "prisma": "^7.9.1",
+    "prisma": "^7.10.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "packageManager": "pnpm@11.22.0"
 }
