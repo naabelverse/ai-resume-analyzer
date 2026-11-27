@@ -16,3 +16,5 @@ overrides:
   vite: ^8.2.4
   # @typescript-eslint/typescript-estree asks ^10.2.2; the fix is only in 11.
   "minimatch@^10": ^11.0.1
+  # prisma pins 3.20.0 exactly (ReDoS in Schema.TemplateLiteral).
+  effect: ^3.22.1
